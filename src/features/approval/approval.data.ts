@@ -1,0 +1,120 @@
+import type { ApprovalEntry, ApprovalSummary } from "./approval.types";
+
+/**
+ * Mock data for the Approval screen. Replace with RTK Query endpoints
+ * (see the TODO(api) note in approval.types.ts) once the real list/summary
+ * contract is confirmed.
+ */
+
+export const approvalSummary: ApprovalSummary = {
+  pendingCount: 3,
+  pendingAmountKHRLabel: "16,800,000.00 KHR",
+  pendingAmountUSDLabel: "24,775.00 USD",
+  typeBreakdown: [
+    { label: "Bakong Transfer", count: 3 },
+    { label: "Own Bank Transfer", count: 2 },
+    { label: "Payroll", count: 1 },
+  ],
+};
+
+export const pendingApprovalEntries: ApprovalEntry[] = [
+  {
+    id: "1",
+    creationDate: "2026-07-01T08:15:00Z",
+    transactionType: "New Payroll",
+    transactionId: "1000FT36154684974",
+    refNo: "22100000013254",
+    amount: 275,
+    fee: 0,
+    currency: "USD",
+    payToName: "Mina Rous",
+    payToAccountNo: "081 074 5747",
+    sourceAccountName: "SOLUTION CO.,LTD.",
+    sourceAccountNo: "062 074 5747",
+    pendingOn: "You",
+    status: "PENDING",
+  },
+  {
+    id: "2",
+    creationDate: "2026-07-01T00:00:00Z",
+    transactionType: "Bakong Transfer",
+    transactionId: "1000FT36154684975",
+    refNo: "2210000001325",
+    amount: 1000,
+    fee: 0,
+    currency: "USD",
+    payToName: "Tiv EkSokritya",
+    payToAccountNo: "081 074 5747",
+    sourceAccountName: "SOLUTION CO.,LTD.",
+    sourceAccountNo: "062 074 5747",
+    pendingOn: "You",
+    status: "PENDING",
+  },
+  {
+    id: "3",
+    creationDate: "2026-07-01T00:00:00Z",
+    transactionType: "Transfer",
+    transactionId: "1000FT36154684976",
+    refNo: "22100000013254",
+    amount: 23500,
+    fee: 0,
+    currency: "USD",
+    payToName: "Lev Pineth",
+    payToAccountNo: "081 074 5747",
+    sourceAccountName: "SOLUTION CO.,LTD.",
+    sourceAccountNo: "062 074 5747",
+    pendingOn: "You",
+    status: "PENDING",
+  },
+  {
+    id: "4",
+    creationDate: "2026-07-01T00:00:00Z",
+    transactionType: "Transfer",
+    transactionId: "1000FT36154684977",
+    refNo: "22100000013254",
+    amount: 16_800_000,
+    fee: 0,
+    currency: "KHR",
+    payToName: "Lev Pineth",
+    payToAccountNo: "081 074 5747",
+    sourceAccountName: "SOLUTION CO.,LTD.",
+    sourceAccountNo: "062 074 5747",
+    pendingOn: "You",
+    status: "PENDING",
+  },
+];
+
+export const approvalHistoryEntries: ApprovalEntry[] = [
+  {
+    id: "5",
+    creationDate: "2026-06-28T00:00:00Z",
+    transactionType: "Own Bank Transfer",
+    transactionId: "1000FT36154684960",
+    refNo: "22100000013100",
+    amount: 500,
+    fee: 0,
+    currency: "USD",
+    payToName: "Chan Dara",
+    payToAccountNo: "081 074 5747",
+    sourceAccountName: "SOLUTION CO.,LTD.",
+    sourceAccountNo: "062 074 5747",
+    pendingOn: "You",
+    status: "APPROVED",
+  },
+  {
+    id: "6",
+    creationDate: "2026-06-25T00:00:00Z",
+    transactionType: "Bakong Transfer",
+    transactionId: "1000FT36154684961",
+    refNo: "22100000012987",
+    amount: 1200,
+    fee: 0,
+    currency: "USD",
+    payToName: "Sok Ratha",
+    payToAccountNo: "081 074 5747",
+    sourceAccountName: "SOLUTION CO.,LTD.",
+    sourceAccountNo: "062 074 5747",
+    pendingOn: "You",
+    status: "REJECTED",
+  },
+];

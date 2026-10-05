@@ -1,0 +1,279 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "components": "Components",
+    "client-dashboard": "Client Dashboard",
+    "Account": "Account",
+    "Limits": "Limits",
+    "Loan": "Loan",
+    "Transfers": "Transfers",
+    "Payments": "Payments",
+    "Schedule": "Schedule",
+    "Payroll": "Payroll",
+    "Merchant": "Merchant",
+    "Administrator": "Administrator",
+    "users": "Users",
+    "rbac": "Roles & Permissions",
+    "mobile-activate": "Mobile Activate",
+    "settings": "Settings",
+    "help": "Help & Support",
+    "logout": "Logout",
+    "approvalRequests": "Request approvals",
+    "approvalSetup": "Approval Matrix",
+    "approvalApprovers": "Approver"
+  },
+  "topbar": {
+    "logout": "Logout",
+    "profile": "Profile",
+    "settings": "Settings",
+    "changePassword": "Change Password",
+    "limitManagement": "Limit Management",
+    "notificationsManagement": "Notifications Management"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Overview of the corporate banking back office",
+    "placeholder": "Dashboard widgets coming soon."
+  },
+  "account": {
+    "transactionDetails": {
+      "title": "Transaction Details",
+      "from": "From",
+      "to": "To",
+      "statusSuccess": "Success",
+      "statusPending": "Pending",
+      "options": "Options",
+      "downloadPdf": "Download in PDF",
+      "downloadAria": "Download transaction receipt"
+    }
+  },
+  "login": {
+    "welcome": "Login to SME Bank Biz",
+    "subtitle": "Sign in to your account to continue",
+    "userId": "User ID",
+    "userIdPlaceholder": "Enter User ID",
+    "password": "Password",
+    "passwordPlaceholder": "Enter Password",
+    "agreeTerms": "I have read and agreed to the",
+    "forgotPassword": "Forgot Password",
+    "signIn": "Login",
+    "signingIn": "Signing in...",
+    "signUpPrompt": "For Individual Business User",
+    "signUp": "Sign Up",
+    "supportPrompt": "Need help? Call",
+    "loginSuccessTitle": "Login Successful",
+    "loginSuccessMessage": "Welcome to SME Bank Biz!",
+    "error": {
+      "userIdRequired": "User ID is required",
+      "userIdMin": "User ID must be at least 6 characters",
+      "userIdInvalid": "User ID can only contain letters, numbers, periods (.) and underscores (_)",
+      "passwordRequired": "Password is required",
+      "termsRequired": "Please agree to the Terms & Conditions"
+    },
+    "otp": {
+      "title": "Security Verification",
+      "description": "We've sent a One-Time Password (OTP) to your registered mobile number ending in {phone}. ",
+      "expiresIn": "Expires in: {seconds}s",
+      "resendPrompt": "Didn't get the code?",
+      "resend": "Resend",
+      "resent": "A new OTP has been sent.",
+      "resendFailed": "Unable to resend the OTP. Please try again.",
+      "verify": "Verify",
+      "verifying": "Verifying...",
+      "invalidCode": "Invalid OTP. Please try again.",
+      "expiredCode": "Session expired. Resend a new one.",
+      "sessionExpired": "This 6-digits has expired. Input a recently one.",
+      "success": "OTP Success"
+    },
+    "setupPassword": {
+      "title": "Setup Password",
+      "description": "Enter and confirm your new password. Your password must comply with the security requirements below.",
+      "newPassword": "New Password",
+      "newPasswordPlaceholder": "Enter Password",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Enter Confirm Password",
+      "mismatch": "Password does not match",
+      "confirm": "Confirm",
+      "confirming": "Confirming...",
+      "error": "Unable to sign in right now. Please try again.",
+      "success": {
+        "title": "Success",
+        "description": "Password has been updated successfully.",
+        "subtitle": "Your account is ready. Select Done to continue to your dashboard.",
+        "signInSubtitle": "You can now sign in using your new password.",
+        "done": "Done"
+      }
+    },
+    "forgotPasswordFlow": {
+      "description": "Enter your information to verify.",
+      "userIdPlaceholder": "Enter your user ID",
+      "mobile": "Mobile No.",
+      "mobilePlaceholder": "eg: 12998843",
+      "next": "Next",
+      "submitting": "Next...",
+      "error": "Unable to send verification code right now. Please try again.",
+      "resetPassword": {
+        "title": "Reset Password",
+        "description": "Enter and confirm your new password. Your password must comply with the security requirements below.",
+        "confirm": "Confirm",
+        "confirming": "Confirming...",
+        "error": "Unable to reset password right now. Please try again."
+      },
+      "success": {
+        "title": "Success",
+        "description": "Password has been updated successfully.",
+        "subtitle": "You can now sign in using your new password.",
+        "done": "Done"
+      }
+    },
+    "signUpFlow": {
+      "title": "Sign Up",
+      "accountNumber": "Account Number",
+      "accountNumberPlaceholder": "Enter SME account",
+      "idNumber": "ID",
+      "idNumberPlaceholder": "Enter NID / Passport number",
+      "mobile": "Mobile Number",
+      "phonePlaceholder": "00 000 0000",
+      "signUp": "Sign Up",
+      "signingUp": "Signing up...",
+      "signInPrompt": "Already have an account?",
+      "signIn": "Login",
+      "error": {
+        "accountNumberRequired": "Account Number is required",
+        "idNumberRequired": "ID is required",
+        "phoneRequired": "Mobile Number is required",
+        "phoneMax": "Please enter a number less than 15 digits",
+        "phoneMin": "Please enter a number more than 5 digits",
+        "termsRequired": "Please agree to the Terms & Conditions"
+      },
+      "submitError": "Unable to sign up right now. Please try again.",
+      "success": {
+        "title": "Application Under Review",
+        "description": "Thank you for signing up! Our team is currently reviewing your application to ensure your account security.",
+        "subtitle": "",
+        "done": "Done"
+      }
+    }
+  },
+  "mobileBinding": {
+    "state": {
+      "checking": "Checking device…",
+      "linked": "Device linked",
+      "notLinked": "Not linked"
+    },
+    "title": "Activate Mobile Banking",
+    "subtitle": "Link your SME Bank mobile app securely",
+    "activatePrompt": {
+      "title": "Activate App",
+      "description": "Before you start, activate your SME Bank Biz App to securely access all features.",
+      "signOut": "Sign Out",
+      "getStarted": "Get Started"
+    },
+    "signedInAs": "Signed in as <user>{name}</user>",
+    "creating": "Preparing a secure QR code…",
+    "loading": "Loading mobile activation…",
+    "qrAlt": "SME Bank mobile activation QR code",
+    "qrTimeLabel": "QR code expires in",
+    "pinTimeLabel": "Complete mobile activation within",
+    "generateAgain": "Generate a new QR code",
+    "retry": "Try again",
+    "done": "Done",
+    "scan": {
+      "title": "Scan For Activate",
+      "instruction": "Scan this QR with",
+      "appName": "SME Bank Biz App",
+      "expireIn": "Expire in {seconds}s",
+      "noAppQuestion": "No SME Bank Biz App in phone?",
+      "availableIn": "Available in",
+      "playStore": "Play Store",
+      "appStore": "App Store"
+    },
+    "pending": {
+      "heading": "Scan with the SME Bank mobile app",
+      "description": "First sign in on your mobile, then scan this QR code to link the device."
+    },
+    "scanned": {
+      "heading": "QR code scanned",
+      "description": "Verify the activation OTP, then set up your PIN in the mobile app. This window will update automatically."
+    },
+    "success": {
+      "label": "Success",
+      "heading": "Activated App",
+      "description": "Before you start, activate your SME Bank Biz App to securely access all features.",
+      "closing": "Close in {seconds}s"
+    },
+    "expired": {
+      "heading": "QR code expired",
+      "description": "Generate a new QR code and scan it before the countdown ends."
+    },
+    "cancelled": {
+      "heading": "Activation cancelled",
+      "description": "This QR code is no longer active. Generate a new one to continue."
+    },
+    "bound": {
+      "heading": "Linked Device",
+      "lastLogin": "Last Login",
+      "unlink": "Unlink Device"
+    },
+    "unlink": {
+      "title": "Password",
+      "description": "The linked mobile app will lose access. You will need to authenticate, scan a new QR code, verify the OTP, and set up a PIN before using Mobile Banking again.",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "termsLabel": "I've read and agree to the",
+      "confirm": "Next",
+      "close": "Close",
+      "successLabel": "Success",
+      "successTitle": "Unlinked Device",
+      "successMessage": "Your phone has been unlinked from the web portal.",
+      "closing": "Close in {seconds}s"
+    },
+    "errors": {
+      "createTitle": "Couldn't create activation QR",
+      "statusTitle": "Couldn't check activation status",
+      "unlinkTitle": "Couldn't unlink mobile device",
+      "description": "Mobile activation could not be loaded. Please try again."
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "message": "The page you're looking for doesn't exist, or it has moved.",
+    "backToDashboard": "Back to dashboard",
+    "goBack": "Go back"
+  },
+  "session": {
+    "logout": "Log out",
+    "staySignedIn": "Stay signed in",
+    "refreshFailed": "We couldn't extend your session. Please try again.",
+    "idle": {
+      "title": "Are you still there?",
+      "description": "You haven't been active for a while. To keep your account safe, you'll be logged out in"
+    },
+    "token": {
+      "title": "Your session is about to expire",
+      "description": "Stay signed in to keep working, or you'll be logged out in"
+    },
+    "limit": {
+      "title": "Your session will end soon",
+      "description": "Sessions can last up to {hours} hours. Save your work — you'll be logged out in",
+      "confirm": "OK"
+    },
+    "ended": {
+      "idle": {
+        "title": "You've been logged out",
+        "message": "You were inactive for too long, so we logged you out to keep your account safe."
+      },
+      "expired": {
+        "title": "Session expired",
+        "message": "Your session has ended. Please log in again."
+      }
+    }
+  },
+  "errorDialog": {
+    "okay": "Okay",
+    "copyReference": "Copy reference",
+    "copied": "Copied"
+  }
+}

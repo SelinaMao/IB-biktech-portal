@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+.vscode
+node_modules
+coverage
+src
+.env*
+*.log
+README.md
+# The runner builds before `docker build`; only the standalone output belongs in the
+# context. .next/cache alone can be hundreds of MB.
+.next/*
+!.next/standalone
+!.next/static

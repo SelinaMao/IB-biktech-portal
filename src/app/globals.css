@@ -1,0 +1,21 @@
+/*
+ * CSS layer order — declared BEFORE Tailwind is imported so it wins.
+ *
+ * Priority (low → high):  theme → base → mui → components → utilities
+ *   - Tailwind `base` (preflight) sits BELOW `mui`, so MUI's CssBaseline reset
+ *     is authoritative and Tailwind's preflight can't clobber MUI components.
+ *   - Tailwind `utilities` sit ABOVE `mui`, so you can nudge any MUI element
+ *     with a utility class (`className="mt-4"`) without `!important`.
+ *
+ * Emotion injects MUI styles into the `mui` layer via `enableCssLayer` on the
+ * AppRouterCacheProvider (see theme/ThemeRegistry.tsx). Colors/background are
+ * owned by the MUI theme + CssBaseline, not by raw CSS here.
+ */
+@layer theme, base, mui, components, utilities;
+
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-noto-khmer);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
