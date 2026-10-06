@@ -21,7 +21,9 @@ export function proxy(request: NextRequest) {
     request.cookies.has(`${ACCESS_TOKEN_COOKIE}.0`);
   const isLoginPage = pathname === "/login";
   const isSignupPage = pathname === "/signup";
-  const isPublicPage = isLoginPage || isSignupPage;
+  const isOtp = pathname === "/otp"
+  const isSuccess = pathname === "/success"
+  const isPublicPage = isLoginPage || isSignupPage || isOtp || isSuccess;
 
   if (!hasSession && !isPublicPage) {
     const url = request.nextUrl.clone();

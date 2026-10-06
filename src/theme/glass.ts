@@ -9,12 +9,12 @@ import { alphaWhite, palette, radius } from "./palette";
 
 /** The frosted right-side panel on the login page. */
 export const glassPanelSx = {
-  background:
-    "linear-gradient(180deg, rgba(0,13,92,0.70) 0%, rgba(23,46,183,0.70) 100%)",
+  background:"#ffffff",
+    // "linear-gradient(180deg, rgba(0,13,92,0.70) 0%, rgba(23,46,183,0.70) 100%)",
   backdropFilter: "blur(20px) saturate(180%)",
   WebkitBackdropFilter: "blur(20px) saturate(180%)",
   // boxShadow: "-8px 0 32px rgba(0,0,0,0.18)",
-  borderRadius: { xs: 0, md: `${radius.xl + 8}px 0 0 ${radius.xl + 8}px` },
+  // borderRadius: { xs: 0, md: `${radius.xl + 8}px 0 0 ${radius.xl + 8}px` },
 } as const;
 
 /** White-on-glass input styling (TextField / Select on the glass panel). */
@@ -38,14 +38,14 @@ export const glassInputSx = {
 
 /** Checkbox on the glass panel. */
 export const glassCheckboxSx = {
-  color: alphaWhite(0.5),
-  "&.Mui-checked": { color: palette.navy[800] },
+  color: "#0D9488",
+  "&.Mui-checked": { color: "#0D9488", },
 } as const;
 
 /** Checkbox error/helper text on the glass panel — danger.main is unreadable
  * on navy, use the light tint (same as glassInputSx helper). */
 export const glassCheckboxHelperSx = {
-  "&.Mui-error": { color: palette.danger[970] },
+  "&.Mui-error": { color: "#0D9488", },
 } as const;
 
 /** Muted / body / faint text tones on the glass panel. */

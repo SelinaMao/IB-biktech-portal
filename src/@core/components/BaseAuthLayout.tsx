@@ -4,252 +4,563 @@ import type { ReactNode } from "react";
 import { Box, Link, Stack, Typography } from "@mui/material";
 import Image from "next/image";
 
-import { glassPanelSx, glassText } from "@/theme/glass";
-import { font, palette } from "@/theme/palette";
 import { SwitchLanguageMenu } from "@core/components/SwitchLanguageMenu";
 
-const FOOTER_LINKS = ["FAQ", "User Guide", "Contact Us", "Security", "Privacy"];
+const FOOTER_LINKS = [
+  "FAQs",
+  "User Guide",
+  "Contact Us",
+  "Security",
+  "Privacy Policy",
+];
 
 export type BaseAuthLayoutProps = {
-  /** Rendered inside the shared title Typography, above the form. */
+  /** Rendered inside the shared title Typography or node, above the form. */
   title: ReactNode;
   /** Form content, rendered below the title. */
   children: ReactNode;
-  /** Optional content (e.g. a "Login" link) centered in the gap between the form and the footer links. */
+  /** Optional content (e.g. a "Login" link) rendered below the form. */
   belowForm?: ReactNode;
-  /** Dialogs / overlays (OTP, password setup, etc.) rendered outside the glass panel. */
+  /** Dialogs / overlays (OTP, password setup, etc.) rendered outside the main panel. */
   overlays?: ReactNode;
   signUp?: boolean;
-  /**
-   * When true, the top spacer keeps the same minHeight floor as the bottom
-   * spacer so the gap above the header and the gap below the footer stay
-   * equal even when the form (e.g. sign up's validation errors) eats into
-   * the leftover space. Defaults to false to keep login's current spacing.
-   */
   symmetricSpacing?: boolean;
 };
 
 /**
- * Shared shell for the login / sign up screens: background image, glass
- * panel, header, logo and footer links. Pages only supply the title and the
- * form body — everything else stays visually identical between screens.
+ * Shared responsive shell for auth screens:
+ * - Left column: Financial Decision Hero graphic (Desktop)
+ * - Right column: Language switcher, brand logo, title, form, and footer links (Responsive)
  */
-export default function BaseAuthLayout({ title, children, belowForm, overlays, symmetricSpacing = false, signUp = true }: BaseAuthLayoutProps) {
+export default function BaseAuthLayout({
+  title,
+  children,
+  belowForm,
+  overlays,
+}: BaseAuthLayoutProps) {
   return (
     <Box
       sx={{
         minHeight: "100vh",
         display: "flex",
-        justifyContent: { xs: "center", md: "flex-end" },
-        alignItems: "stretch",
+        flexDirection: { xs: "column", md: "row" },
+        bgcolor: "#FFFFFF",
         position: "relative",
-        overflow: "hidden",
       }}
     >
-      {/* ---------- Background Image ---------- */}
-      <Box
-        aria-hidden
-        sx={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 0,
-          backgroundImage: 'url("/branding/screen.png")',
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      />
-
-      {/* ---------- Form panel overlaid on right side ---------- */}
+      {/* ======================================================== */}
+      {/* LEFT COLUMN: Hero Financial Decision Banner (Desktop)   */}
+      {/* ======================================================== */}
       <Box
         sx={{
-          width: { xs: "100%", sm: "100%", md: 520, lg: 610 },
-          height: "100vh",
-          maxHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
+          display: { xs: "none", md: "flex" },
+          flex: { md: "1 1 50%", lg: "1 1 48%", xl: "1 1 50%" },
+          minHeight: "100vh",
+          bgcolor: "#051329",
+          backgroundImage:
+            "radial-gradient(circle at 18% 46%, #0B254E 0%, #06162D 58%, #030B17 100%)",
           position: "relative",
-          zIndex: 1,
-          px: { xs: 3, sm: 6, lg: 8 },
-          py: { xs: 2, md: 5, lg: 5 },
-          overflowX: "hidden",
-          overflowY: { xs: "auto", md: "hidden" },
-          ...glassPanelSx,
-          opacity: 0.8,
+          overflow: "hidden",
+          alignItems: "center",
+          justifyContent: "center",
+          p: { md: 4, lg: 6, xl: 8 },
         }}
       >
-        {/* Uncapped spacer: on tall viewports, absorbs half of the leftover
-            height (mirrored by the matching spacer after the footer) so
-            extra space splits evenly above/below instead of piling up on
-            one side. Weighted lowest so the header/footer gaps get first
-            claim on any scarce leftover space. */}
+        {/* Decorative Concentric Rings */}
         <Box
+          component="svg"
+          viewBox="0 0 800 800"
           sx={{
-            flexGrow: 1,
-            flexShrink: 1,
-            flexBasis: 0,
-            // minHeight: symmetricSpacing ? { xs: 5, sm: 5 } : 0,
-          }}
-        />
-
-        {/* 1. Header (Fixed Height) */}
-        <Stack
-          direction="row"
-          sx={{
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
+            position: "absolute",
+            top: "50%",
+            left: "15%",
+            transform: "translate(-50%, -50%)",
+            width: 950,
+            height: 950,
+            pointerEvents: "none",
+            zIndex: 0,
+            opacity: 0.35,
           }}
         >
-          <Box sx={{ flex: { xs: "unset", md: 1 } }} />
-          <SwitchLanguageMenu />
-        </Stack>
+          <circle
+            cx="400"
+            cy="400"
+            r="160"
+            fill="none"
+            stroke="rgba(56, 189, 248, 0.16)"
+            strokeWidth="1"
+          />
+          <circle
+            cx="400"
+            cy="400"
+            r="260"
+            fill="none"
+            stroke="rgba(56, 189, 248, 0.12)"
+            strokeWidth="1"
+          />
+          <circle
+            cx="400"
+            cy="400"
+            r="370"
+            fill="none"
+            stroke="rgba(56, 189, 248, 0.08)"
+            strokeWidth="1"
+          />
+          <circle
+            cx="400"
+            cy="400"
+            r="480"
+            fill="none"
+            stroke="rgba(56, 189, 248, 0.05)"
+            strokeWidth="1"
+          />
+        </Box>
 
-        {/* Capped spacer: caps the header-to-form gap on tall viewports.
-            Weighted above the top spacer so it gets first claim on scarce
-            leftover space. Matches the form-to-footer spacer's weight so
-            the gaps above and below the form stay equal. */}
-        <Box sx={{ flexGrow: 4, flexShrink: 1, flexBasis: 0, maxHeight: { xs: 24, sm: 40, md: 72 } }} />
-
-        {/* 2. Form (Fixed Height) */}
+        {/* Hero Content Container */}
         <Box
           sx={{
-            flexShrink: 0,
+            width: "100%",
+            maxWidth: 460,
+            position: "relative",
+            zIndex: 1,
             display: "flex",
             flexDirection: "column",
-            maxWidth: 510,
-            width: "100%",
-            mx: "auto",
-            "@media (max-height: 768px)": {
-              py: 0,
-            },
           }}
         >
-          {/* Logo */}
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{
-              alignItems: "center",
-              justifyContent: "center",
-              mb: { xs: 1.5, md: 2 },
-            }}
-          >
-            <Box
-              sx={{
-                width: { xs: 140, sm: 170, md: 200, lg: 220 },
-                height: "auto",
-                display: "flex",
-                justifyContent: "center",
-                "@media (max-width: 1440px)": {
-                  width: 200,
-                },
-                "@media (max-height: 700px)": {
-                  width: 180,
-                },
-              }}
-            >
-              <Image
-                src="/branding/logo.png"
-                alt="SME Bank"
-                loading="eager"
-                width={220}
-                height={220}
-                style={{ width: "100%", height: "auto", objectFit: "contain" }}
-              />
-            </Box>
-          </Stack>
-
-          {/* Form Title */}
+          {/* Main Headline */}
           <Typography
             variant="h3"
             sx={{
-              mb: { xs: 1.5, md: 2.5 },
-              fontSize: { xs: "1.25rem", sm: "1.5rem", md: "1.75rem" },
-              textAlign: "center",
-              color: palette.white,
+              color: "#FFFFFF",
+              fontWeight: 700,
+              fontSize: { md: "2.1rem", lg: "2.5rem" },
+              lineHeight: 1.22,
+              letterSpacing: "-0.02em",
+              mb: 2,
             }}
           >
-            {title}
+            Clarity for every financial decision.
           </Typography>
 
-          {children}
-        </Box>
+          {/* Subtitle */}
+          <Typography
+            sx={{
+              color: "#94A3B8",
+              fontSize: "1rem",
+              lineHeight: 1.6,
+              mb: 5,
+              maxWidth: 420,
+            }}
+          >
+            See the full picture, move money with confidence, and make progress
+            toward what matters.
+          </Typography>
 
-        {/* Capped spacer: caps the form-to-footer gap on tall viewports.
-            Matches the header-to-form spacer's weight so the gaps above
-            and below the form stay equal. Also centers optional belowForm
-            content (e.g. sign up's "Login" link) within that gap. */}
+          {/* Financial Preview Card */}
+          <Box
+            sx={{
+              position: "relative",
+              width: "100%",
+              maxWidth: 450,
+              bgcolor: "rgba(11, 26, 48, 0.85)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "20px",
+              p: 3,
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.6)",
+              backdropFilter: "blur(14px)",
+            }}
+          >
+            {/* Card Header */}
+            <Stack
+              direction="row"
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                mb: 1,
+              }}
+            >
+              <Box>
+                <Typography
+                  sx={{
+                    color: "#64748B",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  TOTAL WEALTH
+                </Typography>
+                <Typography
+                  sx={{
+                    color: "#FFFFFF",
+                    fontSize: "2rem",
+                    fontWeight: 700,
+                    lineHeight: 1.2,
+                    mt: 0.5,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  $284,620
+                </Typography>
+              </Box>
+
+              {/* YTD Pill Badge */}
+              <Box
+                sx={{
+                  bgcolor: "rgba(16, 185, 129, 0.15)",
+                  color: "#34D399",
+                  border: "1px solid rgba(52, 211, 153, 0.25)",
+                  borderRadius: "20px",
+                  px: 1.5,
+                  py: 0.5,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                ~ 8.4% YTD
+              </Box>
+            </Stack>
+
+            {/* Smooth Glowing Wave SVG Chart */}
+            <Box
+              sx={{
+                width: "100%",
+                height: 105,
+                my: 1,
+                position: "relative",
+              }}
+            >
+              <svg
+                viewBox="0 0 380 95"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ width: "100%", height: "100%", overflow: "visible" }}
+              >
+                <defs>
+                  <linearGradient id="wealthGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.32" />
+                    <stop
+                      offset="65%"
+                      stopColor="#10B981"
+                      stopOpacity="0.08"
+                    />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+                  </linearGradient>
+                  <filter
+                    id="glowFilter"
+                    x="-20%"
+                    y="-20%"
+                    width="140%"
+                    height="140%"
+                  >
+                    <feDropShadow
+                      dx="0"
+                      dy="2"
+                      stdDeviation="3"
+                      floodColor="#10B981"
+                      floodOpacity="0.5"
+                    />
+                  </filter>
+                </defs>
+
+                {/* Gradient Area Fill */}
+                <path
+                  d="M 0,72 C 35,72 65,64 100,60 C 135,56 160,63 195,58 C 235,50 265,30 305,27 C 330,25 355,16 370,12 L 370,95 L 0,95 Z"
+                  fill="url(#wealthGrad)"
+                />
+
+                {/* Wave Curve Line */}
+                <path
+                  d="M 0,72 C 35,72 65,64 100,60 C 135,56 160,63 195,58 C 235,50 265,30 305,27 C 330,25 355,16 370,12"
+                  stroke="#34D399"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  filter="url(#glowFilter)"
+                />
+
+                {/* Glowing End Dot */}
+                <circle
+                  cx="370"
+                  cy="12"
+                  r="7"
+                  fill="#34D399"
+                  fillOpacity="0.25"
+                />
+                <circle cx="370" cy="12" r="4" fill="#34D399" />
+              </svg>
+            </Box>
+
+            {/* Bottom Metrics Row */}
+            <Stack
+              direction="row"
+              spacing={4}
+              sx={{
+                mt: 1.5,
+                pt: 1.5,
+              }}
+            >
+              <Box>
+                <Typography
+                  sx={{
+                    fontSize: "10px",
+                    color: "#64748B",
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  CASH
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "13px",
+                    color: "#FFFFFF",
+                    fontWeight: 600,
+                    mt: 0.5,
+                  }}
+                >
+                  $42,810
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography
+                  sx={{
+                    fontSize: "10px",
+                    color: "#64748B",
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  INVESTED
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "13px",
+                    color: "#FFFFFF",
+                    fontWeight: 600,
+                    mt: 0.5,
+                  }}
+                >
+                  $193,240
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography
+                  sx={{
+                    fontSize: "10px",
+                    color: "#64748B",
+                    fontWeight: 600,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  RETURNS
+                </Typography>
+              </Box>
+            </Stack>
+
+            {/* Floating TRANSFER COMPLETE Badge */}
+            <Box
+              sx={{
+                position: "absolute",
+                bottom: -22,
+                right: { xs: 8, sm: 16 },
+                bgcolor: "#0E2442",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                borderRadius: "14px",
+                px: 2,
+                py: 1.25,
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+                boxShadow: "0 14px 28px rgba(0, 0, 0, 0.45)",
+              }}
+            >
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  bgcolor: "#10B981",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#042F1A"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </Box>
+              <Box>
+                <Typography
+                  sx={{
+                    fontSize: "10px",
+                    fontWeight: 600,
+                    color: "#94A3B8",
+                    letterSpacing: "0.05em",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  TRANSFER COMPLETE
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: "#FFFFFF",
+                    lineHeight: 1.2,
+                    mt: 0.25,
+                  }}
+                >
+                  $2,400.00
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* ======================================================== */}
+      {/* RIGHT COLUMN: Signup / Auth Form Panel                  */}
+      {/* ======================================================== */}
+      <Box
+        sx={{
+          flex: { xs: "1 1 100%", md: "1 1 50%", lg: "1 1 52%", xl: "1 1 50%" },
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          bgcolor: "#FFFFFF",
+          overflowY: "auto",
+          px: { xs: 2.5, sm: 4, md: 6, lg: 8 },
+          py: { xs: 2, sm: 3, md: 3.5 },
+        }}
+      >
+        {/* Top Header: Language Switcher */}
         <Box
           sx={{
-            flexGrow: 4,
-            flexShrink: 1,
-            flexBasis: 0,
-            maxHeight: { xs: 24, sm: 40, md: 72 },
             display: "flex",
+            justifyContent: "flex-end",
             alignItems: "center",
-            justifyContent: "center",
-            // mt: { xs: -3, sm: 1, md: 0, },
-            py: 6
+            flexShrink: 0,
+            pt: { xs: 1, sm: 1.5 },
           }}
         >
+          <SwitchLanguageMenu />
+        </Box>
+
+        {/* Center: Main Form Content Area */}
+        <Box
+          sx={{
+            width: "100%",
+            maxWidth: 420,
+            mx: "auto",
+            my: "auto",
+            py: { xs: 2.5, md: 4 },
+            flexShrink: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Brand Logo */}
+          <Box
+            sx={{
+              mb: { xs: 2, sm: 2.5 },
+              display: "flex",
+              justifyContent: "flex-start",
+            }}
+          >
+            <Image
+              src="/branding/BiKTECH.png"
+              alt="BiKTECH Solution"
+              width={190}
+              height={50}
+              style={{
+                width: "auto",
+                maxWidth: "190px",
+                height: "auto",
+                objectFit: "contain",
+              }}
+              priority
+            />
+          </Box>
+
+          {/* Title */}
+          {typeof title === "string" ? (
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                fontSize: { xs: "1.35rem", sm: "1.55rem" },
+                color: "#0F172A",
+                mb: { xs: 2.5, sm: 3 },
+                textAlign: "left",
+              }}
+            >
+              {title}
+            </Typography>
+          ) : (
+            <Box sx={{ mb: { xs: 2.5, sm: 3 } }}>{title}</Box>
+          )}
+
+          {/* Form Content */}
+          {children}
+
+          {/* Below Form Content (e.g. Login link) */}
           {belowForm}
         </Box>
 
-        {/* 3. Footer Links (Fixed Height) */}
-        <Box
+        {/* Footer Links */}
+        <Stack
+          direction="row"
+          spacing={{ xs: 1.5, sm: 2.5, md: 3 }}
           sx={{
-            pt: 1,
-            color: glassText.faint,
-            display: "flex",
-            gap: { xs: 3, sm: 3 },
-            flexWrap: "wrap",
             justifyContent: "center",
+            alignItems: "center",
+            flexWrap: "wrap",
+            rowGap: 1,
+            pt: 2,
+            pb: 1,
             flexShrink: 0,
-
           }}
         >
-          {signUp && FOOTER_LINKS.map((label, index) => (
-            <Box
-              key={label}
-              sx={{ display: "flex", alignItems: "center", gap: { xs: 3, sm: 3 } }}
+          {FOOTER_LINKS.map((link) => (
+            <Link
+              key={link}
+              href="#"
+              underline="none"
+              sx={{
+                fontSize: "13px",
+                color: "#64748B",
+                "&:hover": {
+                  color: "#1E293B",
+                },
+              }}
             >
-              {index > 0 && (
-                <Box
-                  component="span"
-                  sx={{
-                    width: 4,
-                    height: 4,
-                    borderRadius: "50%",
-                    bgcolor: glassText.faint,
-                    flexShrink: 0,
-                  }}
-                />
-              )}
-              <Link
-                href="#"
-                underline="hover"
-                sx={{
-                  color: "#F7F7F7",
-                  fontSize: font.size.md,
-                  fontWeight: font.weight.regular,
-                  "&:hover": { color: glassText.hover },
-                }}
-              >
-                {label}
-              </Link>
-            </Box>
+              {link}
+            </Link>
           ))}
-        </Box>
-
-        {/* Uncapped spacer: mirrors the top spacer so leftover height on
-            tall viewports splits evenly instead of collecting only above
-            the header. Keeps a small minHeight so the footer never sits
-            flush against the viewport edge on short viewports or when
-            validation errors expand the form above it. */}
-        <Box sx={{ flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: { xs: 12, sm: 16 } }} />
+        </Stack>
       </Box>
 
+      {/* Dialogs / Overlays */}
       {overlays}
     </Box>
   );

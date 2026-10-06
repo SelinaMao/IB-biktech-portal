@@ -6,6 +6,7 @@ import { CheckRounded, KeyboardArrowDownRounded } from "@mui/icons-material";
 
 import { useLocale, type Locale } from "@/i18n";
 import { font } from "@/theme/palette";
+import { red } from "@mui/material/colors";
 
 export function SwitchLanguageMenu() {
   const { locale, setLocale, languages } = useLocale();
@@ -21,12 +22,12 @@ export function SwitchLanguageMenu() {
         sx={{
           alignItems: "center",
           cursor: "pointer",
-          border: 1,
+          border: 0,
           borderColor: "divider",
-          borderRadius: 1,
+          borderRadius: 2,
           height: 40,
           px: 2,
-          bgcolor: "white",
+          bgcolor: "#EDF0F4",
         }}
       >
         <Box
@@ -45,9 +46,10 @@ export function SwitchLanguageMenu() {
             fontWeight: font.weight.semibold,
             fontSize: font.size.md,
             color: "text.primary",
+            pl:2
           }}
         >
-          {languages[locale].short}
+          {languages[locale].label}
         </Typography>
         <KeyboardArrowDownRounded
           sx={{
