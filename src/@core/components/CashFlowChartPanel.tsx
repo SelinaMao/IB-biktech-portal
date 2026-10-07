@@ -33,39 +33,37 @@ export type CashFlowPoint = {
  * palette.danger[600]). Gradient fades 25% → 0.
  */
 export const CASH_FLOW_SERIES = [
-  { key: "inflow", color: palette.navy[800] },
-  { key: "outflow", color: palette.danger[600] },
+  { key: "inflow", color: "#2A7BE4" },
+  { key: "outflow", color: "#BE123C" },
 ] as const;
 
-/** Light panel background from the design (#F8FAFF ≈ slate.50). */
 export const CASH_FLOW_PANEL_BG = palette.slate[50];
 export const CASH_FLOW_PANEL_RADIUS = 14;
 
-const formatCompactNumber = (v: number) =>
-  v === 0
-    ? "0K"
-    : Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(v);
+const formatCompactNumber = (v: number) => {
+  if (v === 0) return "0K";
+  return `${Math.round(v / 1000)}K`;
+};
 
-/** 5 evenly-spaced "nice" y-axis ticks (0, step, 2*step, 3*step, 4*step) sized to the data. */
+/** 5 evenly-spaced y-axis ticks (0, 1000, 2000, 3000, 4000) */
 function getNiceAxisTicks(max: number) {
-  if (max <= 0) return [0, 1, 2, 3, 4];
-  const rawStep = max / 4;
-  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
-  const residual = rawStep / magnitude;
-  const niceResidual = residual <= 1 ? 1 : residual <= 2 ? 2 : residual <= 5 ? 5 : 10;
-  const step = niceResidual * magnitude;
+  if (max <= 0) return [0, 1000, 2000, 3000, 4000];
+  const step = Math.ceil(max / 4000) * 1000;
   return [0, step, step * 2, step * 3, step * 4];
 }
 
-/**
- * Left-aligns Y-axis tick labels to x=0 so they sit flush with the legend's
- * left edge instead of recharts' default right-anchored position against
- * the axis line.
- */
 function CashFlowYAxisTick({ y, payload }: { y?: number; payload?: { value: number } }) {
   if (y == null || payload == null) return null;
   return (
-    <text x={0} y={y} dy={4} textAnchor="start" className="recharts-text">
+    <text
+      x={0}
+      y={y}
+      dy={4}
+      textAnchor="start"
+      fill={palette.slate[500]}
+      fontSize={12}
+      fontWeight={600}
+    >
       {formatCompactNumber(payload.value)}
     </text>
   );
@@ -135,24 +133,16 @@ export type CashFlowChartPanelProps = {
   outflowLabel?: string;
   height?: number;
   isLoading?: boolean;
-  /** Hide or mask amounts in the tooltip */
   hideAmount?: boolean;
-  /** Optional content shown on the same line as the Cash-In / Cash-Out legend, before it. */
   legendStartAdornment?: React.ReactNode;
 };
 
-/**
- * Standalone gradient area chart panel (legend + chart, in its own light
- * card background). Extracted from CashFlowChart so it can be dropped into
- * any page/layout on its own, e.g. where the Average Income / Average
- * Spending stat cards shouldn't be shown.
- */
 export default function CashFlowChartPanel({
   data,
   currency,
-  inflowLabel = "Average Income",
-  outflowLabel = "Average Spending",
-  height = 250,
+  inflowLabel = "Income",
+  outflowLabel = "Expense",
+  height = 200,
   isLoading = false,
   hideAmount = false,
   legendStartAdornment,
@@ -161,7 +151,7 @@ export default function CashFlowChartPanel({
 
   const yTicks = useMemo(() => {
     const max = Math.max(0, ...data.flatMap((d) => [d.inflow, d.outflow]));
-    return getNiceAxisTicks(max);
+    return getNiceAxisTicks(max || 3500);
   }, [data]);
 
   return (
@@ -169,9 +159,8 @@ export default function CashFlowChartPanel({
       sx={{
         flex: 1,
         minWidth: 0,
-        bgcolor: CASH_FLOW_PANEL_BG,
-        borderRadius: `${CASH_FLOW_PANEL_RADIUS}px`,
-        p: 0
+        bgcolor: "transparent",
+        p: 0,
       }}
     >
       {isLoading ? (
@@ -179,44 +168,47 @@ export default function CashFlowChartPanel({
       ) : (
         <>
           {/* Legend */}
-          <Stack direction="row" sx={{ alignItems: "center", gap: 5, p: 4 }}>
+          <Stack direction="row" sx={{ alignItems: "center", gap: 3, px: 0.5, mb: 2.5 }}>
             {legendStartAdornment}
             {CASH_FLOW_SERIES.map((s) => (
-              <Stack key={s.key} direction="row" sx={{ alignItems: "center", gap: 1 }}>
+              <Stack key={s.key} direction="row" sx={{ alignItems: "center", gap: 1.25 }}>
                 <Box
                   sx={{
-                    width: 8,
-                    height: 8,
+                    width: 10,
+                    height: 10,
                     borderRadius: "50%",
                     bgcolor: s.color,
                   }}
                 />
-                <Typography variant="body2" sx={{ fontSize: font.size.base, color: "text.primary" }}>
-                  {s.key === "inflow" ? "Cash-In" : "Cash-Out"}
+                <Typography
+                  sx={{
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    color: palette.slate[900],
+                  }}
+                >
+                  {s.key === "inflow" ? "Income" : "Expense"}
                 </Typography>
               </Stack>
             ))}
           </Stack>
 
           {/* Chart */}
-          <AppRecharts sx={{ mx: 4, my: 2 }}>
+          <AppRecharts sx={{ mx: 0, my: 0 }}>
             <ResponsiveContainer width="100%" height={height}>
-              <AreaChart data={data} margin={{ top: 8, right: 0, bottom: 0, left: 0 }}>
-                <defs>
-                  {CASH_FLOW_SERIES.map((s) => (
-                    <linearGradient key={s.key} id={`cashflow-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={s.color} stopOpacity={0.25} />
-                      <stop offset="95%" stopColor={s.color} stopOpacity={0} />
-                    </linearGradient>
-                  ))}
-                </defs>
-
-                <CartesianGrid vertical={false} strokeDasharray="4 4" stroke={palette.slate[300]} />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+              <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 8, left: -10 }}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke={palette.slate[200]} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={14}
+                  tick={{ fill: palette.slate[500], fontSize: 12, fontWeight: 500 }}
+                />
                 <YAxis
                   tickLine={false}
                   axisLine={false}
-                  width={50}
+                  width={35}
                   domain={[0, yTicks[yTicks.length - 1]]}
                   ticks={yTicks}
                   interval={0}
@@ -229,13 +221,13 @@ export default function CashFlowChartPanel({
                 {CASH_FLOW_SERIES.map((s) => (
                   <Area
                     key={s.key}
-                    type="monotone"
+                    type="natural"
                     dataKey={s.key}
                     stroke={s.color}
-                    strokeWidth={2}
-                    fill={`url(#cashflow-${s.key})`}
+                    strokeWidth={2.4}
+                    fill="none"
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0 }}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: s.color }}
                   />
                 ))}
               </AreaChart>

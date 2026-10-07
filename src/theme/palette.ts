@@ -1,5 +1,6 @@
 export const palette = {
   primary: {
+    40:"#2764A5",
     50: "#fbf7f1",
     100: "#f5eddf",
     200: "#ead8be",
@@ -16,6 +17,10 @@ export const palette = {
     dark: "#b56e41",
     light: "#ead8be",
   },
+  hover:{
+    10:"#E2E8F0"
+  },
+
 
   // Secondary accents — a subset of Twine (light tan + brand tan).
   secondary: { light: "#ead8be", main: "#cc9966", dark: "#b56e41" },
@@ -111,6 +116,7 @@ export const palette = {
   white50: "#ffffff45",
 
   black40: "#000000",
+  black30:"#3D4550",
 
   // Status — shared indicator color for Dormant & Frozen account states.
   status: { dormantFrozen: "#FFCC00" },

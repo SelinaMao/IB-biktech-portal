@@ -1,380 +1,527 @@
 "use client";
 
+import { yupResolver } from "@hookform/resolvers/yup";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import {
-    Box,
-    Checkbox,
-    FormControlLabel,
-    IconButton,
-    InputAdornment,
-    Link,
-    Stack,
-    TextField,
-    Typography,
-} from "@mui/material";
+import { Box, IconButton, InputAdornment, Link, Typography } from "@mui/material";
 import NextLink from "next/link";
-import { useState } from "react";
-import { SwitchLanguageMenu } from "@core/components/SwitchLanguageMenu";
 import { useRouter } from "next/navigation";
-import BaseAuthLayout from "@/@core/components/BaseAuthLayout";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import * as yup from "yup";
 
-const FOOTER_LINKS = [
-    "FAQs",
-    "User Guide",
-    "Contact Us",
-    "Security",
-    "Privacy Policy",
+import { AuthError, useAuth, useOtpDialog } from "@/features/auth";
+import { font } from "@/theme/palette";
+import BaseAuthLayout from "@core/components/BaseAuthLayout";
+import { showToast } from "@core/components/AppToast";
+import BaseOTP from "@core/components/BaseOTP";
+import { BaseSelect, ControlledBaseCheckbox, ControlledBaseInput } from "@core/form";
+import { useTranslations } from "next-intl";
+
+// Rejects strings that are empty or whitespace-only once required() has
+// already let an empty string through (e.g. before .trim() normalizes it).
+const spaceRegex = /\S/;
+
+export type LoginFormFields = {
+  username: string;
+  password: string;
+  agreedTerms: boolean;
+};
+
+const PRESET_ACCOUNTS = [
+  {
+    label: "selina.001",
+    role: "Corporate",
+    username: "selina.001",
+    password: "@STRONGPASSWORD",
+  },
+  {
+    label: "wesley.001",
+    role: "Corporate",
+    username: "wesley.001",
+    password: "@STRONGPASSWORD",
+  },
 ];
 
 export default function ClientLoginPage() {
-    const router = useRouter();
-    const [showPassword, setShowPassword] = useState(false);
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [agreedTerms, setAgreedTerms] = useState(false);
+  const router = useRouter();
+  const { login, verifyOtp, resendOtp } = useAuth();
+  const t = useTranslations("login");
+  const tSession = useTranslations("session");
+  const [showPassword, setShowPassword] = useState(false);
+  const [pendingCredentials, setPendingCredentials] = useState<LoginFormFields | null>(null);
+  const [otpUserId, setOtpUserId] = useState("");
+  const [otpId, setOtpId] = useState<string | undefined>();
+  const [phone, setPhone] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<string>("");
 
-    const canSubmit = Boolean(username.trim()) && Boolean(password) && agreedTerms;
+  const otpDialog = useOtpDialog({
+    invalidCodeMessage: t("otp.invalidCode"),
+    resendFailedMessage: t("otp.resendFailed"),
+    resentMessage: t("otp.resent"),
+  });
 
-    const handleSubmit = (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        router.push("/otp");
-    };
+  // The portal sends a session that ended by itself here with `?reason=` — say why, once.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const reason = params.get("reason");
+    if (reason !== "idle" && reason !== "expired") return;
+    showToast("info", {
+      title: tSession(`ended.${reason}.title`),
+      message: tSession(`ended.${reason}.message`),
+    });
+    params.delete("reason");
+    const query = params.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+  }, [tSession]);
 
-    return (
-         <Box
+  const accountOptions = useMemo(
+    () =>
+      PRESET_ACCOUNTS.map((acc) => ({
+        value: acc.username,
+        label: (
+          <Box
             sx={{
-                minHeight: "100vh",
-                display: "flex",
-                flexDirection: "column",
-                bgcolor: "#FFFFFF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+              gap: 1.5,
             }}
-        >
-            {/* Top Header / Language Switcher */}
-            <Box
-                sx={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    alignItems: "center",
-                    px: { xs: 3, md: 6 },
-                    py: 2,
-                    borderBottom: "1px solid #F1F5F9",
-                }}
-            >
-                <SwitchLanguageMenu />
-            </Box>
+          >
+            <Typography variant="body2" sx={{ fontWeight: font.weight.semibold }}>
+              {acc.label}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              {acc.username}
+            </Typography>
+          </Box>
+        ),
+      })),
+    [],
+  );
 
-            {/* Main Centered Content */}
-            <Box
-                sx={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    px: 3,
-                    py: 6,
-                }}
-            >
-                <Box
-                    component="form"
-                    onSubmit={handleSubmit}
-                    noValidate
-                    sx={{
-                        width: "100%",
-                        maxWidth: 420,
-                        display: "flex",
-                        flexDirection: "column",
-                    }}
-                >
-                    {/* Title */}
-                    <Typography
-                        variant="h5"
-                        sx={{
-                            fontWeight: 700,
-                            fontSize: { xs: "1.35rem", sm: "1.5rem" },
-                            color: "#1E293B",
-                            mb: 3.5,
-                            textAlign: "left",
-                        }}
-                    >
-                        Login to your BMP account
-                    </Typography>
+  const loginSchema = useMemo(
+    () =>
+      yup.object({
+        username: yup
+          .string()
+          .required(t("error.userIdRequired"))
+          .matches(spaceRegex, t("error.userIdRequired"))
+          .trim()
+          .min(6, t("error.userIdMin"))
+          .matches(/^[A-Za-z0-9._]+$/, t("error.userIdInvalid")),
+        password: yup.string().required(t("error.passwordRequired")).trim(),
+        agreedTerms: yup.boolean().oneOf([true], t("error.termsRequired")).required(),
+      }),
+    [t],
+  );
 
-                    {/* User ID Field */}
-                    <Typography
-                        sx={{
-                            fontSize: "14px",
-                            fontWeight: 500,
-                            color: "#475569",
-                            mb: 1,
-                        }}
-                    >
-                        User ID
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        placeholder="Enter User ID"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        sx={{
-                            mb: 2.5,
-                            "& .MuiOutlinedInput-root": {
-                                height: 48,
-                                borderRadius: "10px",
-                                bgcolor: "#F8FAFC",
-                                color: "#1E293B",
-                                "& fieldset": {
-                                    borderColor: "#E2E8F0",
-                                },
-                                "&:hover fieldset": {
-                                    borderColor: "#CBD5E1",
-                                },
-                                "&.Mui-focused fieldset": {
-                                    borderColor: "#3B82F6",
-                                },
-                            },
-                            "& input:-webkit-autofill": {
-                                WebkitBoxShadow: "0 0 0 1000px #F8FAFC inset !important",
-                                boxShadow: "0 0 0 1000px #F8FAFC inset !important",
-                                WebkitTextFillColor: "#1E293B !important",
-                                caretColor: "#1E293B !important",
-                            },
-                            "& .MuiInputBase-input::placeholder": {
-                                color: "#94A3B8",
-                                opacity: 1,
-                                fontSize: "14px",
-                            },
-                        }}
-                    />
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<LoginFormFields>({
+    resolver: yupResolver(loginSchema),
+    mode: "onSubmit",
+    defaultValues: { username: "", password: "", agreedTerms: false },
+  });
 
-                    {/* Password Field */}
-                    <Typography
-                        sx={{
-                            fontSize: "14px",
-                            fontWeight: 500,
-                            color: "#475569",
-                            mb: 1,
-                        }}
-                    >
-                        Password
-                    </Typography>
-                    <TextField
-                        fullWidth
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter Password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        slotProps={{
-                            input: {
-                                endAdornment: (
-                                    <InputAdornment position="end">
-                                        <IconButton
-                                            onClick={() => setShowPassword((prev) => !prev)}
-                                            edge="end"
-                                            aria-label={showPassword ? "Hide password" : "Show password"}
-                                            sx={{ color: "#64748B" }}
-                                        >
-                                            {showPassword ? (
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye preview-icon"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" /><circle cx="12" cy="12" r="3" /></svg>
-                                            ) : (
-                                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off preview-icon"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>
-                                            )}
-                                        </IconButton>
+  const [username, password, agreedTerms] = watch([
+    "username",
+    "password",
+    "agreedTerms",
+  ]);
 
-                                    </InputAdornment>
-                                ),
-                            },
-                        }}
-                        sx={{
-                            mb: 2.5,
-                            "& .MuiOutlinedInput-root": {
-                                height: 48,
-                                borderRadius: "10px",
-                                bgcolor: "#F8FAFC",
-                                color: "#1E293B",
-                                "& fieldset": {
-                                    borderColor: "#E2E8F0",
-                                },
-                                "&:hover fieldset": {
-                                    borderColor: "#CBD5E1",
-                                },
-                                "&.Mui-focused fieldset": {
-                                    borderColor: "#3B82F6",
-                                },
-                            },
-                            "& input:-webkit-autofill": {
-                                WebkitBoxShadow: "0 0 0 1000px #F8FAFC inset !important",
-                                boxShadow: "0 0 0 1000px #F8FAFC inset !important",
-                                WebkitTextFillColor: "#1E293B !important",
-                                caretColor: "#1E293B !important",
-                            },
-                            "& .MuiInputBase-input::-ms-reveal, & .MuiInputBase-input::-ms-clear": {
-                                display: "none",
-                            },
-                            "& .MuiInputBase-input": {
-                                ...(!showPassword && {
-                                    WebkitTextSecurity: "asterisk",
-                                    letterSpacing: "2px",
-                                }),
-                            },
-                            "& .MuiInputBase-input::placeholder": {
-                                color: "#94A3B8",
-                                opacity: 1,
-                                fontSize: "14px",
-                                letterSpacing: "normal",
-                                WebkitTextSecurity: "none",
-                            },
-                        }}
-                    />
+  const canSubmit = Boolean(username?.trim()) && Boolean(password) && Boolean(agreedTerms);
 
-                    {/* Terms & Conditions Checkbox */}
-                    <FormControlLabel
-                        sx={{
-                            mb: 3,
-                            alignItems: "center",
-                            mx: 0,
-                        }}
-                        control={
-                            <Checkbox
-                                checked={agreedTerms}
-                                onChange={(e) => setAgreedTerms(e.target.checked)}
-                                sx={{
-                                    color: "#CBD5E1",
-                                    p: 0.5,
-                                    mr: 1,
-                                    "&.Mui-checked": {
-                                        color: "#0D9488",
-                                    },
-                                }}
-                            />
-                        }
-                        label={
-                            <Typography
-                                sx={{
-                                    fontSize: "14px",
-                                    color: "#475569",
-                                }}
-                            >
-                                I have read and agreed to the{" "}
-                                <Link
-                                    href="#"
-                                    underline="always"
-                                    sx={{
-                                        color: "#2563EB",
-                                        fontWeight: 500,
-                                    }}
-                                >
-                                    Term & Conditions
-                                </Link>
-                            </Typography>
-                        }
-                    />
+  const maskPhone = (value?: string) => {
+    const digits = value ? value.replace(/\D/g, "") : "";
+    return digits ? `${"•".repeat(Math.max(digits.length - 4, 0))}${digits.slice(-4)}` : "";
+  };
 
-                    {/* Login Submit Button */}
-                    <Box
-                        component="button"
-                        type="submit"
-                        onClick={handleSubmit}
-                        disabled={!canSubmit}
-                        
-                        sx={{
-                            width: "100%",
-                            height: 46,
-                            borderRadius: "24px",
-                            border: "none",
-                            fontSize: "14px",
-                            fontWeight: 600,
-                            cursor: canSubmit ? "pointer" : "not-allowed",
-                            bgcolor: canSubmit ? "#2563EB" : "#DDE4EE",
-                            color: canSubmit ? "#FFFFFF" : "#94A3B8",
-                            transition: "all 0.2s ease-in-out",
-                            "&:hover": {
-                                bgcolor: canSubmit ? "#1D4ED8" : "#DDE4EE",
-                            },
-                        }}
-                    >
-                        Login
-                    </Box>
+  const onSubmit = async (formData: LoginFormFields) => {
+    if (submitting) return;
 
-                    {/* Forgot Password Link */}
-                    <Box sx={{ mt: 3, textAlign: "center" }}>
-                        <Link
-                            component="button"
-                            type="button"
-                            underline="none"
-                            sx={{
-                                color: "#2563EB",
-                                fontSize: "14px",
-                                fontWeight: 500,
-                                "&:hover": {
-                                    textDecoration: "underline",
-                                },
-                            }}
-                        >
-                            Forgot Password?
-                        </Link>
-                    </Box>
+    setSubmitting(true);
 
-                    {/* No account yet? Sign Up */}
-                    <Box sx={{ mt: 3.5, textAlign: "center" }}>
-                        <Typography
-                            component="span"
-                            sx={{
-                                fontSize: "14px",
-                                color: "#64748B",
-                            }}
-                        >
-                            No account yet?{" "}
-                        </Typography>
-                        <Link
-                            component={NextLink}
-                            href="/signup"
-                            underline="none"
-                            sx={{
-                                color: "#2563EB",
-                                fontWeight: 600,
-                                fontSize: "14px",
-                                "&:hover": {
-                                    textDecoration: "underline",
-                                },
-                            }}
-                        >
-                            Sign Up
-                        </Link>
-                    </Box>
-                </Box>
-            </Box>
+    try {
+      const result = await login({ body: formData });
+      if (result.status === "first_login") {
+        setPendingCredentials(formData);
+        setOtpUserId(result.data.user.id);
+        setOtpId(result.data.otpId);
+        setPhone(result.data.user.phone ?? "");
+        setSubmitting(false);
+        otpDialog.openOtp(result.data?.resendSecondCount);
+      } else if (result.status === "success") {
+        showToast("success", {
+          title: t("loginSuccessTitle"),
+          message: t("loginSuccessMessage"),
+        });
+      }
+    } catch (error) {
+      if (error instanceof AuthError) {
+        showToast("error", {
+          title: error.message,
+          message: error.detail,
+          referenceCode: error.referenceCode,
+        });
+      } else {
+        const message = "Unable to sign in right now. Please try again.";
+        showToast("error", {
+          title: "Login Failed",
+          message,
+        });
+      }
+      setSubmitting(false);
+    }
+  };
 
-            {/* Footer Links */}
-            <Stack
-                direction="row"
-                spacing={{ xs: 2, sm: 3 }}
-                sx={{
-                    justifyContent: "center",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    py: 4,
-                    px: 2,
-                }}
-            >
-                {FOOTER_LINKS.map((link) => (
-                    <Link
-                        key={link}
-                        href="#"
-                        underline="none"
-                        sx={{
-                            fontSize: "13px",
-                            color: "#64748B",
-                            "&:hover": {
-                                color: "#1E293B",
-                            },
-                        }}
-                    >
-                        {link}
-                    </Link>
-                ))}
-            </Stack>
+  const handleVerifyOtp = (code: string) => {
+    if (!pendingCredentials) return;
+
+    return otpDialog.runVerify(async () => {
+      await verifyOtp({
+        confirmCode: code,
+        otpId,
+      });
+      otpDialog.setOtpSuccess(t("otp.success"));
+      setTimeout(() => {
+        otpDialog.closeOtp();
+        router.push("/setupPassword");
+      }, 900);
+    });
+  };
+
+  const handleResendOtp = () => {
+    if (!otpUserId) return;
+
+    return otpDialog.runResend(async () => {
+      const result = await resendOtp({
+        otpId,
+      });
+      // Resend rotates both userId and otpId — verifying with the old pair fails.
+      if (result.data?.user?.id) setOtpUserId(result.data.user.id);
+      setOtpId(result.data?.otpId);
+    });
+  };
+
+  const handleCloseOtp = () => {
+    otpDialog.closeOtp();
+  };
+
+  return (
+    <BaseAuthLayout
+      title="Login"
+      overlays={
+        <BaseOTP
+          open={otpDialog.otpOpen}
+          onClose={handleCloseOtp}
+          onVerify={handleVerifyOtp}
+          onResend={handleResendOtp}
+          isVerifying={otpDialog.isVerifyingOtp}
+          errorText={otpDialog.otpError}
+          successText={otpDialog.otpSuccess}
+          expiredSessionToken={otpDialog.otpExpiredToken}
+          sessionExpiredText={otpDialog.otpSessionExpiredText ?? t("otp.sessionExpired")}
+          title={t("otp.title")}
+          phone={phone}
+          description={t("otp.description", { phone: maskPhone(phone) })}
+          {...(otpDialog.otpExpirySeconds != null ? { expirySeconds: otpDialog.otpExpirySeconds } : {})}
+          expiresInLabel={(seconds) => t("otp.expiresIn", { seconds })}
+          resendPromptText={t("otp.resendPrompt")}
+          resendLabel={t("otp.resend")}
+          verifyLabel={t("otp.verify")}
+          verifyingLabel={t("otp.verifying")}
+        />
+      }
+      belowForm={
+        <Box sx={{ mt: { xs: 2.5, sm: 3.5 }, textAlign: "center" }}>
+          <Typography
+            component="span"
+            sx={{
+              fontSize: "14px",
+              color: "#64748B",
+            }}
+          >
+            No account yet?{" "}
+          </Typography>
+          <Link
+            component={NextLink}
+            href="/signup"
+            underline="none"
+            sx={{
+              color: "#2563EB",
+              fontWeight: 600,
+              fontSize: "14px",
+              "&:hover": {
+                textDecoration: "underline",
+              },
+            }}
+          >
+            Sign Up
+          </Link>
         </Box>
-    );
+      }
+    >
+      <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ width: "100%" }}>
+        {/* Quick select account for testing */}
+        <BaseSelect
+          value={selectedAccount}
+          placeholder="Select Account (Quick Login)"
+          options={accountOptions}
+          disabled={isSubmitting || submitting}
+          onChange={(e) => {
+            const val = e.target.value as string;
+            setSelectedAccount(val);
+            const acc = PRESET_ACCOUNTS.find((a) => a.username === val);
+            if (acc) {
+              setValue("username", acc.username, { shouldValidate: true });
+              setValue("password", acc.password, { shouldValidate: true });
+              setValue("agreedTerms", true, { shouldValidate: true });
+            }
+          }}
+          sx={{
+            mb: 2,
+            "& .MuiOutlinedInput-root": {
+              height: 44,
+              borderRadius: "10px",
+              bgcolor: "#F8FAFC",
+              color: "#1E293B",
+              "& fieldset": {
+                borderColor: "#E2E8F0",
+              },
+              "&:hover fieldset": {
+                borderColor: "#CBD5E1",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "#3B82F6",
+              },
+            },
+          }}
+        />
+
+        {/* User ID Field */}
+        <Typography
+          component="label"
+          htmlFor="userId"
+          sx={{
+            display: "block",
+            fontSize: "14px",
+            fontWeight: 500,
+            color: "#475569",
+            mb: 1,
+            mt: 2,
+          }}
+        >
+          User ID
+        </Typography>
+        <ControlledBaseInput
+          id="userId"
+          name="username"
+          control={control}
+          placeholder="Enter User ID"
+          disabled={isSubmitting || submitting}
+          sx={{
+            mb: 2.5,
+            "& .MuiOutlinedInput-root": {
+              height: 48,
+              borderRadius: "10px",
+              bgcolor: "#F8FAFC",
+              color: "#1E293B",
+              "& fieldset": {
+                borderColor: "#E2E8F0",
+              },
+              "&:hover fieldset": {
+                borderColor: "#CBD5E1",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "#3B82F6",
+              },
+              "&.Mui-error fieldset": {
+                borderColor: "#EF4444",
+              },
+            },
+            "& input:-webkit-autofill": {
+              WebkitBoxShadow: "0 0 0 1000px #F8FAFC inset !important",
+              boxShadow: "0 0 0 1000px #F8FAFC inset !important",
+              WebkitTextFillColor: "#1E293B !important",
+              caretColor: "#1E293B !important",
+            },
+            "& .MuiInputBase-input::placeholder": {
+              color: "#94A3B8",
+              opacity: 1,
+              fontSize: "14px",
+            },
+          }}
+        />
+
+        {/* Password Field */}
+        <Typography
+          component="label"
+          htmlFor="password"
+          sx={{
+            display: "block",
+            fontSize: "14px",
+            fontWeight: 500,
+            color: "#475569",
+            mb: 1,
+            mt: 2,
+          }}
+        >
+          Password
+        </Typography>
+        <ControlledBaseInput
+          id="password"
+          name="password"
+          control={control}
+          type={showPassword ? "text" : "password"}
+          placeholder="Enter Password"
+          disabled={isSubmitting || submitting}
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    edge="end"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    sx={{ color: "#64748B" }}
+                  >
+                    {showPassword ? (
+                      <VisibilityOff sx={{ fontSize: 20 }} />
+                    ) : (
+                      <Visibility sx={{ fontSize: 20 }} />
+                    )}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{
+            mb: 2.5,
+            "& .MuiOutlinedInput-root": {
+              height: 48,
+              borderRadius: "10px",
+              bgcolor: "#F8FAFC",
+              color: "#1E293B",
+              "& fieldset": {
+                borderColor: "#E2E8F0",
+              },
+              "&:hover fieldset": {
+                borderColor: "#CBD5E1",
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: "#3B82F6",
+              },
+              "&.Mui-error fieldset": {
+                borderColor: "#EF4444",
+              },
+            },
+            "& input:-webkit-autofill": {
+              WebkitBoxShadow: "0 0 0 1000px #F8FAFC inset !important",
+              boxShadow: "0 0 0 1000px #F8FAFC inset !important",
+              WebkitTextFillColor: "#1E293B !important",
+              caretColor: "#1E293B !important",
+            },
+            "& .MuiInputBase-input::-ms-reveal, & .MuiInputBase-input::-ms-clear": {
+              display: "none",
+            },
+            "& .MuiInputBase-input": {
+              ...(!showPassword && {
+                WebkitTextSecurity: "asterisk",
+                letterSpacing: "2px",
+              }),
+            },
+            "& .MuiInputBase-input::placeholder": {
+              color: "#94A3B8",
+              opacity: 1,
+              fontSize: "14px",
+              letterSpacing: "normal",
+              WebkitTextSecurity: "none",
+            },
+          }}
+        />
+
+        {/* Terms & Conditions Checkbox */}
+        <ControlledBaseCheckbox
+          name="agreedTerms"
+          control={control}
+          disabled={isSubmitting || submitting}
+          sx={{
+            color: "#CBD5E1",
+            p: 0.5,
+            mr: 1,
+            "&.Mui-checked": {
+              color: "#0D9488",
+            },
+          }}
+          label={
+            <Typography sx={{ fontSize: "14px", color: "#475569" }}>
+              I have read and agreed to the{" "}
+              <Link
+                href="#"
+                underline="always"
+                sx={{
+                  color: "#2563EB",
+                  fontWeight: 500,
+                }}
+              >
+                Term & Conditions
+              </Link>
+            </Typography>
+          }
+          labelSx={{ mb: 3, alignItems: "center", mx: 0, mt: 2 }}
+        />
+
+        {/* Login Submit Button */}
+        <Box
+          component="button"
+          type="submit"
+          disabled={!canSubmit || isSubmitting || submitting}
+          sx={{
+            marginTop: 2,
+            width: "100%",
+            height: 46,
+            borderRadius: "24px",
+            border: "none",
+            fontSize: "15px",
+            fontWeight: 600,
+            cursor: canSubmit && !isSubmitting && !submitting ? "pointer" : "not-allowed",
+            bgcolor: canSubmit && !isSubmitting && !submitting ? "#2563EB" : "#DDE4EE",
+            color: canSubmit && !isSubmitting && !submitting ? "#FFFFFF" : "#94A3B8",
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              bgcolor: canSubmit && !isSubmitting && !submitting ? "#1D4ED8" : "#DDE4EE",
+            },
+          }}
+        >
+          {isSubmitting || submitting ? t("signingIn") : t("signIn")}
+        </Box>
+
+        {/* Forgot Password Link */}
+        <Box sx={{ mt: 3, textAlign: "center" }}>
+          <Link
+            component={NextLink}
+            href="/forgotPassword"
+            underline="none"
+            sx={{
+              color: "#2563EB",
+              fontSize: "14px",
+              fontWeight: 500,
+              cursor: "pointer",
+              "&:hover": {
+                textDecoration: "underline",
+              },
+            }}
+          >
+            Forgot Password?
+          </Link>
+        </Box>
+      </Box>
+    </BaseAuthLayout>
+  );
 }

@@ -9,18 +9,17 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-
+import { alpha } from "@mui/material/styles";
 import { ActivateAppPromptDialog, MobileBindingDialog, useCurrentDeviceBindingQuery } from "@/features/bind";
 import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH } from "@/theme/layout";
 import { font, palette, radius } from "@/theme/palette";
-import { MobileFriendlyOutlined } from "@mui/icons-material";
-import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
-import { ArrowLeftRight, ChevronDown, ChevronUp, CircleDollarSign, CreditCard, HandCoins, Shield, SquareCheckBig, Store, UsersRound } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, ChevronUp, Circle, CircleDollarSign, CreditCard, HandCoins, ListCollapse, Shield, SquareCheckBig, Store, UsersRound } from "lucide-react";
 import { CLIENT_PERMISSIONS, useAuth, useMeQuery } from "@/features/auth";
 import { setHideAmount } from "@/store/global/global.slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -137,7 +136,6 @@ export type ClientSidebarProps = {
 export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
   const pathname = usePathname();
   const t = useTranslations("nav");
-  const tBinding = useTranslations("mobileBinding");
   const [mobileActivateOpen, setMobileActivateOpen] = useState(false);
   const [activatePromptOpen, setActivatePromptOpen] = useState(false);
   const [hasShownActivatePrompt, setHasShownActivatePrompt] = useState(false);
@@ -234,29 +232,9 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
     setMobileActivateOpen(true);
   };
 
-  const bottomItems = [
-    {
-      key: "mobile-activate",
-      Icon: MobileFriendlyOutlined,
-      onClick: () => setMobileActivateOpen(true),
-    },
-    {
-      key: "help",
-      href: "/help",
-      Icon: HelpOutlineOutlinedIcon,
-    },
-    // {
-    //   key: "logout",
-    //   Icon: LogoutOutlinedIcon,
-    //   onClick: async () => {
-    //     try {
-    //       await logout();
-    //     } catch (err) {
-    //       console.error("Logout failed:", err);
-    //     }
-    //   },
-    // },
-  ];
+  const isLinked = bindingState?.linked ?? true;
+  const statusText = isLinked ? "ACTIVE" : bindingStateLoading ? "..." : "INACTIVE";
+  const isHelpActive = isPathActive("/help");
 
   return (
     <Box
@@ -264,7 +242,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
       sx={{
         width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
         flexShrink: 0,
-        bgcolor: palette.info[900],
+        bgcolor: "#FFFFFF",
         display: "flex",
         flexDirection: "column",
         position: "sticky",
@@ -277,22 +255,24 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
       {/* Brand */}
       <Box
         sx={{
-          p: 6,
+          p: 0,
+          bgcolor: "#F5F7FA",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          py: !collapsed ? { xs: 2, md: 3 } : 1.5,
-          px: !collapsed ? { xs: 1.5, sm: 2 } : 1,
-          flexShrink: 0,
           width: "100%",
-          // Dynamic container sizing based on viewport + collapsed state
-          maxWidth: !collapsed ? { xs: 130, sm: 140, md: 160, lg: 200 } : { xs: 36, md: 44 },
-          mx: "auto",
+          flexShrink: 0,
+          px: !collapsed ? { xs: 1.5, sm: 2 } : 1,
           transition: "max-width 0.2s ease-in-out, padding 0.2s ease-in-out",
+
+          // outline drawn inside the box
+          outline: "2px solid",
+          outlineColor: alpha("#0000", 0.1),
+          outlineOffset: "-2px",
         }}
       >
         <Image
-          src="/branding/logo-gold.png"
+          src="/branding/BiKTECH.png"
           alt="SME Bank"
           loading="eager"
           priority
@@ -301,7 +281,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
           height={200}
           style={{
             width: "100%",
-            height: "auto",
+            height: "60%",
             objectFit: "contain",
             transition: "all 0.2s ease-in-out",
           }}
@@ -309,7 +289,10 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
       </Box>
 
       {/* Navigation */}
-      <List sx={{ pl: collapsed ? 5 : 6, pr: collapsed ? 5 : 6, flex: 1, overflowY: "auto" }}>
+      <List sx={{
+        pl: collapsed ? 5 : 6, pr: collapsed ? 5 : 6, flex: 1, overflowY: "auto", borderRight: "2px solid",
+        borderRightColor: alpha("#000", 0.1),
+      }}>
         {visibleNavItems.map((navItem) => {
           const { key, href, Icon } = navItem;
           const children = "children" in navItem ? navItem.children : undefined;
@@ -329,14 +312,14 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                   minHeight: 44,
                   justifyContent: collapsed ? "center" : "flex-start",
                   px: collapsed ? 1.5 : 2,
-                  color: childActive ? palette.white : palette.navy[300],
+                  color: childActive ? palette.black30 : palette.black30,
                   pr: 4,
                   pl: 4,
                   bgcolor: childActive ? palette.white50 : "transparent",
                   cursor: "pointer",
                   "&:hover": {
-                    bgcolor: palette.white50,
-                    color: palette.white,
+                    bgcolor: palette.hover[10],
+                    color: palette.primary[40],
                   },
                 }}
               >
@@ -408,10 +391,12 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                               minHeight: 40,
                               pl: 9,
                               pr: 4,
-                              color: childIsActive ? palette.white : palette.navy[300],
+
+                              color: childIsActive ? palette.primary[40] : palette.primary[40],
+                              bgcolor: childIsActive ? palette.hover[10] : palette.white50,
                               "&:hover": {
-                                bgcolor: palette.white50,
-                                color: palette.white,
+                                bgcolor: palette.hover[10],
+                                color: palette.primary[40],
                               },
                             }}
                           >
@@ -450,13 +435,13 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
 
                 justifyContent: collapsed ? "center" : "flex-start",
                 px: collapsed ? 1.5 : 2,
-                color: active ? palette.white : palette.navy[300],
+                color: active ? palette.primary[40] : palette.black30,
                 pr: 4,
                 pl: 4,
-                bgcolor: active ? palette.white50 : "transparent",
+                bgcolor: active ? palette.hover[10] : palette.white50,
                 "&:hover": {
-                  bgcolor: palette.white50,
-                  color: palette.white,
+                  bgcolor: palette.hover[10],
+                  color: palette.primary[40],
                 },
               }}
             >
@@ -513,97 +498,182 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
       {/* Bottom Component */}
       <Box
         sx={{
-          border: `1px solid ${palette.primary.main}`,
-          borderRadius: `${radius.xl}px`,
-          mx: collapsed ? 1 : 4,
-          mb: 1.5,
-          p: collapsed ? 1 : 1.5,
-          px: collapsed ? 1 : 3,
+          outline: "2px solid",
+          outlineColor: alpha("#0000", 0.1),
+          outlineOffset: "-2px",
+          px: collapsed ? 1.5 : 2,
+          py: 2,
           mt: "auto",
         }}
       >
-        <List sx={{ p: 0 }}>
-          {bottomItems.map((itemData) => {
-            const { key, href, Icon, onClick } = itemData;
-            const hasHref = typeof href === "string";
-            const isMobileActivation = key === "mobile-activate";
-            const bindingStateLabel = bindingStateLoading ? tBinding("state.checking") : bindingState?.linked ? tBinding("state.linked") : tBinding("state.notLinked");
-            const item = (
-              <ListItemButton
-                key={key}
-                component={hasHref ? Link : "div"}
-                href={hasHref ? href : undefined}
-                onClick={onClick}
+        {collapsed ? (
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "start", gap: 1 }}>
+            <Tooltip title={`${t("mobile-activate")} — ${statusText}`} placement="right">
+              <Box
+                onClick={() => setMobileActivateOpen(true)}
                 sx={{
-                  borderRadius: `${radius.xl}px`,
-                  // minHeight: 44,
-                  minWidth: 80,
-                  py: 1,
-                  justifyContent: collapsed ? "center" : "flex-start",
-                  px: collapsed ? 1.5 : 2,
-                  color: palette.navy[300],
-                  mb: 0.5,
+                  width: 44,
+                  height: 44,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1.5px solid",
+                  borderColor: palette.slate[200],
+                  borderRadius: "10px",
+                  bgcolor: "#FFFFFF",
                   cursor: "pointer",
+                  transition: "all 0.15s ease",
                   "&:hover": {
-                    bgcolor: palette.white50,
-                    color: palette.white,
+                    bgcolor: palette.hover[10],
+                    borderColor: palette.slate[300],
                   },
                 }}
               >
-                <ListItemIcon
+                <Circle
+                  size={18}
+                  strokeWidth={2.5}
+                  color={isLinked ? "#00875A" : palette.slate[400]}
+                />
+              </Box>
+            </Tooltip>
+
+            <Tooltip title={t("help")} placement="right">
+              <ListItemButton
+                component={Link}
+                href="/help"
+                sx={{
+                  width: 44,
+                  height: 44,
+                  minWidth: 44,
+                  justifyContent: "center",
+                  alignItems: "center",
+                  borderRadius: "10px",
+                  p: 0,
+                  color: isHelpActive ? palette.primary[40] : palette.slate[700],
+                  bgcolor: isHelpActive ? palette.hover[10] : "transparent",
+                  "&:hover": {
+                    bgcolor: palette.hover[10],
+                    color: palette.slate[900],
+                  },
+                }}
+              >
+                <ListCollapse size={20} strokeWidth={2} />
+              </ListItemButton>
+            </Tooltip>
+          </Box>
+        ) : (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 ,padding:"5px"}}>
+            {/* Mobile Activate Card */}
+            <Box
+              onClick={() => setMobileActivateOpen(true)}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                border: "1.5px solid",
+                borderColor: palette.slate[200],
+                borderRadius: "12px",
+                px: 2,
+                py: 1.25,
+                bgcolor: "#FFFFFF",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+                "&:hover": {
+                  bgcolor: "#F8FAFC",
+                  borderColor: palette.slate[300],
+                },
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 ,padding:"8px"}}>
+                <Circle
+                  size={18}
+                  strokeWidth={2.5}
+                  color={isLinked ? "#00875A" : palette.slate[400]}
+                  style={{ flexShrink: 0 }}
+                />
+                <Typography
                   sx={{
-                    minWidth: 0,
-                    mr: collapsed ? 0 : 1.5,
-                    justifyContent: "center",
-                    color: "inherit",
+                    fontSize: "15px",
+                    fontWeight: font.weight.medium,
+                    color: palette.slate[700],
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {isMobileActivation ? (
-                    <Badge variant="dot" color={bindingState?.linked ? "success" : "default"} overlap="circular" invisible={bindingStateLoading}>
-                      <Icon fontSize="small" />
-                    </Badge>
-                  ) : (
-                    <Icon fontSize="small" />
-                  )}
-                </ListItemIcon>
-                {!collapsed && (
-                  <ListItemText
-                    primary={t(key)}
-                    slotProps={{
-                      primary: {
-                        sx: {
-                          fontSize: font.size.md,
-                          fontWeight: font.weight.medium,
-                          whiteSpace: "nowrap",
-                        },
-                      },
-                      secondary: isMobileActivation
-                        ? {
-                            sx: {
-                              color: bindingState?.linked ? palette.success[300] : palette.navy[300],
-                              fontSize: font.size.xs,
-                            },
-                          }
-                        : undefined,
-                    }}
-                    secondary={isMobileActivation ? bindingStateLabel : undefined}
-                  />
-                )}
-              </ListItemButton>
-            );
+                  {t("mobile-activate")}
+                </Typography>
+              </Box>
 
-            return collapsed ? (
-              <Tooltip key={key} title={isMobileActivation ? `${t(key)} — ${bindingStateLabel}` : t(key)} placement="right">
-                {item}
-              </Tooltip>
-            ) : (
-              item
-            );
-          })}
-        </List>
+              <Box
+                sx={{
+                  px: 1.25,
+                  py: 0.35,
+                  bgcolor: isLinked ? "#E6F9F0" : palette.slate[100],
+                  border: "1.5px solid",
+                  borderColor: isLinked ? "#7FE3B5" : palette.slate[300],
+                  borderRadius: "8px",
+                  color: isLinked ? "#065F46" : palette.slate[500],
+                  fontSize: "12px",
+                  fontWeight: font.weight.bold,
+                  letterSpacing: "0.5px",
+                  lineHeight: 1.2,
+                  textTransform: "uppercase",
+                  flexShrink: 0,
+                }}
+              >
+                {statusText}
+              </Box>
+            </Box>
+
+            {/* Help & Support Link */}
+            <ListItemButton
+              component={Link}
+              href="/help"
+              sx={{
+                borderRadius: "10px",
+                py: 1,
+                px: 1.5,
+                color: isHelpActive ? palette.primary[40] : palette.slate[700],
+                bgcolor: isHelpActive ? palette.hover[10] : "transparent",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+                "&:hover": {
+                  bgcolor: palette.hover[10],
+                  color: palette.slate[900],
+                },
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 0,
+                  color: "inherit",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <ListCollapse size={20} strokeWidth={2} />
+              </ListItemIcon>
+              <ListItemText
+                primary={t("help")}
+                slotProps={{
+                  primary: {
+                    sx: {
+                      fontSize: "15px",
+                      fontWeight: font.weight.medium,
+                      color: "inherit",
+                      whiteSpace: "nowrap",
+                    },
+                  },
+                }}
+              />
+            </ListItemButton>
+          </Box>
+        )}
       </Box>
 
-      <MobileBindingDialog open={mobileActivateOpen} linked={Boolean(bindingState?.linked)} deviceModel={bindingState?.deviceModel} lastSeenAt={bindingState?.lastSeenAt} onClose={() => setMobileActivateOpen(false)} />
+      <MobileBindingDialog  open={mobileActivateOpen} linked={Boolean(bindingState?.linked)} deviceModel={bindingState?.deviceModel} lastSeenAt={bindingState?.lastSeenAt} onClose={() => setMobileActivateOpen(false)} />
 
       <ActivateAppPromptDialog open={activatePromptOpen} onClose={handleCloseActivatePrompt} onGetStarted={handleGetStartedActivate} />
     </Box>

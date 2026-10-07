@@ -1,20 +1,22 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { Box, Typography } from "@mui/material";
-import { ClipboardClock, HandCoins, Wallet } from "lucide-react";
+import { ArrowUpRight, Eye, EyeOff, HandCoins, ListCollapse, Wallet } from "lucide-react";
 
-import { font, palette } from "@/theme/palette";
+import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
 import BaseChip from "@core/components/BaseChip";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { toggleHideAmount } from "@/store/global/global.slice";
 import type { StatCardProps, StatTone } from "../dashboard.types";
-import { Pallet } from "@mui/icons-material";
 
 export const toneMap: Record<StatTone, { fg: string; bg: string }> = {
   success: { fg: palette.success.main, bg: palette.success.bg },
   warning: { fg: palette.warning.main, bg: palette.warning.bg },
   info: { fg: palette.info.main, bg: palette.info.bg },
-  // 'purple' kept as the accent tone key; now a warm Twine tan (on-brand).
   purple: { fg: palette.primary[700], bg: palette.primary[100] },
 };
 
@@ -26,57 +28,262 @@ export default function StatCard({
   icon,
   tone,
 }: StatCardProps) {
-  const c = toneMap[tone];
+  const dispatch = useAppDispatch();
+  const hideAmount = useAppSelector((state) => state.global.hideAmount);
+
+  if (label === "Available Balance") {
+    return (
+      <BaseCard
+        sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          p: `${padding.xxl}px`,
+          borderRadius: `${radius.xl}px`,
+          border: `1px solid ${palette.slate[200]}`,
+          bgcolor: palette.white,
+        }}
+      >
+        {/* Top Header Row */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 1.5,
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 500,
+              color: palette.slate[900],
+            }}
+          >
+            {label}
+          </Typography>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {/* Hide / Show Toggle Pill */}
+            <Box
+              component="button"
+              type="button"
+              onClick={() => dispatch(toggleHideAmount())}
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 0.75,
+                px: 1.5,
+                py: 0.55,
+                borderRadius: "9999px",
+                bgcolor: palette.slate[100],
+                border: "none",
+                cursor: "pointer",
+                color: palette.slate[900],
+                fontSize: 13,
+                fontWeight: 500,
+                transition: "background-color 0.15s ease",
+                "&:hover": {
+                  bgcolor: palette.slate[200],
+                },
+              }}
+            >
+              {hideAmount ? <Eye size={15} /> : <EyeOff size={15} />}
+              <span>{hideAmount ? "Show" : "Hide"}</span>
+            </Box>
+
+            {/* KHQR Icon Button */}
+            <Box
+              component="button"
+              type="button"
+              aria-label="KHQR"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 32,
+                height: 32,
+                borderRadius: "8px",
+                bgcolor: palette.slate[100],
+                border: "none",
+                cursor: "pointer",
+                transition: "background-color 0.15s ease",
+                "&:hover": {
+                  bgcolor: palette.slate[200],
+                },
+              }}
+            >
+              <Image
+                src="/branding/KHQR.png"
+                alt="KHQR"
+                width={18}
+                height={18}
+                style={{ objectFit: "contain" }}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Balance Values */}
+        <Box sx={{ my: 0.5 }}>
+          {sub && (
+            <Typography
+              component="div"
+              sx={{
+                fontSize: { xs: 22, sm: 26 },
+                fontWeight: 700,
+                color: palette.slate[900],
+                letterSpacing: "-0.02em",
+                lineHeight: 1.25,
+              }}
+            >
+              <BaseBlurText>{sub}</BaseBlurText>
+            </Typography>
+          )}
+
+          <Typography
+            component="div"
+            sx={{
+              fontSize: { xs: 16, sm: 19 },
+              fontWeight: 700,
+              color: palette.slate[900],
+              lineHeight: 1.25,
+              mt: 0.75,
+            }}
+          >
+            <BaseBlurText>{value}</BaseBlurText>
+          </Typography>
+        </Box>
+
+        {/* Action Buttons Row */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 1.25,
+            mt: 2.5,
+          }}
+        >
+          {/* Send money */}
+          <Box
+            component={Link}
+            href="/transfer"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.75,
+              px: 2.25,
+              py: 0.85,
+              borderRadius: "9999px",
+              bgcolor: palette.primary[40],
+              color: palette.white,
+              fontSize: 14,
+              fontWeight: 500,
+              textDecoration: "none",
+              transition: "opacity 0.15s ease, background-color 0.15s ease",
+              "&:hover": {
+                bgcolor: "#1c4e80",
+              },
+            }}
+          >
+            <ArrowUpRight size={17} strokeWidth={2.2} />
+            <span>Send money</span>
+          </Box>
+
+          {/* Pay Bill */}
+          <Box
+            component={Link}
+            href="/transfer"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.75,
+              px: 2.25,
+              py: 0.85,
+              borderRadius: "9999px",
+              bgcolor: palette.slate[100],
+              color: palette.slate[900],
+              fontSize: 14,
+              fontWeight: 500,
+              textDecoration: "none",
+              transition: "background-color 0.15s ease",
+              "&:hover": {
+                bgcolor: palette.slate[200],
+              },
+            }}
+          >
+            <HandCoins size={17} strokeWidth={2} />
+            <span>Pay Bill</span>
+          </Box>
+
+          {/* Details */}
+          <Box
+            component={Link}
+            href="/account"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.75,
+              px: 2.25,
+              py: 0.85,
+              borderRadius: "9999px",
+              bgcolor: palette.slate[100],
+              color: palette.slate[900],
+              fontSize: 14,
+              fontWeight: 500,
+              textDecoration: "none",
+              transition: "background-color 0.15s ease",
+              "&:hover": {
+                bgcolor: palette.slate[200],
+              },
+            }}
+          >
+            <ListCollapse size={17} strokeWidth={2} />
+            <span>Details</span>
+          </Box>
+        </Box>
+      </BaseCard>
+    );
+  }
+
+  // Fallback for other stat cards
   return (
     <BaseCard sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <Box sx={{ flex: 1 }}>
-        {/* two-column grid: fixed icon column + content column so label/sub/value align */}
-        <Box sx={{ display: "grid", gridTemplateColumns: "44px 1fr", gap: 5, alignItems: "start", mb: 1.5 }}>
-          <Box
+        <Box>
+          <Typography variant="subtitle1" sx={{ color: "text.primary", fontSize: 16 }}>
+            {label}
+          </Typography>
+
+          {sub && (
+            <Typography variant="body2" sx={{ mt: 1, fontSize: 20, fontWeight: 700 }}>
+              <BaseBlurText>{sub}</BaseBlurText>
+            </Typography>
+          )}
+          <Typography
+            variant="body2"
             sx={{
-              width: 44,
-              height: 44,
-              borderRadius: 1,
-              bgcolor: c.bg,
-              color: c.fg,
-              display: "grid",
-              placeItems: "center",
+              color: "text.primary",
+              display: "inline-flex",
+              alignItems: "center",
+              lineHeight: 2,
+              mt: 2,
+              fontSize: 18,
+              fontWeight: 700,
             }}
           >
-            {icon}
-          </Box>
-
-          <Box>
-            <Typography variant="subtitle1" sx={{ color: "text.primary", fontSize: 16 }}>
-              {label}
-            </Typography>
-
-            {sub && (
-              <Typography variant="body2" sx={{ mt: 1, fontSize: 18, fontWeight: 700, }}>
-                <BaseBlurText>{sub}</BaseBlurText>
-              </Typography>
-            )}
-            <Typography
-              variant="body2"
-              sx={{
-                color: "text.primary",
-                display: 'inline-flex',
-                alignItems: 'center',
-                lineHeight: 2,
-                mt: 2,
-                fontSize: 18,
-                fontWeight: 700,
-              }}
-            >
-              <BaseBlurText>{value}</BaseBlurText>
-            </Typography>
-          </Box>
+            <BaseBlurText>{value}</BaseBlurText>
+          </Typography>
         </Box>
       </Box>
 
       {action && (
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
-          <BaseChip minWidth={80} height={33} sx={{ background: palette.info[50], color: palette.info[700], fontSize: font.size.xs }}>{action}</BaseChip>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-start", mt: 1.5 }}>
+          <BaseChip minWidth={80} height={33} sx={{ background: palette.info[50], color: palette.info[700], fontSize: font.size.xs }}>
+            {action}
+          </BaseChip>
         </Box>
       )}
     </BaseCard>
@@ -86,25 +293,10 @@ export default function StatCard({
 export const statCards: StatCardProps[] = [
   {
     label: "Available Balance",
-    value: "$1,221.57",
-    sub: "៛ 4,886,2800",
+    value: "293,000.00 USD",
+    sub: "120,293,000.00 KHR",
     icon: <Wallet color="#16A34A" />,
     tone: "success",
-    action: "View All",
-  },
-  {
-    label: "Loan Outstanding",
-    value: "$1,221.57",
-    sub: "៛ 4,886,280",
-    icon: <HandCoins color="#2F2B7A" />,
-    tone: "info",
-    action: "View All",
-  },
-  {
-    label: "Pending Approval",
-    value: "3",
-    icon: <ClipboardClock />,
-    tone: "warning",
     action: "View All",
   },
 ];

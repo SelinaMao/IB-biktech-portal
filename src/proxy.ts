@@ -23,7 +23,9 @@ export function proxy(request: NextRequest) {
   const isSignupPage = pathname === "/signup";
   const isOtp = pathname === "/otp"
   const isSuccess = pathname === "/success"
-  const isPublicPage = isLoginPage || isSignupPage || isOtp || isSuccess;
+  const isSetupPassword = pathname === "/setupPassword"
+  const isForgotPassword = pathname === "/forgotPassword"
+  const isPublicPage = isLoginPage || isSignupPage || isOtp || isSuccess || isSetupPassword || isForgotPassword ;
 
   if (!hasSession && !isPublicPage) {
     const url = request.nextUrl.clone();
