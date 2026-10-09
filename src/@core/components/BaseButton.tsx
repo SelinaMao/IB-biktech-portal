@@ -40,10 +40,11 @@ export default function BaseButton({
       }
       sx={{
         padding: "12px 16px 12px 16px",
+        borderRadius:"50px",
         backgroundColor: isDisabled ? "#EDEDEC" : "#2764A5",
-        color: isDisabled ? "#94A3B8" : "#FFFFFF",
+        color: isDisabled ? "#94A3B8" : "#000000",
         "&:hover": {
-          backgroundColor: isDisabled ? "#EDEDEC" : "#CC9966",
+          backgroundColor: isDisabled ? "#d4d4d4" : "#d4d4d4",
         },
         "&.Mui-disabled": {
           backgroundColor: "#EDE#2764A5DEC",

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Box, Typography } from "@mui/material";
 import { ArrowUpRight, Eye, EyeOff, HandCoins, ListCollapse, Wallet } from "lucide-react";
-
+import { HandCoinsIcon } from "lucide-react";
 import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
@@ -12,6 +12,7 @@ import BaseChip from "@core/components/BaseChip";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleHideAmount } from "@/store/global/global.slice";
 import type { StatCardProps, StatTone } from "../dashboard.types";
+import BaseButton from "@/@core/components/BaseButton";
 
 export const toneMap: Record<StatTone, { fg: string; bg: string }> = {
   success: { fg: palette.success.main, bg: palette.success.bg },
@@ -162,87 +163,48 @@ export default function StatCard({
             display: "flex",
             alignItems: "center",
             flexWrap: "wrap",
-            gap: 1.25,
+            gap: 4,
             mt: 2.5,
           }}
         >
           {/* Send money */}
-          <Box
-            component={Link}
-            href="/transfer"
+          <BaseButton
+            startIcon={<ArrowUpRight />}
+            title="Send money"
             sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 0.75,
-              px: 2.25,
-              py: 0.85,
-              borderRadius: "9999px",
-              bgcolor: palette.primary[40],
-              color: palette.white,
-              fontSize: 14,
-              fontWeight: 500,
-              textDecoration: "none",
-              transition: "opacity 0.15s ease, background-color 0.15s ease",
+              bgcolor: "#2764A5",
+              border: "0px",
               "&:hover": {
-                bgcolor: "#1c4e80",
+                backgroundColor: "#1A4A6A",
               },
             }}
-          >
-            <ArrowUpRight size={17} strokeWidth={2.2} />
-            <span>Send money</span>
-          </Box>
+          />
+          <BaseButton
+            startIcon={<HandCoinsIcon />}
+            title="Pay Bill"
+            sx={{
+              bgcolor: "#EDF0F4",
+              border: "0px",
+              color: "#000000",
+              "&:hover": {
+                backgroundColor:"#d4d4d4",
+              },
+            }}
+          />
+          <BaseButton
+            startIcon={<ListCollapse />}
+            title="Detail"
+            sx={{
+              bgcolor: "#EDF0F4",
+              border: "0px",
+              color: "#000000",
+              "&:hover": {
+                backgroundColor:"#d4d4d4",
+              },
+            }}
+          />
 
-          {/* Pay Bill */}
-          <Box
-            component={Link}
-            href="/transfer"
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 0.75,
-              px: 2.25,
-              py: 0.85,
-              borderRadius: "9999px",
-              bgcolor: palette.slate[100],
-              color: palette.slate[900],
-              fontSize: 14,
-              fontWeight: 500,
-              textDecoration: "none",
-              transition: "background-color 0.15s ease",
-              "&:hover": {
-                bgcolor: palette.slate[200],
-              },
-            }}
-          >
-            <HandCoins size={17} strokeWidth={2} />
-            <span>Pay Bill</span>
-          </Box>
 
-          {/* Details */}
-          <Box
-            component={Link}
-            href="/account"
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 0.75,
-              px: 2.25,
-              py: 0.85,
-              borderRadius: "9999px",
-              bgcolor: palette.slate[100],
-              color: palette.slate[900],
-              fontSize: 14,
-              fontWeight: 500,
-              textDecoration: "none",
-              transition: "background-color 0.15s ease",
-              "&:hover": {
-                bgcolor: palette.slate[200],
-              },
-            }}
-          >
-            <ListCollapse size={17} strokeWidth={2} />
-            <span>Details</span>
-          </Box>
         </Box>
       </BaseCard>
     );

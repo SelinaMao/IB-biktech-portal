@@ -75,7 +75,7 @@ export default function AccountsSidebar({
                   padding:"5px",
                   cursor: onSelect ? "pointer" : "default",
                   // border: `0px solid ${active ? `${account.color}` : "0px"}`,
-                  backgroundColor: active ? adjustLightness(account?.color || "#2D9CDB", 95) : "white",
+                  backgroundColor: active ? "#2764A514" : "white",
                   border:"none"
                 }}
               >

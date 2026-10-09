@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar, Box, Button, CircularProgress, IconButton, Stack, Typography,Divider } from "@mui/material";
+import { Avatar, Box, Button, CircularProgress, IconButton, Stack, Typography, Divider } from "@mui/material";
 import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
 import { Download, Icon } from "lucide-react";
 import { EllipsisVertical } from "lucide-react";
@@ -16,6 +16,7 @@ import { text } from "stream/consumers";
 export interface AccountDetailsProps {
   open: boolean;
   accounts: CoreAccountEntry[];
+   stats: IAccountDetailResponses;
   onClose: () => void;
   info: IAccountDetailResponses;
   fixedDeposit?: IAccountDetailResponses;
@@ -30,36 +31,13 @@ function StatusBadge({ value }: { value: string }) {
   );
 }
 
-const BOLD_ROW_KEYS = [
-  "ACCOUNT_CURRENT_BALANCE",
-  "ACCOUNT_AVAILABLE_BALANCE",
-  "ACCOUNT_LEDGER_BALANCE",
-  "ACCOUNT_FLOATING_BALANCE",
+const STAT_FIELDS: Array<{ key: keyof IAccountDetailResponses; label: string }> = [
+  { key: "ledgerBalance", label: "Ledger Balance" },
+  { key: "overdraftLimit", label: "OD Limit" },
+  { key: "blockedBalance", label: "Blocked Balance" },
+  { key: "availableBalance", label: "Available Balance" },
 ];
 
-
-function Row({ label, value, rowKey }: { label: string; value: React.ReactNode; rowKey: string }) {
-  const isBold = BOLD_ROW_KEYS.includes(rowKey);
-  return (
-    <Stack
-      direction="row"
-      sx={{ justifyContent: "space-between", alignItems: "center", gap: 2, py: 1.5 }}
-    >
-      <Typography sx={{ fontSize: font.size.sm, color: "text.secondary" }}>{label}</Typography>
-      <Typography
-        component="div"
-        sx={{
-          fontSize: font.size.sm,
-          fontWeight: isBold ? font.weight.semibold : font.weight.regular,
-          color: "text.primary",
-          textAlign: "right",
-        }}
-      >
-        {value}
-      </Typography>
-    </Stack>
-  );
-}
 
 /** Slide-over triggered by "View Details" on an account overview card —
  *  the account's full profile as a plain label/value list. */
@@ -67,6 +45,7 @@ export default function AccountDetailsCard({
   open,
   onClose,
   accounts,
+  stats,
   info,
   fixedDeposit,
   onDownloadCertificate,
@@ -76,7 +55,7 @@ export default function AccountDetailsCard({
     nameParts.length > 1 ? nameParts.slice(0, 2).map((part) => part[0]).join("") : nameParts[0]?.slice(0, 2) ?? "?"
   ).toUpperCase();
 
- 
+  const [account,setAccount]=useState<any[]>([])
   const rows = (info.fields ?? []).filter((field) => field.value);
   const [isDownloading, setIsDownloading] = useState(false);
   const handleDownloadClick = async () => {
@@ -88,7 +67,7 @@ export default function AccountDetailsCard({
       setIsDownloading(false);
     }
   };
- 
+
   return (
 
     <Stack direction="column" sx={{ alignItems: "space-between", display: "flex", padding: "20px" }}>
@@ -99,25 +78,25 @@ export default function AccountDetailsCard({
           display: "flex"
         }}
         >
-          <Typography sx={{ fontSize: font.size.lg, fontWeight: font.weight.medium  }}>
+          <Typography sx={{ fontSize: font.size.lg, fontWeight: font.weight.medium }}>
             {info.accountName}
           </Typography>
           <Box
-          sx={{
-            padding:"4px 8px",
-            borderRadius:"25px",
-            bgcolor:"#E0F4E7",
-            marginLeft:8,
-            marginTop:0.5,
-            fontSize:"14px",
-            color:"#166D35",
-            fontWeight:"500"
-          }}
+            sx={{
+              padding: "4px 8px",
+              borderRadius: "25px",
+              bgcolor: "#E0F4E7",
+              marginLeft: 8,
+              marginTop: 0.5,
+              fontSize: "14px",
+              color: "#166D35",
+              fontWeight: "500"
+            }}
           >
             {info.status}
           </Box>
         </Box>
-         <Button
+        <Button
           sx={{
             minWidth: 0,
             width: 32,
@@ -140,94 +119,77 @@ export default function AccountDetailsCard({
         </Button>
       </Box>
       <Box >
-         <Typography>
+        <Typography>
           {info.accountNumber}
         </Typography>
-       
+
       </Box>
 
       <Box
-      sx={{
-        marginTop:6
-      }}
+        sx={{
+          marginTop: 6
+        }}
       >
-          <Typography
+        <Typography
           sx={{
-            fontFamily:"sans-serif",
-            fontWeight:"bold",
-            fontSize:"18px"
+            fontFamily: "sans-serif",
+            fontWeight: "bold",
+            fontSize: "18px"
           }}
-          >
-           {formatCCY(info.availableBalance)}
-          </Typography>
+        >
+          {formatCCY(info.availableBalance)}
+        </Typography>
       </Box>
 
       <Box
-      sx={{
-        bgcolor: "#F5F6FA",       // light gray-blue background
-        borderRadius: 3,          // 12px
-        px: 2.5,
-        py: 2,
-      }}
-    >
-      <Typography sx={{ fontSize: 16, fontWeight: 600, mb: 1.5 }}>
-        Account Detail
-      </Typography>
-      
+        sx={{
+          bgcolor: "#F5F6FA",       // light gray-blue background
+          borderRadius: 3,          // 12px
+          px: 2.5,
+          py: 2,
+          padding:"20px",
+          marginTop:"10px"
+        }}
+      >
+        <Typography sx={{ fontSize: 16, fontWeight: 600, mb: 1.5 }}>
+          Account Detail
+        </Typography>
 
-<Stack divider={<Divider flexItem />} spacing={0}>
-  {rows.map((row) => (
-    <Stack
-      key={row.key}
-      direction="row"
-      sx={{ justifyContent: "space-between", alignItems: "center", py: 1.5 }}
-    >
-      <Typography sx={{ fontSize: 14, color: "text.secondary" }}>{row.label}</Typography>
-      <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{row.value}</Typography>
-    </Stack>
-  ))}
-</Stack>
-      {/* <Stack divider={<Divider flexItem />} spacing={0}>
-        {accounts.map((item) => (
-          <Stack
-            key={item.accountNumber}
-            direction="row"
-            sx={{
-              justifyContent: "space-between",
-              alignItems: "center",
-              py: 1.5,
-            }}
-          >
-            <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
-              {item.accountName}
-            </Typography>
-            <Typography sx={{ fontSize: 14, fontWeight: 600 }}>
-              {(item.availableBalance)}
-            </Typography>
-          </Stack>
-        ))}
-      </Stack> */}
-      {/* <Stack divider={<Divider flexItem />} spacing={0}>
-  {accounts.map((row) => (
-    <Stack
-      key={row.accountClass}
-      direction="row"
-      sx={{
-        justifyContent: "space-between",
-        alignItems: "center",
-        py: 1.5,
-      }}
-    >
-      <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
-        {row.accountNumber}
-      </Typography>
-      <Typography sx={{ fontSize: 14, fontWeight: 600 }}>
-        {row.availableBalance}
-      </Typography>
-    </Stack>
-  ))}
-</Stack> */}
-    </Box>
+
+        {/* <Stack divider={<Divider flexItem />} spacing={0}>
+          {rows.map((row) => (
+            <Stack
+              key={row.key}
+              direction="row"
+              sx={{ justifyContent: "space-between", alignItems: "center", py: 1.5 }}
+            >
+              <Typography sx={{ fontSize: 14, color: "text.secondary" }}>{row.label}</Typography>
+              <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{row.value}</Typography>
+            </Stack>
+          ))}
+        </Stack> */}
+        <Stack divider={<Divider flexItem />} spacing={0} marginTop={"10px"}>
+           {STAT_FIELDS.filter(({ key }) => stats[key] !== undefined).map(({ key, label }) => (
+            <Stack
+              key={label}
+              direction="row"
+              sx={{
+                justifyContent: "space-between",
+                alignItems: "center",
+                py: 1.5,
+              }}
+            >
+              <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
+                {label}
+              </Typography>
+              <Typography sx={{ fontSize: 14, fontWeight: 600 }}>
+                {(label)}
+              </Typography>
+            </Stack>
+          ))}
+        </Stack>
+
+      </Box>
 
 
     </Stack>

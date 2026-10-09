@@ -38,10 +38,13 @@ import {
   type TTransactionDetailResponse,
   type CoreAccountEntry,
   type RolloverOption,
+  setAccounts,
 } from "@/features/account";
 import { downloadBlob } from "@/utils/download-file";
-import { CirclePlus } from "lucide-react";
+import { CirclePlus, Info, NotepadText, ReceiptText } from "lucide-react";
 import AccountDetailsCard from "@/features/account/components/AccountDetailCard";
+import { Label } from "recharts";
+import { palette } from "@/theme/palette";
 
 const DEFAULT_TRANSACTIONS_FILTER: BaseFilterValue = { type: "all", from: null, to: null };
 // "Latest Transactions" rows per page — each page is its own `listTransactions` call.
@@ -74,7 +77,7 @@ export default function AccountPage() {
 
   const bankAccounts = accountsResponse?.accounts ?? [];
   const coreSummary = accountsResponse?.summary ?? null;
- 
+
   const [accountNumber, setAccountNumber] = useState<string | undefined>();
 
   useEffect(() => {
@@ -241,43 +244,56 @@ export default function AccountPage() {
         <Grid size={{ xs: 12, lg: 9 }}>
           <Grid container spacing={2.5}
             sx={{
-              bgcolor:"while",
-              border:"1px solid"
+              bgcolor: "while",
+
             }}
           >
             <Grid size={12} sx={{
               width: "100%",
-              bgcolor:"white",
-              borderRadius:"20px"
+              bgcolor: "white",
+              borderRadius: "20px"
 
             }}>
-              {/* {accountInfoDetail && (
+
+
+              {accountInfoDetail && (
                 <AccountDetailsCard
-                  key={accountNumber}
+                  accounts={bankAccounts}
                   open={detailsOpen}
                   onClose={() => setDetailsOpen(false)}
+                  key={accountNumber}
                   info={accountInfoDetail}
-                  fixedDeposit={fixedDepositDetail}
-                  onDownloadCertificate={handleDownloadCertificate}
+                  stats={accountInfoDetail}
                 />
-              )} */}
+              )}
+               {accountInfoDetail && (
+        <AccountDetails
+          open={detailsOpen}
+          onClose={() => setDetailsOpen(false)}
+          info={accountInfoDetail}
+          fixedDeposit={fixedDepositDetail}
+          onDownloadCertificate={handleDownloadCertificate}
+        />
+      )}
+              <BaseButton
+                  
+                sx={{
+                  margin:"15px",
+                  bgcolor: palette.info[40]
+                }}
+                onClick={() => setDetailsOpen(true)}
+                startIcon={<Info />}
+                title="Account Information"
+              />
+              <BaseButton
+                sx={{
+                  margin:"15px",
+                  bgcolor: palette.info[40]
+                }}
+                startIcon={<ReceiptText />}
+                title="State Menagement"
+              />
 
-              {/* {!accountInfoDetail || !selectedCompany ? (
-                    <AccountOverviewCardSkeleton />
-                  ) : isFixedDeposit ? (
-                    fixedDepositDetail && (
-                      <TDAccountOverviewCard
-                        key={accountNumber}
-                        fixedDeposit={fixedDepositDetail}
-                        company={selectedCompany}
-                        onViewDetails={() => setDetailsOpen(true)}
-                        currentRolloverCode={matchRolloverOptionCode("-")}
-                        onChangeRollover={(option) => setPendingRolloverOption(option)}
-                    />
-                  )
-                ) : (
-                  <AccountOverviewCard key={accountNumber} company={selectedCompany} data={cashFlowData} stats={accountInfoDetail} onViewDetails={() => setDetailsOpen(true)} />
-                )} */}
             </Grid>
 
             <Grid size={12}>
@@ -320,15 +336,7 @@ export default function AccountPage() {
         </Grid>
       </Grid>
 
-      {/* {accountInfoDetail && (
-        <AccountDetails
-          open={detailsOpen}
-          onClose={() => setDetailsOpen(false)}
-          info={accountInfoDetail}
-          fixedDeposit={fixedDepositDetail}
-          onDownloadCertificate={handleDownloadCertificate}
-        />
-      )} */}
+     
 
       <TransactionDetailsPanel
         open={Boolean(selectedTransaction)}

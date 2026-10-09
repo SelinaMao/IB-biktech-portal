@@ -27,6 +27,7 @@ export const palette = {
 
   // Info — Minsk (indigo). `main`/`bg` for chips + alerts.
   info: {
+    40:"#2764A514",
     50: "#eef2ff",
     100: "#e0e7ff",
     200: "#c7d1fe",

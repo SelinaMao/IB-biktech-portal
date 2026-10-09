@@ -89,6 +89,7 @@ export default function BaseTable<T>({
     <Box sx={{ display: "flex", flexDirection: "column", gap: 5 }}>
       <Box
         sx={{
+          marginTop:"10px",
           ...(rounded && {
             border: `1px solid ${palette.slate[200]}`,
             borderRadius: `${radius.lg}px`,
