@@ -41,6 +41,7 @@ import {
 } from "@/features/account";
 import { downloadBlob } from "@/utils/download-file";
 import { CirclePlus } from "lucide-react";
+import AccountDetailsCard from "@/features/account/components/AccountDetailCard";
 
 const DEFAULT_TRANSACTIONS_FILTER: BaseFilterValue = { type: "all", from: null, to: null };
 // "Latest Transactions" rows per page — each page is its own `listTransactions` call.
@@ -73,7 +74,7 @@ export default function AccountPage() {
 
   const bankAccounts = accountsResponse?.accounts ?? [];
   const coreSummary = accountsResponse?.summary ?? null;
-
+ 
   const [accountNumber, setAccountNumber] = useState<string | undefined>();
 
   useEffect(() => {
@@ -238,24 +239,45 @@ export default function AccountPage() {
         </Grid>
 
         <Grid size={{ xs: 12, lg: 9 }}>
-          <Grid container spacing={2.5}>
-            <Grid size={12}>
-              {!accountInfoDetail || !selectedCompany ? (
-                <AccountOverviewCardSkeleton />
-              ) : isFixedDeposit ? (
-                fixedDepositDetail && (
-                  <TDAccountOverviewCard
-                    key={accountNumber}
-                    fixedDeposit={fixedDepositDetail}
-                    company={selectedCompany}
-                    onViewDetails={() => setDetailsOpen(true)}
-                    currentRolloverCode={matchRolloverOptionCode("-")}
-                    onChangeRollover={(option) => setPendingRolloverOption(option)}
-                  />
-                )
-              ) : (
-                <AccountOverviewCard key={accountNumber} company={selectedCompany} data={cashFlowData} stats={accountInfoDetail} onViewDetails={() => setDetailsOpen(true)} />
-              )}
+          <Grid container spacing={2.5}
+            sx={{
+              bgcolor:"while",
+              border:"1px solid"
+            }}
+          >
+            <Grid size={12} sx={{
+              width: "100%",
+              bgcolor:"white",
+              borderRadius:"20px"
+
+            }}>
+              {/* {accountInfoDetail && (
+                <AccountDetailsCard
+                  key={accountNumber}
+                  open={detailsOpen}
+                  onClose={() => setDetailsOpen(false)}
+                  info={accountInfoDetail}
+                  fixedDeposit={fixedDepositDetail}
+                  onDownloadCertificate={handleDownloadCertificate}
+                />
+              )} */}
+
+              {/* {!accountInfoDetail || !selectedCompany ? (
+                    <AccountOverviewCardSkeleton />
+                  ) : isFixedDeposit ? (
+                    fixedDepositDetail && (
+                      <TDAccountOverviewCard
+                        key={accountNumber}
+                        fixedDeposit={fixedDepositDetail}
+                        company={selectedCompany}
+                        onViewDetails={() => setDetailsOpen(true)}
+                        currentRolloverCode={matchRolloverOptionCode("-")}
+                        onChangeRollover={(option) => setPendingRolloverOption(option)}
+                    />
+                  )
+                ) : (
+                  <AccountOverviewCard key={accountNumber} company={selectedCompany} data={cashFlowData} stats={accountInfoDetail} onViewDetails={() => setDetailsOpen(true)} />
+                )} */}
             </Grid>
 
             <Grid size={12}>
@@ -298,7 +320,7 @@ export default function AccountPage() {
         </Grid>
       </Grid>
 
-      {accountInfoDetail && (
+      {/* {accountInfoDetail && (
         <AccountDetails
           open={detailsOpen}
           onClose={() => setDetailsOpen(false)}
@@ -306,7 +328,7 @@ export default function AccountPage() {
           fixedDeposit={fixedDepositDetail}
           onDownloadCertificate={handleDownloadCertificate}
         />
-      )}
+      )} */}
 
       <TransactionDetailsPanel
         open={Boolean(selectedTransaction)}

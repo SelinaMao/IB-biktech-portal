@@ -21,14 +21,14 @@ export const transferOptions: TransferOption[] = [
   {
     slug: "own-account",
     label: "Own Account",
-    description: "Transfer funds between your own accounts.",
-    icon: <Image src="/assets/icons/own_tranfer.svg" alt="" width={40} height={40} />,
+    description: "Move funds instantly between your registered accounts .",
+    icon: <Image src="/assets/icons/vector.svg" alt="" width={20} height={20} />,
   },
   {
     slug: "other-sme-bank",
     label: "Other SME Account",
-    description: "Transfer funds to another SME Bank account.",
-    icon: <Image src="/assets/icons/sme_txn_other.svg" alt="" width={40} height={40} />,
+    description: "Send money securely to another local commercial bank.",
+    icon: <Image src="/assets/icons/vector_right.svg" alt="" width={20} height={20} />,
   },
   {
     slug: "schedule",
@@ -37,10 +37,16 @@ export const transferOptions: TransferOption[] = [
     icon: <Landmark size={40} />,
   },
   {
+    slug: "international",
+    label: "International Transfer",
+    description: "Send money internationally via fast SWIFT system.",
+    icon: <Image src="/assets/icons/globe_x.svg" alt="" width={20} height={20} />,
+  },
+  {
     slug: "local-bank",
-    label: "Local Bank",
+    label: "Local Bank Via Transfer",
     description: "Transfer funds securely to international bank accounts.",
-    icon: <Image src="/assets/icons/local_bank.svg" alt="" width={40} height={40} />,
+    icon: <Image src="/assets/icons/local_bank.svg" alt="" width={20} height={20} />,
   },
   {
     slug: "bakong",
@@ -48,18 +54,14 @@ export const transferOptions: TransferOption[] = [
     description: "Transfer funds using the Bakong network.",
     icon: <Settings size={40} />,
   },
+
   {
     slug: "bulk",
-    label: "Bulk Local",
+    label: "Bakong Wallet",
     description: "Transfer funds securely to international bank accounts.",
-    icon: <Image src="/assets/icons/bulk_transfer.svg" alt="" width={40} height={40} />,
+    icon: <Image src="/assets/icons/bakong.svg" alt="" width={20} height={20} />,
   },
-  {
-    slug: "international",
-    label: "International",
-    description: "Transfer funds securely to international bank accounts.",
-    icon: <Image src="/assets/icons/international_transfer.svg" alt="" width={40} height={40} />,
-  },
+
 ];
 
 /** Options shown as hub cards, in display order. */
@@ -73,9 +75,10 @@ const DIALOG_BY_SLUG: Record<
   "own-account": OwnAccountDialog,
   "other-sme-bank": OtherSmeBankDialog,
   schedule: ScheduleTransferDialog,
+  international: InternationalDialog,
   "local-bank": LocalTransferDialog,
   bulk: BulkTransferDialog,
-  international: InternationalDialog,
+
 };
 
 export default function Transfer() {
@@ -86,10 +89,22 @@ export default function Transfer() {
   ).filter((option): option is TransferOption => Boolean(option));
 
   return (
+
     <Box sx={{ width: "100%" }}>
-      <BaseTitle fontSize={18} fontWeight={600} sx={{ mb: 2.5 }}>
-        Transfer
-      </BaseTitle>
+      <Box sx={{
+        mx: -6,
+        mt: -6,
+        mb: 4,
+        px: 6,
+        py: 4,
+        bgcolor: "background.paper",
+        borderBottom: 0.1,
+        borderColor: "divider",
+      }}>
+        <BaseTitle fontSize={24} fontWeight={"bold"} fontFamily={"ui-sans-serif"} >
+          Transfer
+        </BaseTitle>
+      </Box>
       <Grid container spacing={2.5}>
         {hubOptions.map((option) => (
           <Grid key={option.slug} size={{ xs: 12, sm: 6, md: 4 }}>
@@ -104,7 +119,7 @@ export default function Transfer() {
           </Grid>
         ))}
       </Grid>
-
+      {/* 
       <Box sx={{ mt: 4 }}>
         <BaseTitle fontSize={18} fontWeight={600} sx={{ mb: 2.5 }}>
           Templates
@@ -118,7 +133,7 @@ export default function Transfer() {
           open={openSlug === slug}
           onClose={() => setOpenSlug(null)}
         />
-      ))}
+      ))} */}
     </Box>
   );
 }

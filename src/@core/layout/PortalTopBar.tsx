@@ -151,7 +151,7 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
       }}
     >
       <Toolbar sx={{ minHeight: `${TOPBAR_HEIGHT}px !important`, gap: "17px" }}>
-        {/* <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" alignItems="center" spacing={1}>
           <IconButton
             edge="start"
             onClick={onToggleSidebar}
@@ -165,7 +165,7 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
           <Typography variant="h4" sx={{ fontWeight: "bold", color: palette.navy[800] }}>
             SME Bank <span style={{ color: palette.primary.main }}>Biz</span>
           </Typography>
-        </Stack> */}
+        </Stack>
 
         <Box sx={{ flex: 1 }} />
         {/* <Stack
