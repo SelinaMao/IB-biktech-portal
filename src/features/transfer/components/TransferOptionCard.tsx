@@ -13,7 +13,7 @@ export default function TransferOptionCard({
   onClick,
 }: {
   option: TransferOption;
-  /** When provided, the card opens a dialog via this instead of navigating. */
+  /** When provided, the card opens an inline view via this instead of navigating. */
   onClick?: () => void;
 }) {
   const asButton = Boolean(onClick);

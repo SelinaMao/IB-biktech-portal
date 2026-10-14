@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Box, Typography } from "@mui/material";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, SquareArrowOutUpRight } from "lucide-react";
 
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
@@ -109,15 +109,16 @@ export default function ScheduleCard({
             alignItems: "center",
             justifyContent: "center",
             color: palette.slate[900],
-            p: 0.5,
-            borderRadius: `${radius.sm}px`,
+            p: 1,
+            backgroundColor:palette.hover[10],
+            borderRadius: "50%",
             transition: "opacity 0.15s ease",
             "&:hover": {
               opacity: 0.7,
             },
           }}
         >
-          <ExternalLink size={20} />
+          <SquareArrowOutUpRight size={20} />
         </Box>
       </Box>
 
@@ -195,6 +196,7 @@ export default function ScheduleCard({
                       fontWeight: 600,
                       color: palette.slate[900],
                       lineHeight: 1.25,
+                      padding:1
                     }}
                   >
                     {item.title}
@@ -205,8 +207,8 @@ export default function ScheduleCard({
                     sx={{
                       display: "inline-block",
                       mt: 0.5,
-                      px: 1.25,
-                      py: 0.25,
+                      px: 2.5,
+                      py: 1,
                       borderRadius: `${radius.pill}px`,
                       bgcolor: tone.bg,
                       color: tone.fg,

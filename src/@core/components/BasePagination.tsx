@@ -5,16 +5,37 @@ import Button from "@mui/material/Button";
 import Pagination from "@mui/material/Pagination";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { palette } from "@/theme/palette";
 import type { BaseTablePagination } from "@core/types/BaseTable.types";
 
 export type BasePaginationProps = BaseTablePagination & {
   /** "detailed" (default) — "Showing X–Y of N" + numbered pages, for list/table screens.
-   *  "compact" — right-aligned "‹ Previous  1  Next ›", for card-embedded lists. */
+   *  "compact" — right-aligned "N Transactions  [Page:]  (|<)  01 02 03  (>|)", for card-embedded lists. */
   variant?: "detailed" | "compact";
 };
+
+const MAX_VISIBLE_PAGES = 3;
+
+/**
+ * Returns a sliding window of up to 3 page numbers (e.g. [1, 2, 3], then [2, 3, 4]).
+ */
+function getPageNumbers(current: number, total: number): number[] {
+  if (total <= MAX_VISIBLE_PAGES) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  // Keep the window anchored at 1..3 until current exceeds 3, then slide forward
+  let start = Math.max(1, current - (MAX_VISIBLE_PAGES - 1));
+  let end = start + MAX_VISIBLE_PAGES - 1;
+
+  if (end > total) {
+    end = total;
+    start = Math.max(1, end - MAX_VISIBLE_PAGES + 1);
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+}
 
 /**
  * Pager for list screens. Pages are 1-based in MUI but the BaseTablePagination
@@ -31,31 +52,162 @@ export default function BasePagination({
   const pageCount = Math.max(1, Math.ceil(count / rowsPerPage));
 
   if (variant === "compact") {
+    const currentPage = page + 1;
+    const pages = getPageNumbers(currentPage, pageCount);
+
     return (
       <Stack
         direction="row"
-        sx={{ alignItems: "center", justifyContent: "flex-end", gap: 3 }}
+        sx={{
+          alignItems: "center",
+          justifyContent: "flex-end",
+          flexWrap: "wrap",
+          gap: 2,
+          py: 1,
+        }}
       >
+        {/* Total Count Label */}
+        <Typography
+          sx={{
+            fontSize: 15,
+            fontWeight: 400,
+            color: "#0F172A",
+            mr: 0.5,
+          }}
+        >
+          {count} {count === 1 ? "Transaction" : "Transactions"}
+        </Typography>
+
+        {/* "Page:" Pill */}
+        <Box
+          sx={{
+            bgcolor: "#ECEFF5",
+            borderRadius: "9999px",
+            px: 2.25,
+            height: 38,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: 15,
+              fontWeight: 400,
+              color: "#0F172A",
+              lineHeight: 1,
+            }}
+          >
+            Page:
+          </Typography>
+        </Box>
+
+        {/* Previous Button */}
         <Button
           variant="text"
-          size="small"
-          startIcon={<ChevronLeft size={16} />}
           disabled={page === 0}
           onClick={() => onPageChange(page - 1)}
-          sx={{ color: "text.primary", "&.Mui-disabled": { backgroundColor: "transparent" } }}
+          sx={{
+            width: 38,
+            height: 38,
+            minWidth: 38,
+            p: 0,
+            borderRadius: "50%",
+            bgcolor: "#ECEFF5",
+            color: "#0F172A",
+            "&:hover": {
+              bgcolor: "#DDE3EE",
+            },
+            "&.Mui-disabled": {
+              bgcolor: "#ECEFF5",
+              color: "#94A3B8",
+              opacity: 0.6,
+            },
+          }}
         >
-          Previous
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m17 18-6-6 6-6" />
+            <path d="M7 6v12" />
+          </svg>
         </Button>
-        <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{page + 1}</Typography>
+
+        {/* Page Numbers (01, 02, 03) */}
+        <Stack direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
+          {pages.map((item) => {
+            const isSelected = item === currentPage;
+            return (
+              <Button
+                key={item}
+                variant="text"
+                onClick={() => onPageChange(item - 1)}
+                sx={{
+                  width: 38,
+                  height: 38,
+                  minWidth: 38,
+                  p: 0,
+                  borderRadius: "50%",
+                  fontSize: 15,
+                  fontWeight: isSelected ? 500 : 400,
+                  bgcolor: isSelected ? palette.primary[40] : "transparent",
+                  color: isSelected ? palette.white : "#0F172A",
+                  "&:hover": {
+                    bgcolor: isSelected ? palette.primary[40] : "#ECEFF5",
+                  },
+                }}
+              >
+                {String(item).padStart(2, "0")}
+              </Button>
+            );
+          })}
+        </Stack>
+
+        {/* Next Button */}
         <Button
           variant="text"
-          size="small"
-          endIcon={<ChevronRight size={16} />}
           disabled={page >= pageCount - 1}
           onClick={() => onPageChange(page + 1)}
-          sx={{ color: "text.primary", "&.Mui-disabled": { backgroundColor: "transparent" } }}
+          sx={{
+            width: 38,
+            height: 38,
+            minWidth: 38,
+            p: 0,
+            borderRadius: "50%",
+            bgcolor: "#ECEFF5",
+            color: "#0F172A",
+            "&:hover": {
+              bgcolor: "#DDE3EE",
+            },
+            "&.Mui-disabled": {
+              bgcolor: "#ECEFF5",
+              color: "#94A3B8",
+              opacity: 0.6,
+            },
+          }}
         >
-          Next
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m7 18 6-6-6-6" />
+            <path d="M17 6v12" />
+          </svg>
         </Button>
       </Stack>
     );

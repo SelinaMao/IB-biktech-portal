@@ -3,12 +3,12 @@
 import React from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { Landmark } from "lucide-react";
+import { Settings } from "lucide-react";
 
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
-import { scheduleFrequencies, transferAccounts } from "../transfer.data";
+import { transferAccounts } from "../transfer.data";
 import {
   accountOptionLabel,
   accountSelectOptions,
@@ -18,24 +18,23 @@ import {
   CURRENCY_OPTIONS,
   findAccount,
 } from "../transfer.utils";
-import PreviewTransferDialog, { type TransferPreviewField } from "./PreviewTransferDialog";
+import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
 
-export type ScheduleTransferDialogProps = {
+export type BakongProps = {
   open: boolean;
   onClose: () => void;
 };
 
 const INITIAL_VALUES = {
   fromAccountId: transferAccounts[0].id,
-  toAccountId: transferAccounts[1].id,
+  bakongId: "",
+  recipientName: "",
   amount: "",
   currency: "USD",
-  scheduleDate: "",
-  frequency: scheduleFrequencies[0].value,
   remark: "",
 };
 
-export default function ScheduleTransferDialog({ open, onClose }: ScheduleTransferDialogProps) {
+export default function Bakong({ open, onClose }: BakongProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
 
   const set = <K extends keyof typeof INITIAL_VALUES>(
@@ -44,30 +43,27 @@ export default function ScheduleTransferDialog({ open, onClose }: ScheduleTransf
   ) => setValues((prev) => ({ ...prev, [key]: value }));
 
   const fromAccount = findAccount(transferAccounts, values.fromAccountId);
-  const toAccount = findAccount(transferAccounts, values.toAccountId);
-  const frequencyLabel = scheduleFrequencies.find((f) => f.value === values.frequency)?.label ?? "";
 
   const previewFields: TransferPreviewField[] = [
     { label: "From Account", value: fromAccount ? accountOptionLabel(fromAccount) : "-" },
-    { label: "To Account", value: toAccount ? accountOptionLabel(toAccount) : "-" },
+    { label: "Bakong ID / Phone", value: values.bakongId || "-" },
+    { label: "Recipient Name", value: values.recipientName || "-" },
     { label: "Amount", value: amountPreviewValue(values.amount, values.currency) },
-    { label: "Start Date", value: values.scheduleDate || "-" },
-    { label: "Frequency", value: frequencyLabel },
     ...(values.remark ? [{ label: "Remark", value: values.remark }] : []),
   ];
 
   const summaryRows = buildTransferSummaryRows(values.amount, values.currency);
 
   return (
-    <PreviewTransferDialog
+    <PreviewTransfer
       open={open}
       onClose={onClose}
-      title="Schedule Transfer"
-      icon={<Landmark size={18} />}
-      canSubmit={Boolean(values.amount && values.scheduleDate && values.fromAccountId && values.toAccountId)}
+      title="To Bakong"
+      icon={<Settings size={18} />}
+      canSubmit={Boolean(values.amount && values.bakongId && values.fromAccountId)}
       previewFields={previewFields}
       summaryRows={summaryRows}
-      successMessage={`${values.amount} ${currencyLabel(values.currency)} scheduled to ${toAccount?.name ?? "the selected account"} starting ${values.scheduleDate}.`}
+      successMessage={`${values.amount} ${currencyLabel(values.currency)} sent to ${values.recipientName || values.bakongId} via Bakong.`}
       onReset={() => setValues(INITIAL_VALUES)}
     >
       <Stack spacing={2.5}>
@@ -77,11 +73,16 @@ export default function ScheduleTransferDialog({ open, onClose }: ScheduleTransf
           onChange={(e) => set("fromAccountId", e.target.value as string)}
           options={accountSelectOptions(transferAccounts)}
         />
-        <BaseSelect
-          label="To Account"
-          value={values.toAccountId}
-          onChange={(e) => set("toAccountId", e.target.value as string)}
-          options={accountSelectOptions(transferAccounts)}
+        <BaseInput
+          label="Bakong ID / Phone Number"
+          value={values.bakongId}
+          onChange={(e) => set("bakongId", e.target.value)}
+          placeholder="e.g. 012 345 678"
+        />
+        <BaseInput
+          label="Recipient Name"
+          value={values.recipientName}
+          onChange={(e) => set("recipientName", e.target.value)}
         />
 
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-end" }}>
@@ -103,20 +104,6 @@ export default function ScheduleTransferDialog({ open, onClose }: ScheduleTransf
           </Box>
         </Stack>
 
-        <BaseInput
-          label="Start Date"
-          type="date"
-          value={values.scheduleDate}
-          onChange={(e) => set("scheduleDate", e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-        <BaseSelect
-          label="Frequency"
-          value={values.frequency}
-          onChange={(e) => set("frequency", e.target.value as string)}
-          options={scheduleFrequencies}
-        />
-
         <BaseTextArea
           label="Remark"
           value={values.remark}
@@ -124,6 +111,6 @@ export default function ScheduleTransferDialog({ open, onClose }: ScheduleTransf
           placeholder="Optional note"
         />
       </Stack>
-    </PreviewTransferDialog>
+    </PreviewTransfer>
   );
 }

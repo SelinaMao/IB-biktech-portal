@@ -21,7 +21,10 @@ export const palette = {
     10:"#E2E8F0"
   },
 
-
+  IconTransfer:{
+    to: "#FFF3E0",
+    from:"#E6F5F0"
+  },
   // Secondary accents — a subset of Twine (light tan + brand tan).
   secondary: { light: "#ead8be", main: "#cc9966", dark: "#b56e41" },
 

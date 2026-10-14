@@ -3,12 +3,12 @@
 import React from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { Settings } from "lucide-react";
+import { Globe } from "lucide-react";
 
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
-import { transferAccounts } from "../transfer.data";
+import { transferAccounts, transferCountries, transferPurposes } from "../transfer.data";
 import {
   accountOptionLabel,
   accountSelectOptions,
@@ -18,23 +18,26 @@ import {
   CURRENCY_OPTIONS,
   findAccount,
 } from "../transfer.utils";
-import PreviewTransferDialog, { type TransferPreviewField } from "./PreviewTransferDialog";
+import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
 
-export type BakongDialogProps = {
+export type InternationalProps = {
   open: boolean;
   onClose: () => void;
 };
 
 const INITIAL_VALUES = {
   fromAccountId: transferAccounts[0].id,
-  bakongId: "",
-  recipientName: "",
+  swiftCode: "",
+  beneficiaryAccountNumber: "",
+  beneficiaryName: "",
+  beneficiaryCountry: transferCountries[0],
   amount: "",
   currency: "USD",
+  purpose: transferPurposes[0],
   remark: "",
 };
 
-export default function BakongDialog({ open, onClose }: BakongDialogProps) {
+export default function International({ open, onClose }: InternationalProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
 
   const set = <K extends keyof typeof INITIAL_VALUES>(
@@ -46,24 +49,33 @@ export default function BakongDialog({ open, onClose }: BakongDialogProps) {
 
   const previewFields: TransferPreviewField[] = [
     { label: "From Account", value: fromAccount ? accountOptionLabel(fromAccount) : "-" },
-    { label: "Bakong ID / Phone", value: values.bakongId || "-" },
-    { label: "Recipient Name", value: values.recipientName || "-" },
+    { label: "SWIFT / Bank Code", value: values.swiftCode || "-" },
+    { label: "Beneficiary Account", value: values.beneficiaryAccountNumber || "-" },
+    { label: "Beneficiary Name", value: values.beneficiaryName || "-" },
+    { label: "Country", value: values.beneficiaryCountry },
     { label: "Amount", value: amountPreviewValue(values.amount, values.currency) },
+    { label: "Purpose", value: values.purpose },
     ...(values.remark ? [{ label: "Remark", value: values.remark }] : []),
   ];
 
   const summaryRows = buildTransferSummaryRows(values.amount, values.currency);
 
   return (
-    <PreviewTransferDialog
+    <PreviewTransfer
       open={open}
       onClose={onClose}
-      title="To Bakong"
-      icon={<Settings size={18} />}
-      canSubmit={Boolean(values.amount && values.bakongId && values.fromAccountId)}
+      title="International Transfer"
+      icon={<Globe size={18} />}
+      canSubmit={Boolean(
+        values.amount &&
+          values.swiftCode &&
+          values.beneficiaryAccountNumber &&
+          values.beneficiaryName &&
+          values.fromAccountId,
+      )}
       previewFields={previewFields}
       summaryRows={summaryRows}
-      successMessage={`${values.amount} ${currencyLabel(values.currency)} sent to ${values.recipientName || values.bakongId} via Bakong.`}
+      successMessage={`${values.amount} ${currencyLabel(values.currency)} sent to ${values.beneficiaryName || "the beneficiary"} in ${values.beneficiaryCountry}.`}
       onReset={() => setValues(INITIAL_VALUES)}
     >
       <Stack spacing={2.5}>
@@ -74,15 +86,26 @@ export default function BakongDialog({ open, onClose }: BakongDialogProps) {
           options={accountSelectOptions(transferAccounts)}
         />
         <BaseInput
-          label="Bakong ID / Phone Number"
-          value={values.bakongId}
-          onChange={(e) => set("bakongId", e.target.value)}
-          placeholder="e.g. 012 345 678"
+          label="SWIFT / Bank Code"
+          value={values.swiftCode}
+          onChange={(e) => set("swiftCode", e.target.value)}
+          placeholder="e.g. BOFAUS3N"
         />
         <BaseInput
-          label="Recipient Name"
-          value={values.recipientName}
-          onChange={(e) => set("recipientName", e.target.value)}
+          label="Beneficiary Account Number / IBAN"
+          value={values.beneficiaryAccountNumber}
+          onChange={(e) => set("beneficiaryAccountNumber", e.target.value)}
+        />
+        <BaseInput
+          label="Beneficiary Name"
+          value={values.beneficiaryName}
+          onChange={(e) => set("beneficiaryName", e.target.value)}
+        />
+        <BaseSelect
+          label="Beneficiary Country"
+          value={values.beneficiaryCountry}
+          onChange={(e) => set("beneficiaryCountry", e.target.value as string)}
+          options={transferCountries.map((c) => ({ value: c, label: c }))}
         />
 
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-end" }}>
@@ -104,6 +127,13 @@ export default function BakongDialog({ open, onClose }: BakongDialogProps) {
           </Box>
         </Stack>
 
+        <BaseSelect
+          label="Purpose of Transfer"
+          value={values.purpose}
+          onChange={(e) => set("purpose", e.target.value as string)}
+          options={transferPurposes.map((p) => ({ value: p, label: p }))}
+        />
+
         <BaseTextArea
           label="Remark"
           value={values.remark}
@@ -111,6 +141,6 @@ export default function BakongDialog({ open, onClose }: BakongDialogProps) {
           placeholder="Optional note"
         />
       </Stack>
-    </PreviewTransferDialog>
+    </PreviewTransfer>
   );
 }

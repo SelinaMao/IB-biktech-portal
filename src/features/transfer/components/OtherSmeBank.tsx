@@ -10,7 +10,6 @@ import ControlledBaseAmountCurrencyField from "@core/form/ControlledBaseAmountCu
 import ControlledBaseInput from "@core/form/ControlledBaseInput";
 import ControlledBaseSelect from "@core/form/ControlledBaseSelect";
 import ControlledBaseTextArea from "@core/form/ControlledBaseTextArea";
-import { font, palette } from "@/theme/palette";
 import { otherSmeBankDirectory, scheduleFrequencies, transferAccounts } from "../transfer.data";
 import {
   accountOptionLabel,
@@ -22,9 +21,9 @@ import {
   findAccount,
   findOtherSmeBankAccountName,
 } from "../transfer.utils";
-import PreviewTransferDialog, { type TransferPreviewField } from "./PreviewTransferDialog";
+import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
 
-export type OtherSmeBankDialogProps = {
+export type OtherSmeBankProps = {
   open: boolean;
   onClose: () => void;
 };
@@ -53,7 +52,7 @@ const INITIAL_VALUES: OtherSmeBankFormValues = {
   templateName: "",
 };
 
-export default function OtherSmeBankDialog({ open, onClose }: OtherSmeBankDialogProps) {
+export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
   const { control, watch, reset } = useForm<OtherSmeBankFormValues>({
     defaultValues: INITIAL_VALUES,
   });
@@ -66,13 +65,16 @@ export default function OtherSmeBankDialog({ open, onClose }: OtherSmeBankDialog
 
   const previewFields: TransferPreviewField[] = [
     { label: "From Account", value: fromAccount ? accountOptionLabel(fromAccount) : "-" },
-    { label: "To Account", value: toAccountName ? `${values.toAccountNumber} (${toAccountName})` : values.toAccountNumber || "-" },
+    {
+      label: "To Account",
+      value: toAccountName ? `${values.toAccountNumber} (${toAccountName})` : values.toAccountNumber || "-",
+    },
     { label: "Amount", value: amountPreviewValue(amount, currency) },
     ...(values.scheduleTransfer
       ? [
-        { label: "Frequency", value: frequencyLabel },
-        { label: "Date", value: values.scheduleDate || "-" },
-      ]
+          { label: "Frequency", value: frequencyLabel },
+          { label: "Date", value: values.scheduleDate || "-" },
+        ]
       : []),
     ...(values.remark ? [{ label: "Remarks", value: values.remark }] : []),
     ...(values.saveTemplate && values.templateName
@@ -83,29 +85,32 @@ export default function OtherSmeBankDialog({ open, onClose }: OtherSmeBankDialog
   const summaryRows = buildTransferSummaryRows(amount, currency);
 
   return (
-    <PreviewTransferDialog
+    <PreviewTransfer
       open={open}
       onClose={onClose}
       title="Other SME Bank Account"
       icon={<Landmark size={18} />}
       canSubmit={Boolean(
         amount &&
-        values.fromAccountId &&
-        values.toAccountNumber &&
-        (!values.scheduleTransfer || values.scheduleDate),
+          values.fromAccountId &&
+          values.toAccountNumber &&
+          (!values.scheduleTransfer || values.scheduleDate),
       )}
       previewFields={previewFields}
       summaryRows={summaryRows}
       successMessage={`${amount} ${currencyLabel(currency)} sent to ${toAccountName ?? values.toAccountNumber}.`}
       onReset={() => reset(INITIAL_VALUES)}
     >
-      <Stack spacing={2.5}>
-        <ControlledBaseSelect
+      <Stack >
+         <ControlledBaseSelect
           name="fromAccountId"
           control={control}
           label="From Account"
           options={accountSelectOptions(transferAccounts)}
         />
+      </Stack>
+      <Stack spacing={2.5}>
+       
 
         <Stack spacing={0.5}>
           <ControlledBaseInput
@@ -114,12 +119,6 @@ export default function OtherSmeBankDialog({ open, onClose }: OtherSmeBankDialog
             label="To Account"
             placeholder="e.g. 111 022 998"
           />
-
-          {/* {toAccountName && (
-            <Typography sx={{ fontSize: font.size.sm, color: palette.slate[400] }}>
-              {toAccountName}
-            </Typography>
-          )} */}
         </Stack>
 
         <ControlledBaseAmountCurrencyField
@@ -184,6 +183,6 @@ export default function OtherSmeBankDialog({ open, onClose }: OtherSmeBankDialog
           <ControlledBaseInput name="templateName" control={control} label="Template name" />
         )}
       </Stack>
-    </PreviewTransferDialog>
+    </PreviewTransfer>
   );
 }

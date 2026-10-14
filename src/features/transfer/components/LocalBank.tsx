@@ -8,7 +8,7 @@ import { Globe } from "lucide-react";
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
-import { transferAccounts, transferCountries, transferPurposes } from "../transfer.data";
+import { localBanks, transferAccounts } from "../transfer.data";
 import {
   accountOptionLabel,
   accountSelectOptions,
@@ -18,26 +18,24 @@ import {
   CURRENCY_OPTIONS,
   findAccount,
 } from "../transfer.utils";
-import PreviewTransferDialog, { type TransferPreviewField } from "./PreviewTransferDialog";
+import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
 
-export type InternationalDialogProps = {
+export type LocalBankProps = {
   open: boolean;
   onClose: () => void;
 };
 
 const INITIAL_VALUES = {
   fromAccountId: transferAccounts[0].id,
-  swiftCode: "",
+  beneficiaryBank: localBanks[0],
   beneficiaryAccountNumber: "",
   beneficiaryName: "",
-  beneficiaryCountry: transferCountries[0],
   amount: "",
   currency: "USD",
-  purpose: transferPurposes[0],
   remark: "",
 };
 
-export default function InternationalDialog({ open, onClose }: InternationalDialogProps) {
+export default function LocalBank({ open, onClose }: LocalBankProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
 
   const set = <K extends keyof typeof INITIAL_VALUES>(
@@ -49,33 +47,27 @@ export default function InternationalDialog({ open, onClose }: InternationalDial
 
   const previewFields: TransferPreviewField[] = [
     { label: "From Account", value: fromAccount ? accountOptionLabel(fromAccount) : "-" },
-    { label: "SWIFT / Bank Code", value: values.swiftCode || "-" },
+    { label: "Beneficiary Bank", value: values.beneficiaryBank },
     { label: "Beneficiary Account", value: values.beneficiaryAccountNumber || "-" },
     { label: "Beneficiary Name", value: values.beneficiaryName || "-" },
-    { label: "Country", value: values.beneficiaryCountry },
     { label: "Amount", value: amountPreviewValue(values.amount, values.currency) },
-    { label: "Purpose", value: values.purpose },
     ...(values.remark ? [{ label: "Remark", value: values.remark }] : []),
   ];
 
   const summaryRows = buildTransferSummaryRows(values.amount, values.currency);
 
   return (
-    <PreviewTransferDialog
+    <PreviewTransfer
       open={open}
       onClose={onClose}
-      title="International Transfer"
+      title="To Local Bank"
       icon={<Globe size={18} />}
       canSubmit={Boolean(
-        values.amount &&
-          values.swiftCode &&
-          values.beneficiaryAccountNumber &&
-          values.beneficiaryName &&
-          values.fromAccountId,
+        values.amount && values.beneficiaryAccountNumber && values.beneficiaryName && values.fromAccountId,
       )}
       previewFields={previewFields}
       summaryRows={summaryRows}
-      successMessage={`${values.amount} ${currencyLabel(values.currency)} sent to ${values.beneficiaryName || "the beneficiary"} in ${values.beneficiaryCountry}.`}
+      successMessage={`${values.amount} ${currencyLabel(values.currency)} sent to ${values.beneficiaryName || "the beneficiary"} at ${values.beneficiaryBank}.`}
       onReset={() => setValues(INITIAL_VALUES)}
     >
       <Stack spacing={2.5}>
@@ -85,27 +77,22 @@ export default function InternationalDialog({ open, onClose }: InternationalDial
           onChange={(e) => set("fromAccountId", e.target.value as string)}
           options={accountSelectOptions(transferAccounts)}
         />
-        <BaseInput
-          label="SWIFT / Bank Code"
-          value={values.swiftCode}
-          onChange={(e) => set("swiftCode", e.target.value)}
-          placeholder="e.g. BOFAUS3N"
+        <BaseSelect
+          label="Beneficiary Bank"
+          value={values.beneficiaryBank}
+          onChange={(e) => set("beneficiaryBank", e.target.value as string)}
+          options={localBanks.map((bank) => ({ value: bank, label: bank }))}
         />
         <BaseInput
-          label="Beneficiary Account Number / IBAN"
+          label="Beneficiary Account Number"
           value={values.beneficiaryAccountNumber}
           onChange={(e) => set("beneficiaryAccountNumber", e.target.value)}
+          placeholder="e.g. 000123456789"
         />
         <BaseInput
           label="Beneficiary Name"
           value={values.beneficiaryName}
           onChange={(e) => set("beneficiaryName", e.target.value)}
-        />
-        <BaseSelect
-          label="Beneficiary Country"
-          value={values.beneficiaryCountry}
-          onChange={(e) => set("beneficiaryCountry", e.target.value as string)}
-          options={transferCountries.map((c) => ({ value: c, label: c }))}
         />
 
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-end" }}>
@@ -127,13 +114,6 @@ export default function InternationalDialog({ open, onClose }: InternationalDial
           </Box>
         </Stack>
 
-        <BaseSelect
-          label="Purpose of Transfer"
-          value={values.purpose}
-          onChange={(e) => set("purpose", e.target.value as string)}
-          options={transferPurposes.map((p) => ({ value: p, label: p }))}
-        />
-
         <BaseTextArea
           label="Remark"
           value={values.remark}
@@ -141,6 +121,6 @@ export default function InternationalDialog({ open, onClose }: InternationalDial
           placeholder="Optional note"
         />
       </Stack>
-    </PreviewTransferDialog>
+    </PreviewTransfer>
   );
 }

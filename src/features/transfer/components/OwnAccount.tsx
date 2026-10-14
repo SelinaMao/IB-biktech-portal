@@ -25,9 +25,9 @@ import {
 } from "../transfer.utils";
 import { useTransferAccounts } from "../use-transfer-accounts";
 import { useTransferQuote } from "../use-transfer-quote";
-import PreviewTransferDialog, { type TransferPreviewField } from "./PreviewTransferDialog";
+import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
 
-export type OwnAccountDialogProps = {
+export type OwnAccountProps = {
   open: boolean;
   onClose: () => void;
 };
@@ -41,7 +41,7 @@ const INITIAL_VALUES = {
   remark: "",
 };
 
-export default function OwnAccountDialog({ open, onClose }: OwnAccountDialogProps) {
+export default function OwnAccount({ open, onClose }: OwnAccountProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
   const { accounts, loading: loadingAccounts } = useTransferAccounts(open);
   const quote = useTransferQuote();
@@ -123,7 +123,7 @@ export default function OwnAccountDialog({ open, onClose }: OwnAccountDialogProp
     : {};
 
   return (
-    <PreviewTransferDialog
+    <PreviewTransfer
       open={open}
       onClose={onClose}
       title="Own Account Transfer"
@@ -187,6 +187,6 @@ export default function OwnAccountDialog({ open, onClose }: OwnAccountDialogProp
           </Typography>
         </Stack>
       </Stack>
-    </PreviewTransferDialog>
+    </PreviewTransfer>
   );
 }

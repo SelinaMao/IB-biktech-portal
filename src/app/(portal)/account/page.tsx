@@ -43,12 +43,13 @@ import {
 import { downloadBlob } from "@/utils/download-file";
 import { CirclePlus, Info, NotepadText, ReceiptText } from "lucide-react";
 import AccountDetailsCard from "@/features/account/components/AccountDetailCard";
+import AccountInformationDetail from "@/features/account/components/AccountInformationDetail";
 import { Label } from "recharts";
 import { palette } from "@/theme/palette";
 
 const DEFAULT_TRANSACTIONS_FILTER: BaseFilterValue = { type: "all", from: null, to: null };
 // "Latest Transactions" rows per page — each page is its own `listTransactions` call.
-const TRANSACTIONS_PAGE_SIZE = 10;
+const TRANSACTIONS_PAGE_SIZE = 5;
 // Maps BaseDownloadPanel's format to the API's `fileType` + the extension used for the saved file.
 const STATEMENT_DOWNLOAD_FORMATS: Record<BaseDownloadValue["format"], { fileType: TransactionDownloadFileType; extension: string }> = {
   pdf: { fileType: "PDF", extension: "pdf" },
@@ -77,7 +78,7 @@ export default function AccountPage() {
 
   const bankAccounts = accountsResponse?.accounts ?? [];
   const coreSummary = accountsResponse?.summary ?? null;
-
+ 
   const [accountNumber, setAccountNumber] = useState<string | undefined>();
 
   useEffect(() => {
@@ -88,6 +89,7 @@ export default function AccountPage() {
   }, [bankAccounts, accountNumber]);
 
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [accountInformationDetail, setaccountInformationDetail] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TTransactionDetailResponse | null>(null);
   const [newAccountOpen, setNewAccountOpen] = useState(false);
 
@@ -234,6 +236,18 @@ export default function AccountPage() {
   );
   const selectedTransactions = apiTransactions ?? [];
 
+  if (accountInformationDetail && accountInfoDetail) {
+    return (
+      <AccountInformationDetail
+        open={accountInformationDetail}
+        onClose={() => setaccountInformationDetail(false)}
+        info={accountInfoDetail}
+        fixedDeposit={fixedDepositDetail}
+        onDownloadCertificate={handleDownloadCertificate}
+      />
+    );
+  }
+
   return (
     <Box sx={{ width: "100%" }}>
       <Grid container spacing={2.5}>
@@ -266,28 +280,18 @@ export default function AccountPage() {
                   stats={accountInfoDetail}
                 />
               )}
-               {accountInfoDetail && (
-        <AccountDetails
-          open={detailsOpen}
-          onClose={() => setDetailsOpen(false)}
-          info={accountInfoDetail}
-          fixedDeposit={fixedDepositDetail}
-          onDownloadCertificate={handleDownloadCertificate}
-        />
-      )}
               <BaseButton
-                  
                 sx={{
-                  margin:"15px",
-                  bgcolor: palette.info[40]
+                  margin: "15px",
+                  bgcolor: palette.info[40],
                 }}
-                onClick={() => setDetailsOpen(true)}
+                onClick={() => setaccountInformationDetail(true)}
                 startIcon={<Info />}
                 title="Account Information"
               />
               <BaseButton
                 sx={{
-                  margin:"15px",
+                  margin: "15px",
                   bgcolor: palette.info[40]
                 }}
                 startIcon={<ReceiptText />}
@@ -327,16 +331,16 @@ export default function AccountPage() {
               />
             </Grid>
 
-            <Grid size={12}>
+            {/* <Grid size={12}>
               <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
                 <BaseButton title="New Account" variant="contained" startIcon={<CirclePlus size={18} />} onClick={() => setNewAccountOpen(true)} />
               </Stack>
-            </Grid>
+            </Grid> */}
           </Grid>
         </Grid>
       </Grid>
 
-     
+
 
       <TransactionDetailsPanel
         open={Boolean(selectedTransaction)}

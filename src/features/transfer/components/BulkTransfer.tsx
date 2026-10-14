@@ -9,9 +9,9 @@ import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
 import { transferAccounts } from "../transfer.data";
 import { accountOptionLabel, accountSelectOptions, findAccount } from "../transfer.utils";
-import PreviewTransferDialog, { type TransferPreviewField } from "./PreviewTransferDialog";
+import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
 
-export type BulkTransferDialogProps = {
+export type BulkTransferProps = {
   open: boolean;
   onClose: () => void;
 };
@@ -22,7 +22,7 @@ const INITIAL_VALUES = {
   remark: "",
 };
 
-export default function BulkTransferDialog({ open, onClose }: BulkTransferDialogProps) {
+export default function BulkTransfer({ open, onClose }: BulkTransferProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
 
   const set = <K extends keyof typeof INITIAL_VALUES>(
@@ -40,7 +40,7 @@ export default function BulkTransferDialog({ open, onClose }: BulkTransferDialog
   ];
 
   return (
-    <PreviewTransferDialog
+    <PreviewTransfer
       open={open}
       onClose={onClose}
       title="Bulk Transfer"
@@ -71,6 +71,6 @@ export default function BulkTransferDialog({ open, onClose }: BulkTransferDialog
           placeholder="Optional note"
         />
       </Stack>
-    </PreviewTransferDialog>
+    </PreviewTransfer>
   );
 }

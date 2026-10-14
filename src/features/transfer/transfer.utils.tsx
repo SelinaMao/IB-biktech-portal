@@ -6,7 +6,7 @@ import { formatAccountNumber } from "@/utils/format-account-number";
 import type { CoreAccountEntry } from "@/features/account";
 import { USD_TO_KHR_RATE } from "@/features/dashboard/dashboard.data";
 import type { CalculateTransferResult, TransferAccount } from "./transfer.types";
-import type { TransferReviewRow } from "./components/PreviewTransferDialog";
+import type { TransferReviewRow } from "./components/PreviewTransfer";
 
 export const CURRENCY_OPTIONS = [
   { value: "USD", label: "USD", name: "US Dollar", flag: "/assets/icons/usd.svg" },

@@ -20,6 +20,7 @@ import {
   useListTransactionsMutation,
 } from "@/features/account";
 import type { TxnDirection } from "../dashboard.types";
+import BasePagination from "@/@core/components/BasePagination";
 
 export interface TransactionItem {
   id?: string;
@@ -125,18 +126,18 @@ export default function TransactionsCard({
     () =>
       transactionsResponse && transactionsResponse.accountNumber === accountNumber
         ? transactionsResponse.data.map(
-            (entry): TransactionItem => ({
-              id: entry.transactionId,
-              title: entry.transactionDescription || entry.transactionCode || "Bakong Payment",
-              ref: entry.transactionId || "2819700093P2429",
-              date: entry.transactionDate
-                ? dayjs(entry.transactionDate).format("DD MMMM YYYY")
-                : "11 June 2026",
-              account: `Savings - ${accountNumber ?? "000 067 898"}`,
-              amount: entry.transactionAmount,
-              direction: entry.transactionAmount >= 0 ? "in" : "out",
-            }),
-          )
+          (entry): TransactionItem => ({
+            id: entry.transactionId,
+            title: entry.transactionDescription || entry.transactionCode || "Bakong Payment",
+            ref: entry.transactionId || "2819700093P2429",
+            date: entry.transactionDate
+              ? dayjs(entry.transactionDate).format("DD MMMM YYYY")
+              : "11 June 2026",
+            account: `Savings - ${accountNumber ?? "000 067 898"}`,
+            amount: entry.transactionAmount,
+            direction: entry.transactionAmount >= 0 ? "in" : "out",
+          }),
+        )
         : undefined,
     [transactionsResponse, accountNumber],
   );
@@ -240,12 +241,14 @@ export default function TransactionsCard({
       >
         {/* Search Input */}
         <Box
+          
           sx={{
             display: "flex",
             alignItems: "center",
             gap: 1,
             px: 1.5,
-            py: 0.8,
+            py: 1.8,
+            mb: 4,
             borderRadius: `${radius.md}px`,
             border: `1px solid ${palette.slate[200]}`,
             bgcolor: "#FFFFFF",
@@ -289,8 +292,8 @@ export default function TransactionsCard({
                 key={f}
                 onClick={() => setDateFilter(f)}
                 sx={{
-                  px: 2,
-                  py: 0.75,
+                  px: 3,
+                  py: 1.75,
                   borderRadius: `${radius.md}px`,
                   border: `1px solid ${palette.slate[200]}`,
                   bgcolor: isSelected ? palette.slate[100] : "#FFFFFF",
@@ -320,29 +323,29 @@ export default function TransactionsCard({
               display: "grid",
               gridTemplateColumns: "2.4fr 1.6fr 2fr 1fr",
               alignItems: "center",
-              pb: 1.5,
+              pb: 2,
               borderBottom: `1px solid ${palette.slate[200]}`,
-              px: 0.5,
+              px: 1,
             }}
           >
             <Typography
-              sx={{ fontSize: 13, fontWeight: 500, color: palette.slate[500] }}
+              sx={{ fontSize: 15, color: palette.slate[500] }}
             >
               To/From
             </Typography>
             <Typography
-              sx={{ fontSize: 13, fontWeight: 500, color: palette.slate[500] }}
+              sx={{ fontSize: 15, color: palette.slate[500] }}
             >
               Transaction Date
             </Typography>
             <Typography
-              sx={{ fontSize: 13, fontWeight: 500, color: palette.slate[500] }}
+              sx={{ fontSize: 15, color: palette.slate[500] }}
             >
               Account
             </Typography>
             <Typography
               sx={{
-                fontSize: 13,
+                fontSize: 15,
                 fontWeight: 500,
                 color: palette.slate[500],
                 textAlign: "right",
@@ -353,7 +356,7 @@ export default function TransactionsCard({
           </Box>
 
           {/* Table Rows */}
-          <Box sx={{ display: "flex", flexDirection: "column" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", padding: 1 }}>
             {pageItems.map((t, idx) => {
               const isNegative = t.direction === "out" || t.amount < 0;
               return (
@@ -364,7 +367,7 @@ export default function TransactionsCard({
                     gridTemplateColumns: "2.4fr 1.6fr 2fr 1fr",
                     alignItems: "center",
                     py: 1.75,
-                    px: 0.5,
+                    px: 1.75,
                     borderBottom: `1px solid ${palette.slate[50]}`,
                     "&:hover": {
                       bgcolor: palette.slate[50],
@@ -461,110 +464,14 @@ export default function TransactionsCard({
       </Box>
 
       {/* ---------- Pagination Row ---------- */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-end",
-          gap: 3.5,
-          pt: 3,
-          mt: 1,
-        }}
-      >
-        <Typography
-          sx={{ fontSize: 13, color: palette.slate[900], fontWeight: 500 }}
-        >
-          {filteredRows.length} Transactions
-        </Typography>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
-          {/* Page Badge */}
-          <Box
-            sx={{
-              px: 1.5,
-              py: 0.4,
-              borderRadius: `${radius.pill}px`,
-              bgcolor: palette.slate[100],
-              fontSize: 13,
-              fontWeight: 500,
-              color: palette.slate[900],
-            }}
-          >
-            Page:
-          </Box>
-
-          {/* First page button */}
-          <Box
-            onClick={() => setPage(0)}
-            sx={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              bgcolor: palette.slate[100],
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: palette.slate[700],
-              cursor: "pointer",
-              transition: "background-color 0.15s ease",
-              "&:hover": { bgcolor: palette.slate[200] },
-            }}
-          >
-            <ChevronFirst size={15} />
-          </Box>
-
-          {/* Page numbers */}
-          {Array.from({ length: Math.min(3, Math.max(3, pageCount)) }, (_, pIdx) => {
-            const pageNumStr = String(pIdx + 1).padStart(2, "0");
-            const isActive = currentPage === pIdx;
-            return (
-              <Box
-                key={pIdx}
-                onClick={() => setPage(pIdx)}
-                sx={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  bgcolor: isActive ? "#1E659E" : "transparent",
-                  color: isActive ? "#FFFFFF" : palette.slate[700],
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 12,
-                  fontWeight: isActive ? 600 : 500,
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  "&:hover": {
-                    bgcolor: isActive ? "#1E659E" : palette.slate[100],
-                    color: isActive ? "#FFFFFF" : palette.slate[900],
-                  },
-                }}
-              >
-                {pageNumStr}
-              </Box>
-            );
-          })}
-
-          {/* Last page button */}
-          <Box
-            onClick={() => setPage(Math.max(0, pageCount - 1))}
-            sx={{
-              width: 28,
-              height: 28,
-              borderRadius: "50%",
-              bgcolor: palette.slate[100],
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: palette.slate[700],
-              cursor: "pointer",
-              transition: "background-color 0.15s ease",
-              "&:hover": { bgcolor: palette.slate[200] },
-            }}
-          >
-            <ChevronLast size={15} />
-          </Box>
-        </Box>
+      <Box sx={{ mt: 2 }}>
+        <BasePagination
+          count={filteredRows.length}
+          page={currentPage}
+          rowsPerPage={ROWS_PER_PAGE}
+          onPageChange={setPage}
+          variant="compact"
+        />
       </Box>
     </BaseCard>
   );

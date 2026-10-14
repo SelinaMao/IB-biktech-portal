@@ -9,8 +9,8 @@ import { toToastError } from "@/utils/api-error";
 import { mapAccountEntry } from "./transfer.utils";
 
 /**
- * The org's live accounts for a transfer dialog's account pickers. `listAccounts` is a mutation
- * with no fetch-on-mount of its own, so it is fired when the dialog opens and read back from the
+ * The org's live accounts for a transfer view's account pickers. `listAccounts` is a mutation
+ * with no fetch-on-mount of its own, so it is fired when the view opens and read back from the
  * account slice (see `account/page.tsx`). Accounts already in the slice show at once while the
  * list refreshes; `loading` is only true while there is nothing to show yet.
  */

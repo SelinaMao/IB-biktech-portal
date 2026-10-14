@@ -74,10 +74,18 @@ export default function BaseTable<T>({
   headerBorderTop = true,
   rounded = true,
 }: BaseTableProps<T>) {
-  const showEmpty = !isLoading && rows.length === 0;
+  const displayedRows =
+    pagination && rows.length > pagination.rowsPerPage
+      ? rows.slice(
+          pagination.page * pagination.rowsPerPage,
+          (pagination.page + 1) * pagination.rowsPerPage
+        )
+      : rows;
+
+  const showEmpty = !isLoading && displayedRows.length === 0;
   // React needs sibling keys to be unique, but a row key can legitimately repeat.
   const usedKeys = new Set<string>();
-  const rowKeys = rows.map((row) => {
+  const rowKeys = displayedRows.map((row) => {
     const key = getRowKey(row);
     let unique = key;
     for (let n = 2; usedKeys.has(unique); n++) unique = `${key}#${n}`;
@@ -142,7 +150,7 @@ export default function BaseTable<T>({
               )}
 
               {!isLoading &&
-                rows.map((row, index) => (
+                displayedRows.map((row, index) => (
                   <TableRow
                     key={rowKeys[index]}
                     hover

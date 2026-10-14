@@ -13,10 +13,11 @@ import type { CoreAccountEntry, IAccountDetailResponses } from "../account.types
 import { formatCCY } from "@/utils";
 import { text } from "stream/consumers";
 
+import AccountDetails from "./AccountDetails";
 export interface AccountDetailsProps {
   open: boolean;
   accounts: CoreAccountEntry[];
-   stats: IAccountDetailResponses;
+  stats: IAccountDetailResponses;
   onClose: () => void;
   info: IAccountDetailResponses;
   fixedDeposit?: IAccountDetailResponses;
@@ -31,12 +32,11 @@ function StatusBadge({ value }: { value: string }) {
   );
 }
 
-const STAT_FIELDS: Array<{ key: keyof IAccountDetailResponses; label: string }> = [
+const STAT_FIELDS = [
   { key: "ledgerBalance", label: "Ledger Balance" },
-  { key: "overdraftLimit", label: "OD Limit" },
+  { key: "overdraftLimit", label: "Overdraft Limit" },
   { key: "blockedBalance", label: "Blocked Balance" },
-  { key: "availableBalance", label: "Available Balance" },
-];
+] as const;
 
 
 /** Slide-over triggered by "View Details" on an account overview card —
@@ -54,10 +54,11 @@ export default function AccountDetailsCard({
   const initials = (
     nameParts.length > 1 ? nameParts.slice(0, 2).map((part) => part[0]).join("") : nameParts[0]?.slice(0, 2) ?? "?"
   ).toUpperCase();
-
-  const [account,setAccount]=useState<any[]>([])
+  
+  const [account, setAccount] = useState<any[]>([])
   const rows = (info.fields ?? []).filter((field) => field.value);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDetailsOpen , setIsDetailsOpen]=useState(false);
   const handleDownloadClick = async () => {
     if (!onDownloadCertificate || isDownloading) return;
     setIsDownloading(true);
@@ -67,6 +68,7 @@ export default function AccountDetailsCard({
       setIsDownloading(false);
     }
   };
+  
 
   return (
 
@@ -97,6 +99,7 @@ export default function AccountDetailsCard({
           </Box>
         </Box>
         <Button
+          onClick={() => setIsDetailsOpen(true)}
           sx={{
             minWidth: 0,
             width: 32,
@@ -147,8 +150,8 @@ export default function AccountDetailsCard({
           borderRadius: 3,          // 12px
           px: 2.5,
           py: 2,
-          padding:"20px",
-          marginTop:"10px"
+          padding: "20px",
+          marginTop: "10px"
         }}
       >
         <Typography sx={{ fontSize: 16, fontWeight: 600, mb: 1.5 }}>
@@ -168,22 +171,16 @@ export default function AccountDetailsCard({
             </Stack>
           ))}
         </Stack> */}
-        <Stack divider={<Divider flexItem />} spacing={0} marginTop={"10px"}>
-           {STAT_FIELDS.filter(({ key }) => stats[key] !== undefined).map(({ key, label }) => (
+        <Stack divider={<Divider flexItem />} spacing={0} marginTop="10px">
+          {STAT_FIELDS.filter(({ key }) => stats[key] !== undefined).map(({ key, label }) => (
             <Stack
-              key={label}
+              key={key}
               direction="row"
-              sx={{
-                justifyContent: "space-between",
-                alignItems: "center",
-                py: 1.5,
-              }}
+              sx={{ justifyContent: "space-between", alignItems: "center", py: 1.5 }}
             >
-              <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
-                {label}
-              </Typography>
+              <Typography sx={{ fontSize: 14, color: "text.secondary" }}>{label}</Typography>
               <Typography sx={{ fontSize: 14, fontWeight: 600 }}>
-                {(label)}
+                {formatCCY(stats[key] ?? 0)}
               </Typography>
             </Stack>
           ))}
@@ -191,7 +188,15 @@ export default function AccountDetailsCard({
 
       </Box>
 
-
+          <AccountDetails
+        open={isDetailsOpen}
+        onClose={() => setIsDetailsOpen(false)}
+        info={info}
+        fixedDeposit={fixedDeposit}
+        onDownloadCertificate={onDownloadCertificate}
+      />
     </Stack>
+    
   );
+  
 }

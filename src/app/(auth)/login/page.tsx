@@ -40,6 +40,12 @@ const PRESET_ACCOUNTS = [
     username: "wesley.001",
     password: "@STRONGPASSWORD",
   },
+  {
+    label: "selina002",
+    role: "Corporate",
+    username: "selina002",
+    password: "@STRONGPASSW0Rd",
+  },
 ];
 
 export default function ClientLoginPage() {

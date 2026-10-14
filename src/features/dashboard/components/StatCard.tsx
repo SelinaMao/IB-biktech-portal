@@ -13,6 +13,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleHideAmount } from "@/store/global/global.slice";
 import type { StatCardProps, StatTone } from "../dashboard.types";
 import BaseButton from "@/@core/components/BaseButton";
+import { SmartButton } from "@mui/icons-material";
 
 export const toneMap: Record<StatTone, { fg: string; bg: string }> = {
   success: { fg: palette.success.main, bg: palette.success.bg },
@@ -169,37 +170,54 @@ export default function StatCard({
         >
           {/* Send money */}
           <BaseButton
-            startIcon={<ArrowUpRight />}
+            startIcon={<ArrowUpRight size={15}/>}
             title="Send money"
             sx={{
-              bgcolor: "#2764A5",
+              px: 4,
+              py: 1.5,
+              borderRadius: "999px",
+              textTransform: "none",
+              fontSize: 15,
+              fontWeight: 400,
+              color: "#FFFFFF",
               border: "0px",
+              backgroundImage: "linear-gradient(180deg, #3584C0 0%, #1F5E94 100%)",
+              boxShadow: "none",
               "&:hover": {
-                backgroundColor: "#1A4A6A",
+                backgroundImage: "linear-gradient(180deg, #2D76AF 0%, #194F80 100%)",
+                boxShadow: "none",
               },
             }}
           />
           <BaseButton
-            startIcon={<HandCoinsIcon />}
+            startIcon={<HandCoinsIcon size={15}/>}
             title="Pay Bill"
             sx={{
+              fontSize: 15,
+              fontWeight: 400,
+              px: 4,
+              py: 1,
               bgcolor: "#EDF0F4",
               border: "0px",
               color: "#000000",
               "&:hover": {
-                backgroundColor:"#d4d4d4",
+                backgroundColor: "#d4d4d4",
               },
             }}
           />
           <BaseButton
-            startIcon={<ListCollapse />}
+            startIcon={<ListCollapse size={15}/>}
             title="Detail"
             sx={{
+              fontSize: 15,
+              fontWeight: 400,
+              px: 4,
+              py: 1,
               bgcolor: "#EDF0F4",
               border: "0px",
               color: "#000000",
               "&:hover": {
-                backgroundColor:"#d4d4d4",
+                backgroundColor: "#d4d4d4",
               },
             }}
           />

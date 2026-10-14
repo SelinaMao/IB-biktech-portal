@@ -8,12 +8,13 @@ import { Landmark, Settings } from "lucide-react";
 import BaseTitle from "@core/components/BaseTitle";
 import type { TransferOption } from "../transfer.types";
 import { templateTransfers } from "../transfer.data";
-import BulkTransferDialog from "./BulkTransferDialog";
-import InternationalDialog from "./InternationalDialog";
-import LocalTransferDialog from "./LocalTransferDialog";
-import OtherSmeBankDialog from "./OtherSmeBankDialog";
-import OwnAccountDialog from "./OwnAccountDialog";
-import ScheduleTransferDialog from "./ScheduleTransferDialog";
+import Bakong from "./Bakong";
+import BulkTransfer from "./BulkTransfer";
+import International from "./International";
+import LocalTransfer from "./LocalTransfer";
+import OtherSmeBank from "./OtherSmeBank";
+import OwnAccount from "./OwnAccount";
+import ScheduleTransfer from "./ScheduleTransfer";
 import TemplateTransfersTable from "./TemplateTransfersTable";
 import TransferOptionCard from "./TransferOptionCard";
 
@@ -54,31 +55,29 @@ export const transferOptions: TransferOption[] = [
     description: "Transfer funds using the Bakong network.",
     icon: <Settings size={40} />,
   },
-
   {
     slug: "bulk",
     label: "Bakong Wallet",
     description: "Transfer funds securely to international bank accounts.",
     icon: <Image src="/assets/icons/bakong.svg" alt="" width={20} height={20} />,
   },
-
 ];
 
 /** Options shown as hub cards, in display order. */
 const HUB_SLUGS = ["own-account", "other-sme-bank", "local-bank", "international", "bulk"];
 
-/** Every slug here opens a dialog from the hub instead of navigating to the /transfer/[slug] placeholder. */
-const DIALOG_BY_SLUG: Record<
+/** Every slug here opens an inline page view from the hub. */
+export const TRANSFER_VIEW_BY_SLUG: Record<
   string,
   React.ComponentType<{ open: boolean; onClose: () => void }>
 > = {
-  "own-account": OwnAccountDialog,
-  "other-sme-bank": OtherSmeBankDialog,
-  schedule: ScheduleTransferDialog,
-  international: InternationalDialog,
-  "local-bank": LocalTransferDialog,
-  bulk: BulkTransferDialog,
-
+  "own-account": OwnAccount,
+  "other-sme-bank": OtherSmeBank,
+  schedule: ScheduleTransfer,
+  "local-bank": LocalTransfer,
+  bakong: Bakong,
+  bulk: BulkTransfer,
+  international: International,
 };
 
 export default function Transfer() {
@@ -88,20 +87,27 @@ export default function Transfer() {
     transferOptions.find((option) => option.slug === slug),
   ).filter((option): option is TransferOption => Boolean(option));
 
-  return (
+  const ActiveTransferView = openSlug ? TRANSFER_VIEW_BY_SLUG[openSlug] : null;
 
+  if (ActiveTransferView) {
+    return <ActiveTransferView open={true} onClose={() => setOpenSlug(null)} />;
+  }
+
+  return (
     <Box sx={{ width: "100%" }}>
-      <Box sx={{
-        mx: -6,
-        mt: -6,
-        mb: 4,
-        px: 6,
-        py: 4,
-        bgcolor: "background.paper",
-        borderBottom: 0.1,
-        borderColor: "divider",
-      }}>
-        <BaseTitle fontSize={24} fontWeight={"bold"} fontFamily={"ui-sans-serif"} >
+      <Box
+        sx={{
+          mx: -6,
+          mt: -6,
+          mb: 4,
+          px: 6,
+          py: 4,
+          bgcolor: "background.paper",
+          borderBottom: 0.1,
+          borderColor: "divider",
+        }}
+      >
+        <BaseTitle fontSize={24} fontWeight={"bold"} fontFamily={"ui-sans-serif"}>
           Transfer
         </BaseTitle>
       </Box>
@@ -111,7 +117,7 @@ export default function Transfer() {
             <TransferOptionCard
               option={option}
               onClick={
-                DIALOG_BY_SLUG[option.slug]
+                TRANSFER_VIEW_BY_SLUG[option.slug]
                   ? () => setOpenSlug(option.slug)
                   : undefined
               }
@@ -119,21 +125,13 @@ export default function Transfer() {
           </Grid>
         ))}
       </Grid>
-      {/* 
-      <Box sx={{ mt: 4 }}>
+
+      {/* <Box sx={{ mt: 4 }}>
         <BaseTitle fontSize={18} fontWeight={600} sx={{ mb: 2.5 }}>
           Templates
         </BaseTitle>
         <TemplateTransfersTable templates={templateTransfers} />
-      </Box>
-
-      {Object.entries(DIALOG_BY_SLUG).map(([slug, DialogComponent]) => (
-        <DialogComponent
-          key={slug}
-          open={openSlug === slug}
-          onClose={() => setOpenSlug(null)}
-        />
-      ))} */}
+      </Box> */}
     </Box>
   );
 }

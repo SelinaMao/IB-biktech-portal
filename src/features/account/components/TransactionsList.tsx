@@ -16,6 +16,7 @@ import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import SectionCard from "@/features/dashboard/components/SectionCard";
 import { formatTransactionAmount, isIncomingTransaction } from "../account.slice";
 import type { TTransactionDetailResponse } from "../account.types";
+import { MoveDownRight, MoveUpLeft } from "lucide-react";
 
 /** Matches BaseCard's padding — bled edge-to-edge so the header tint reaches the card border. */
 const CARD_PADDING_PX = 20;
@@ -74,7 +75,7 @@ export default function TransactionsList({
   const columns: BaseTableColumn<TTransactionDetailResponse>[] = [
     {
       key: "detail",
-      header: "Detail / Reference",
+      header: "To/From",
       headSx: { pl: `${CARD_PADDING_PX}px` },
       cellSx: { pl: `${CARD_PADDING_PX}px` },
       render: (t) => {
@@ -86,17 +87,17 @@ export default function TransactionsList({
                 width: 32,
                 height: 32,
                 flexShrink: 0,
-                borderRadius: "8px",
+                borderRadius: "50%",
                 display: "grid",
                 placeItems: "center",
-                bgcolor: isIn ? palette.navy[900] : palette.danger.bg,
-                color: isIn ? palette.navy[100] : palette.danger.main,
+                bgcolor: isIn ? palette.IconTransfer.to : palette.IconTransfer.from,
+                color: isIn ? palette.danger.main : palette.danger.main,
               }}
             >
               {isIn ? (
-                <SouthWestRounded sx={{ fontSize: 16 }} />
+                <MoveUpLeft  fontSize={"14px"}/>
               ) : (
-                <NorthEastRounded sx={{ fontSize: 16 }} />
+                <MoveDownRight  />
               )}
             </Box>
             <Box>
@@ -111,6 +112,11 @@ export default function TransactionsList({
       key: "date",
       header: "Transaction Date",
       render: (t) => <Typography variant="body2">{t.transactionDate}</Typography>,
+    },
+    {
+      key: "account",
+      header: "Account",
+      render: (t) => <Typography variant="body2">{t.toAccountNumber}</Typography>,
     },
     {
       key: "amount",
@@ -204,7 +210,7 @@ export default function TransactionsList({
           sx={{
             width: `calc(100% + ${CARD_PADDING_PX * 2}px)`,
             mx: `-${CARD_PADDING_PX}px`,
-            padding:"10px"
+            padding: "10px"
           }}
         >
           <Box sx={{ fontFamily: "Poppins, sans-serif", width: "100%" }}>
@@ -218,10 +224,10 @@ export default function TransactionsList({
               }}
             >
               <BaseSearchButton
-              value={query}
-              onChange={onQueryChange}
-              placeholder="Search transactions…"
-            />
+                value={query}
+                onChange={onQueryChange}
+                placeholder="Search transactions…"
+              />
 
               <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
                 <Button variant="outlined" sx={{
@@ -265,32 +271,34 @@ export default function TransactionsList({
               </Box>
             </Box>
           </Box>
-        <BaseTable
-          columns={columns}
-          rows={transactions}
-          getRowKey={(t) => t.transactionId}
-          onRowClick={onSelectTransaction}
-          isLoading={isLoading}
-          headerBgColor={palette.slate[100]}
-          headerBorderColor={palette.slate[200]}
-          headerTextColor={palette.slate[400]}
-          rounded={false}
-          emptyTitle={error ? "Could not load transactions." : "No transactions in this period."}
-          emptyDescription={error ? "Please try again." : undefined}
-          pagination={
-            total > 0 && !error
-              ? {
-                count: total,
-                page,
-                rowsPerPage,
-                onPageChange,
-              }
-              : undefined
-          }
-          paginationVariant="compact"
-        />
-      </Box>
-    </SectionCard >
+          <BaseTable
+            columns={columns}
+            rows={transactions}
+            getRowKey={(t) => t.transactionId}
+            skeletonRows={rowsPerPage}
+            onRowClick={onSelectTransaction}
+            isLoading={isLoading}
+            headerBgColor={"white"}
+            headerBorderColor={palette.slate[200]}
+            headerBorderTop={false}
+            headerTextColor={palette.slate[400]}
+            rounded={false}
+            emptyTitle={error ? "Could not load transactions." : "No transactions in this period."}
+            emptyDescription={error ? "Please try again." : undefined}
+            pagination={
+              total > 0 && !error
+                ? {
+                  count: total,
+                  page,
+                  rowsPerPage,
+                  onPageChange,
+                }
+                : undefined
+            }
+            paginationVariant="compact"
+          />
+        </Box>
+      </SectionCard >
     </>
   );
 }
