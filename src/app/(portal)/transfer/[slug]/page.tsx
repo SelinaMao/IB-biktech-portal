@@ -6,12 +6,17 @@ import { useParams, useRouter } from "next/navigation";
 
 import BaseCard from "@core/components/BaseCard";
 import BaseIconButton from "@core/components/BaseIconButton";
-import { transferOptions } from "@/features/transfer";
+import { transferOptions, TRANSFER_VIEW_BY_SLUG } from "@/features/transfer";
 
 export default function TransferDetailPage() {
   const router = useRouter();
   const params = useParams<{ slug: string }>();
   const option = transferOptions.find((o) => o.slug === params.slug);
+  const TransferViewComponent = params.slug ? TRANSFER_VIEW_BY_SLUG[params.slug] : undefined;
+
+  if (TransferViewComponent) {
+    return <TransferViewComponent open={true} onClose={() => router.push("/transfer")} />;
+  }
 
   return (
     <Box sx={{ width: "100%" }}>

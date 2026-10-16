@@ -14,8 +14,7 @@ export type LanguageMeta = {
 
 export const languages: Record<Locale, LanguageMeta> = {
   km: { label: "ខ្មែរ", short: "ខ្មែរ", flag: "/branding/flags/km.svg" },
-  en: { label: "English", short: "EN", flag: "/branding/flags/en.svg" },
-
+  en: { label: "English", short: "English", flag: "/branding/flags/en.svg" },
 };
 
 /**

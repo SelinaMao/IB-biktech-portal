@@ -1,279 +1,537 @@
 "use client";
 
-import React from "react";
-import { Avatar, Box, Divider, IconButton, Menu, MenuItem, Skeleton, Stack, TextField, Typography } from "@mui/material";
-import { ExpandMoreRounded } from "@mui/icons-material";
+import React, { useState } from "react";
 import dayjs from "dayjs";
+import { Box, Menu, MenuItem, Typography } from "@mui/material";
+import { ChevronDown, GripVertical, RotateCcw } from "lucide-react";
 
-import { font, palette, radius } from "@/theme/palette";
-import type { ExchangeRatePair, ExchangeRatesResponse } from "@/features/meta";
-import SectionCard from "./SectionCard";
+import { palette, radius, padding } from "@/theme/palette";
+import BaseCard from "@core/components/BaseCard";
+import type { ExchangeRatesResponse } from "@/features/meta";
 
-const formatAmount = (value: number, code: string) =>
-  value.toLocaleString(undefined, {
-    maximumFractionDigits: code === "KHR" ? 0 : 2,
-  });
+function FlagIcon({ code }: { code: string }) {
+  switch (code) {
+    case "USD":
+      return (
+        <svg
+          width={22}
+          height={15}
+          viewBox="0 0 24 16"
+          fill="none"
+          style={{ borderRadius: 2, flexShrink: 0 }}
+        >
+          <rect width="24" height="16" fill="#B22234" />
+          <path
+            d="M0 2.46h24v1.23H0zM0 4.92h24v1.23H0zM0 7.38h24v1.23H0zM0 9.85h24v1.23H0zM0 12.31h24v1.23H0zM0 14.77h24v1.23H0z"
+            fill="#FFF"
+          />
+          <rect width="10" height="8.6" fill="#3C3B6E" />
+        </svg>
+      );
+    case "KHR":
+      return (
+        <svg
+          width={22}
+          height={15}
+          viewBox="0 0 24 16"
+          fill="none"
+          style={{ borderRadius: 2, flexShrink: 0 }}
+        >
+          <rect width="24" height="16" fill="#032EA6" />
+          <rect y="4" width="24" height="8" fill="#ED1B24" />
+          <path d="M12 5.5l1.5 2.5h-3L12 5.5zM10.5 8h3v2.5h-3V8z" fill="#FFF" />
+        </svg>
+      );
+    case "CNY":
+      return (
+        <svg
+          width={22}
+          height={15}
+          viewBox="0 0 24 16"
+          fill="none"
+          style={{ borderRadius: 2, flexShrink: 0 }}
+        >
+          <rect width="24" height="16" fill="#DE2910" />
+          <polygon
+            points="4,2 5,4.5 7.5,4.5 5.5,6 6.5,8.5 4,7 1.5,8.5 2.5,6 0.5,4.5 3,4.5"
+            fill="#FFDE00"
+            transform="scale(0.5) translate(4,2)"
+          />
+        </svg>
+      );
+    case "YEN":
+    case "JPY":
+      return (
+        <svg
+          width={22}
+          height={15}
+          viewBox="0 0 24 16"
+          fill="none"
+          style={{ borderRadius: 2, flexShrink: 0 }}
+        >
+          <rect width="24" height="16" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="0.5" />
+          <circle cx="12" cy="8" r="4.5" fill="#BC002D" />
+        </svg>
+      );
+    case "EURO":
+    case "EUR":
+      return (
+        <svg
+          width={22}
+          height={15}
+          viewBox="0 0 24 16"
+          fill="none"
+          style={{ borderRadius: 2, flexShrink: 0 }}
+        >
+          <rect width="24" height="16" fill="#003399" />
+          <circle
+            cx="12"
+            cy="8"
+            r="4.5"
+            stroke="#FFCC00"
+            strokeWidth="1"
+            strokeDasharray="1.5 1.5"
+            fill="none"
+          />
+        </svg>
+      );
+    default:
+      return (
+        <Box
+          sx={{
+            width: 22,
+            height: 15,
+            bgcolor: palette.slate[200],
+            borderRadius: 0.5,
+          }}
+        />
+      );
+  }
+}
 
-/** Converted (quote) amounts always show 2 decimals, even for KHR — only the base row uses its natural precision. */
-const formatConvertedAmount = (value: number) =>
-  value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export interface BaseCurrencyOption {
+  code: string;
+  name: string;
+  defaultUnit: number;
+}
 
-/** KHR is low-value enough that "1" isn't a meaningful default — use 1000 instead. */
-const defaultUnit = (code: string | null) => (code === "KHR" ? 4000 : 1);
+const baseCurrencies: BaseCurrencyOption[] = [
+  { code: "USD", name: "US Dollars", defaultUnit: 1 },
+  { code: "KHR", name: "Khmer Riel", defaultUnit: 4000 },
+  { code: "CNY", name: "Chinese Yuan", defaultUnit: 1 },
+  { code: "YEN", name: "Japanese Yen", defaultUnit: 100 },
+  { code: "EURO", name: "European Euro", defaultUnit: 1 },
+];
 
-/** Strips anything but digits and a single decimal point — no letters, signs, or extra dots. */
-const sanitizeAmount = (value: string) => {
-  const cleaned = value.replace(/[^0-9.]/g, "");
-  const firstDot = cleaned.indexOf(".");
-  if (firstDot === -1) return cleaned;
-  return cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, "");
-};
+export interface RateItem {
+  code: string;
+  name: string;
+  rate: string;
+}
 
-/**
- * Converts an amount held in the quoted pair's base currency into its quote
- * currency (or back) using buy/sell rates instead of the mid rate — buying
- * the quote currency multiplies by buyRate, selling it back divides by
- * sellRate. Mirrors the mobile app's rate calculator.
- */
-const calculateRate = (amount: number, fromCode: string, pairBase: string, rate: ExchangeRatePair) => {
-  return fromCode === pairBase ? amount * rate.buyRate : amount / rate.sellRate;
-};
+const defaultRates: RateItem[] = [
+  { code: "KHR", name: "Khmer Riel", rate: "3,940" },
+  { code: "CNY", name: "Chinese Yuan", rate: "7.10" },
+  { code: "YEN", name: "Japanese Yen", rate: "147.08" },
+  { code: "EURO", name: "European Euro", rate: "0.85" },
+];
 
 export interface ExchangeRatesCardProps {
   data?: ExchangeRatesResponse;
   isLoading?: boolean;
   isError?: boolean;
+  onRefresh?: () => void;
+  viewAllHref?: string;
 }
 
-export default function ExchangeRatesCard({ data, isLoading, isError }: ExchangeRatesCardProps) {
-  const currencies = data?.currencies ?? [];
-  const [pairBase, pairQuote] = (data?.rate.pair ?? "").split("/");
-
-  /** Converts an amount held in `fromCode` into `toCode` using the quoted pair's buy/sell rates. */
-  const convert = (amount: number, fromCode: string, toCode: string, decimalsOverride?: number) => {
-    if (fromCode === toCode) return amount;
-    if (!data?.rate || (fromCode !== pairBase && fromCode !== pairQuote)) return amount;
-    const raw = calculateRate(amount, fromCode, pairBase, data.rate);
-    const decimals = decimalsOverride ?? (toCode === "KHR" ? 0 : 2);
-    return Math.round(raw * 10 ** decimals) / 10 ** decimals;
-  };
-
-  const [baseCode, setBaseCode] = React.useState<string | null>(null);
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
-  const [amount, setAmount] = React.useState("");
-  const [editingCode, setEditingCode] = React.useState<string | null>(null);
-
-  // Currencies only arrive once the fetch resolves — default the base to the
-  // first one as soon as they show up.
-  React.useEffect(() => {
-    if (!baseCode && currencies.length > 0) setBaseCode(currencies[0].currency);
-  }, [currencies, baseCode]);
-
-  const rows = [...currencies].sort((a, b) =>
-    a.currency === baseCode ? -1 : b.currency === baseCode ? 1 : 0
+export default function ExchangeRatesCard({
+  data,
+  isLoading,
+  onRefresh,
+  viewAllHref = "#",
+}: ExchangeRatesCardProps) {
+  const [selectedBase, setSelectedBase] = useState<BaseCurrencyOption>(
+    baseCurrencies[0],
   );
+  const [amount, setAmount] = useState<number | string>(1);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const enteredAmount = amount.trim() === "" ? null : Number(amount);
-  const hasAmount = enteredAmount !== null && Number.isFinite(enteredAmount);
-
-  /** Switching the base currency clears the typed amount back to its default unit. */
-  const switchBase = (code: string) => {
-    if (code === baseCode) return;
-    setAmount("");
-    setBaseCode(code);
+  const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
   };
 
-  const startEditing = (code: string) => {
-    if (hasAmount) {
-      switchBase(code);
-    } else {
-      // Nothing typed yet — seed the field with the base's default unit converted into this currency.
-      setAmount(baseCode ? String(convert(defaultUnit(baseCode), baseCode, code)) : "");
-      setBaseCode(code);
-    }
-    setEditingCode(code);
-  };
-
-  const selectBase = (code: string) => {
-    switchBase(code);
+  const handleCloseMenu = () => {
     setAnchorEl(null);
   };
 
-  return (
-    <SectionCard title="Exchange rates" showBorder={false}>
-      <Typography
-        variant="caption"
-        sx={{ display: "block", color: palette.slate[400], mt: -1.5, mb: 2 }}
-      >
-        {data?.lastUpdate ? `Last update: ${dayjs(data.lastUpdate).format("DD MMM YYYY")}` : " "}
-      </Typography>
-      <Divider sx={{ mb: 1.5 }} />
-      {/* Column Headers */}
-      <Stack direction="row" sx={{ px: 0, pb: 1.5, color: palette.slate[400] }}>
-        <Typography variant="body2" sx={{ flex: 1, fontWeight: 600, fontSize: 13 }}>
-          Currency
-        </Typography>
-        <Typography variant="body2" sx={{ flex: 1, fontWeight: 600, fontSize: 13, textAlign: "right" }}>
-          Rate
-        </Typography>
-      </Stack>
-      {isLoading && rows.length === 0 ? (
-        <Stack spacing={1.5} sx={{ py: 1.5 }}>
-          {[0, 1].map((i) => (
-            <Skeleton key={i} variant="rounded" height={56} sx={{ borderRadius: `${radius.lg}px` }} />
-          ))}
-        </Stack>
-      ) : isError && rows.length === 0 ? (
-        <Typography variant="body2" sx={{ color: palette.slate[400], py: 2, textAlign: "center" }}>
-          Could not load exchange rates.
-        </Typography>
-      ) : (
-        <Stack divider={<Divider flexItem />}>
-          {rows.map((r) => {
+  const handleSelectCurrency = (curr: BaseCurrencyOption) => {
+    setSelectedBase(curr);
+    setAmount(curr.defaultUnit);
+    handleCloseMenu();
+  };
 
-            const isBase = r.currency === baseCode;
-            const hasRate = r.currency === pairBase || r.currency === pairQuote;
-            return (
-              <Stack
-                key={r.currency}
-                direction="row"
-                spacing={1.5}
-                sx={{ alignItems: "center", py: 1.5, justifyContent: "space-between" }}
-              >
-                <Box
-                  onClick={() => switchBase(r.currency)}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1.5,
-                    flex: 1,
-                    cursor: "pointer",
-                    ...(isBase && {
-                      bgcolor: palette.info.bg,
-                      borderRadius: `${radius.lg}px`,
-                      p: 2,
-                      pr: 3,
-                    }),
-                  }}
-                >
-                  <Avatar
-                    src={r.icon}
-                    variant="rounded"
-                    sx={{
-                      width: 40,
-                      height: 40,
-                      fontSize: 18,
-                      borderRadius: `${radius.md}px`,
-                      bgcolor: isBase ? palette.white : palette.slate[100],
-                    }}
-                  />
-                  <Box sx={{ flex: 1 }}>
-                    <Stack direction="row" sx={{ alignItems: "center", gap: 3 }}>
-                      <Typography sx={{ fontWeight: 700, fontSize: 15 }}>
-                        {r.currency}
-                      </Typography>
-                      {isBase && (
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setAnchorEl(e.currentTarget);
-                          }}
-                          sx={{ p: 0 }}
-                        >
-                          <ExpandMoreRounded sx={{ fontSize: font.icon.lg, color: palette.info[900] }} />
-                        </IconButton>
-                      )}
-                    </Stack>
-                    <Typography variant="caption" sx={{ color: palette.slate[500], fontSize: 12 }}>
-                      {r.description}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Box sx={{ textAlign: "right", flex: 1 }}>
-                  {editingCode === r.currency ? (
-                    <TextField
-                      autoFocus
-                      variant="outlined"
-                      size="small"
-                      value={amount}
-                      onChange={(e) => setAmount(sanitizeAmount(e.target.value))}
-                      onFocus={(e) => e.target.select()}
-                      onBlur={() => setEditingCode(null)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") e.currentTarget.blur();
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      inputMode="decimal"
-                      placeholder="0"
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <Typography sx={{ fontSize: font.size.base, color: palette.slate[950], pl: 0.5 }}>
-                              {r.currency}
-                            </Typography>
-                          ),
-                          sx: { borderRadius: `${radius.md}px`, bgcolor: palette.white },
-                        },
-                        htmlInput: { style: { textAlign: "right", fontWeight: 700, fontSize: font.size.base } },
-                      }}
-                      sx={{ maxWidth: 150 }}
-                    />
-                  ) : (
-                    <Typography
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startEditing(r.currency);
-                      }}
-                      sx={{ fontSize: font.size.base, cursor: hasRate || isBase ? "pointer" : "default" }}
-                    >
-                      <Box component="span" sx={{ fontWeight: 700 }}>
-                        {hasAmount && baseCode
-                          ? isBase
-                            ? formatAmount(enteredAmount!, r.currency)
-                            : formatConvertedAmount(convert(enteredAmount!, baseCode, r.currency, 2))
-                          : isBase
-                            ? String(defaultUnit(baseCode))
-                            : baseCode
-                              ? formatConvertedAmount(convert(defaultUnit(baseCode), baseCode, r.currency, 2))
-                              : "–"}
-                      </Box>{" "}
-                      <Box component="span" sx={{ color: palette.slate[950] }}>
-                        {r.currency}
-                      </Box>
-                    </Typography>
-                  )}
-                  {hasRate && data?.rate && !isBase && (
-                    <Typography variant="caption" sx={{ color: palette.slate[950], fontSize: font.size.md, display: "block" }}>
-                      1 {pairBase} ={" "}
-                      {formatAmount(
-                        baseCode === pairQuote ? data.rate.sellRate : data.rate.buyRate,
-                        pairQuote
-                      )}{" "}
-                      {pairQuote}
-                    </Typography>
-                  )}
-                </Box>
-              </Stack>
-            );
-          })}
-        </Stack>
-      )}
+  const lastUpdateLabel = data?.lastUpdate
+    ? `Last update: ${dayjs(data.lastUpdate).format("D MMMM YYYY | HH:mm A")}`
+    : "Last update: 3 September 2026 | 14:00 PM";
+
+  const rows: RateItem[] = React.useMemo(() => {
+    if (!data?.currencies?.length) return defaultRates;
+    return defaultRates.map((d) => {
+      const match = data.currencies.find((c) => c.currency === d.code);
+      if (d.code === "KHR" && data.rate?.buyRate) {
+        return {
+          ...d,
+          rate: Math.round(data.rate.buyRate).toLocaleString(),
+        };
+      }
+      return match ? { ...d, name: match.description || d.name } : d;
+    });
+  }, [data]);
+
+  // Exclude selected base currency from list if present
+  const displayRows = rows.filter((r) => r.code !== selectedBase.code);
+
+  return (
+    <BaseCard
+      sx={{
+        p: `${padding.xxl}px`,
+        borderRadius: `${radius.xl}px`,
+        border: `1px solid ${palette.slate[200]}`,
+        bgcolor: "#FFFFFF",
+      }}
+    >
+      {/* ---------- Header Row ---------- */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: { xs: 18, sm: 20 },
+            fontWeight: 700,
+            color: palette.slate[900],
+            lineHeight: 1.2,
+          }}
+        >
+          Exchange rate
+        </Typography>
+
+        {/* Refresh Icon Button */}
+        <Box
+          component="button"
+          type="button"
+          onClick={onRefresh}
+          aria-label="Refresh exchange rates"
+          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            border: "none",
+            bgcolor: "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: palette.slate[900],
+            cursor: "pointer",
+            transition: "all 0.15s ease",
+            "&:hover": {
+              bgcolor: palette.slate[100],
+            },
+          }}
+        >
+          <RotateCcw size={18} />
+        </Box>
+      </Box>
+
+      {/* Last Update */}
+      <Typography
+        sx={{
+          fontSize: 13,
+          color: palette.slate[450],
+          mt: 0.5,
+          mb: 2,
+        }}
+      >
+        {lastUpdateLabel}
+      </Typography>
+
+      {/* ---------- Base Currency Selector Box ---------- */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          bgcolor: palette.slate[50],
+          borderRadius: `${radius.md}px`,
+          px: 1.75,
+          py: 1.25,
+        }}
+      >
+        {/* Left: Interactive Dropdown Trigger */}
+        <Box
+          component="button"
+          type="button"
+          onClick={handleOpenMenu}
+          aria-haspopup="true"
+          aria-expanded={Boolean(anchorEl)}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.25,
+            border: "none",
+            bgcolor: "transparent",
+            cursor: "pointer",
+            p: 0,
+            borderRadius: `${radius.sm}px`,
+            transition: "opacity 0.15s ease",
+            "&:hover": {
+              opacity: 0.8,
+            },
+          }}
+        >
+          <FlagIcon code={selectedBase.code} />
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: palette.slate[900],
+            }}
+          >
+            {selectedBase.name}
+          </Typography>
+          <ChevronDown
+            size={16}
+            color={palette.slate[700]}
+            style={{
+              transform: anchorEl ? "rotate(180deg)" : "none",
+              transition: "transform 0.2s ease",
+            }}
+          />
+        </Box>
+
+        {/* Right: Amount */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+          <Box
+            component="input"
+            type="text"
+            value={amount}
+            onChange={(e) => {
+              const val = e.target.value.replace(/[^0-9.]/g, "");
+              setAmount(val);
+            }}
+            sx={{
+              width: 50,
+              textAlign: "right",
+              border: "none",
+              outline: "none",
+              bgcolor: "transparent",
+              fontSize: 15,
+              fontWeight: 600,
+              color: palette.slate[900],
+              p: 0,
+            }}
+          />
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: palette.slate[900],
+            }}
+          >
+            {selectedBase.code}
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Dropdown Menu */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
+        onClose={handleCloseMenu}
+        PaperProps={{
+          sx: {
+            mt: 0.75,
+            borderRadius: `${radius.md}px`,
+            border: `1px solid ${palette.slate[200]}`,
+            boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
+            minWidth: 220,
+            py: 0.5,
+          },
+        }}
       >
-        {currencies.map((r) => (
-          <MenuItem
-            key={r.currency}
-            selected={r.currency === baseCode}
-            onClick={() => selectBase(r.currency)}
-          >
-            {r.currency} — {r.description}
-          </MenuItem>
-        ))}
+        {baseCurrencies.map((c) => {
+          const isSelected = c.code === selectedBase.code;
+          return (
+            <MenuItem
+              key={c.code}
+              selected={isSelected}
+              onClick={() => handleSelectCurrency(c)}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.5,
+                py: 1,
+                px: 2,
+                fontSize: 14,
+                fontWeight: isSelected ? 600 : 400,
+                bgcolor: isSelected
+                  ? `${palette.slate[100]} !important`
+                  : "transparent",
+                "&:hover": {
+                  bgcolor: palette.slate[50],
+                },
+              }}
+            >
+              <FlagIcon code={c.code} />
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  sx={{
+                    fontSize: 14,
+                    fontWeight: isSelected ? 600 : 500,
+                    color: palette.slate[900],
+                  }}
+                >
+                  {c.name}
+                </Typography>
+              </Box>
+              <Typography sx={{ fontSize: 12, color: palette.slate[450] }}>
+                {c.code}
+              </Typography>
+            </MenuItem>
+          );
+        })}
       </Menu>
-    </SectionCard>
+
+      {/* ---------- Section Title: List ---------- */}
+      <Typography
+        sx={{
+          fontSize: 15,
+          fontWeight: 700,
+          color: palette.slate[900],
+          mt: 2.25,
+          mb: 1.25,
+        }}
+      >
+        List
+      </Typography>
+
+      {/* ---------- Currency List Container ---------- */}
+      <Box
+        sx={{
+          bgcolor: palette.slate[50],
+          borderRadius: `${radius.lg}px`,
+          overflow: "hidden",
+        }}
+      >
+        {displayRows.map((row, index) => {
+          const isLast = index === displayRows.length - 1;
+          return (
+            <Box
+              key={row.code}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 44px",
+                alignItems: "center",
+                borderBottom: isLast
+                  ? "none"
+                  : `1px solid ${palette.slate[200]}`,
+                transition: "background-color 0.15s ease",
+                "&:hover": {
+                  bgcolor: palette.slate[100],
+                },
+              }}
+            >
+              {/* Main Section: Currency Label & Rate */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  py: 1.5,
+                  px: 2,
+                }}
+              >
+                <Box>
+                  <Typography
+                    sx={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: palette.slate[900],
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {row.code}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: 12,
+                      color: palette.slate[500],
+                      lineHeight: 1.2,
+                      mt: 0.25,
+                    }}
+                  >
+                    {row.name}
+                  </Typography>
+                </Box>
+
+                <Typography
+                  sx={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: palette.slate[900],
+                  }}
+                >
+                  {row.rate}
+                </Typography>
+              </Box>
+
+              {/* Drag Grip Handle */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  borderLeft: `1px solid ${palette.slate[200]}`,
+                  color: palette.slate[400],
+                }}
+              >
+                <GripVertical size={18} />
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+
+      {/* ---------- Footer: View All Button ---------- */}
+      <Box
+        component="button"
+        type="button"
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          py: 1.4,
+          borderRadius: `${radius.pill}px`,
+          bgcolor: palette.slate[100],
+          color: palette.slate[900],
+          fontSize: 15,
+          fontWeight: 500,
+          border: "none",
+          mt: 2.5,
+          cursor: "pointer",
+          transition: "background-color 0.15s ease",
+          "&:hover": {
+            bgcolor: palette.slate[200],
+          },
+        }}
+      >
+        View all
+      </Box>
+    </BaseCard>
   );
 }

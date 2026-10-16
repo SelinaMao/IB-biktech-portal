@@ -6,11 +6,11 @@ import { formatAccountNumber } from "@/utils/format-account-number";
 import type { CoreAccountEntry } from "@/features/account";
 import { USD_TO_KHR_RATE } from "@/features/dashboard/dashboard.data";
 import type { CalculateTransferResult, TransferAccount } from "./transfer.types";
-import type { TransferReviewRow } from "./components/PreviewTransferDialog";
+import type { TransferReviewRow } from "./components/PreviewTransfer";
 
 export const CURRENCY_OPTIONS = [
-  { value: "USD", label: "USD", name: "US Dollar", flag: "/assets/icons/usd.svg" },
   { value: "KHR", label: "៛", name: "Khmer Riel", flag: "/branding/flags/km.svg" },
+  { value: "USD", label: "USD", name: "US Dollar", flag: "/assets/icons/usd.svg" },
 ];
 
 /** Display label for a currency value (e.g. for interpolating into summary/success text). */
@@ -47,7 +47,10 @@ export function findOtherSmeBankAccountName(
   directory: { number: string; name: string }[],
   accountNumber: string,
 ) {
-  return directory.find((entry) => entry.number === accountNumber)?.name;
+  const clean = accountNumber.replace(/\s+/g, "");
+  return directory.find(
+    (entry) => entry.number.replace(/\s+/g, "") === clean || entry.number === accountNumber,
+  )?.name;
 }
 
 /** Maps a live `POST bank/accounts` row to the shape BaseSelect's account options expect. */

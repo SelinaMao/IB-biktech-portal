@@ -12,6 +12,7 @@ import { ChevronDown } from "lucide-react";
 
 import BaseInput from "./BaseInput";
 import { palette, radius } from "@/theme/palette";
+import { ButtonBase } from "@mui/material";
 
 export type CurrencyOption = {
   value: string;
@@ -61,39 +62,112 @@ export default function BaseAmountCurrencyField({
         disabled={disabled}
         error={error}
         helperText={helperText}
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            bgcolor: "#F8FAFC",
+            borderRadius: "16px",
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: "transparent",
+            },
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: "#E2E8F0",
+            },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: "#CBD5E1",
+              borderWidth: 1.5,
+            },
+          },
+        }}
         slotProps={{
+          htmlInput: {
+            style: {
+              fontSize: "20px",
+              fontWeight: 700,
+              color: "#0F172A",
+              padding: "12px 14px",
+            },
+          },
           input: {
             endAdornment: (
-              <InputAdornment position="end">
+              <InputAdornment position="end" sx={{ mr: 0.5 }}>
                 <Box
-                  component="button"
-                  type="button"
-                  disabled={disabled}
-                  onClick={(e) => setAnchorEl(e.currentTarget)}
+                  role="radiogroup"
                   sx={{
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
                     gap: 0.5,
-                    bgcolor: palette.navy[800],
-                    color: palette.white,
-                    border: "none",
-                    borderRadius: `${radius.pill}px`,
-                    px: 3.5,
-                    py: 1.2,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: "pointer",
+                    p: "3px",
+                    borderRadius: "999px",
+                    backgroundColor: "#EAECEF",
                     flexShrink: 0,
-                    "&:disabled": { opacity: 0.5, cursor: "default" },
+                    opacity: disabled ? 0.5 : 1,
                   }}
                 >
-                  {currency}
-                  <ChevronDown size={14} />
+                  {options.map((option) => {
+                    const selected = option.value === currency;
+                    return (
+                      <ButtonBase
+                        key={option.value}
+                        role="radio"
+                        aria-checked={selected}
+                        aria-label={option.name}
+                        disabled={disabled}
+                        onClick={() => onCurrencyChange(option.value)}
+                        sx={{
+                          px: 2,
+                          py: 0.6,
+                          minWidth: 48,
+                          borderRadius: "999px",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: selected ? "#FFFFFF" : "#0F172A",
+                          backgroundColor: selected ? "#2E937A" : "transparent",
+                          transition: "all .15s ease",
+                        }}
+                      >
+                        {option.value}
+                      </ButtonBase>
+                    );
+                  })}
                 </Box>
               </InputAdornment>
             ),
           },
         }}
+
+      // slotProps={{
+      //   input: {
+      //     endAdornment: (
+      //       <InputAdornment position="end">
+      //         <Box
+      //           component="button"
+      //           type="button"
+      //           disabled={disabled}
+      //           onClick={(e) => setAnchorEl(e.currentTarget)}
+      //           sx={{
+      //             display: "flex",
+      //             alignItems: "center",
+      //             gap: 0.5,
+      //             bgcolor: palette.navy[800],
+      //             color: palette.white,
+      //             border: "none",
+      //             borderRadius: `${radius.pill}px`,
+      //             px: 3.5,
+      //             py: 1.2,
+      //             fontSize: 13,
+      //             fontWeight: 600,
+      //             cursor: "pointer",
+      //             flexShrink: 0,
+      //             "&:disabled": { opacity: 0.5, cursor: "default" },
+      //           }}
+      //         >
+      //           {currency}
+      //           <ChevronDown size={14} />
+      //         </Box>
+      //       </InputAdornment>
+      //     ),
+      //   },
+      // }}
       />
       <Menu
         anchorEl={anchorEl}

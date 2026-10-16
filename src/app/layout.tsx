@@ -35,7 +35,7 @@ const notoSansKhmer = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Corporate Bank Portal",
+  title: "IB-biktech-portal",
   description: "Bank admin console for corporate banking channel configuration",
 };
 

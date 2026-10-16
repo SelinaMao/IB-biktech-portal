@@ -65,6 +65,7 @@ export default function BaseTableHeader<T>({
           >
             {col.header}
           </TableCell>
+     
         ))}
       </TableRow>
     </TableHead>

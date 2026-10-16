@@ -39,11 +39,24 @@ export default function BaseButton({
         )
       }
       sx={{
-        padding: "12px 16px 12px 16px",
-        backgroundColor: isDisabled ? "#EDEDEC" : "#CC9966",
-        color: isDisabled ? "#94A3B8" : "#FFFFFF",
+        padding: "12px 16px",
+        borderRadius: "50px",
+        backgroundColor: isDisabled
+          ? "#EDEDEC"
+          : rest.variant === "outlined"
+            ? "transparent"
+            : "#2764A5",
+        color: isDisabled
+          ? "#94A3B8"
+          : rest.variant === "outlined"
+            ? palette.slate[700]
+            : "#000000",
         "&:hover": {
-          backgroundColor: isDisabled ? "#EDEDEC" : "#CC9966",
+          backgroundColor: isDisabled
+            ? "#EDEDEC"
+            : rest.variant === "outlined"
+              ? palette.slate[100]
+              : "#1E5289",
         },
         "&.Mui-disabled": {
           backgroundColor: "#EDEDEC",

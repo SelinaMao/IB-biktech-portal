@@ -1,87 +1,270 @@
 "use client";
 
-import { Box, Stack, Typography } from "@mui/material";
+import React from "react";
+import Link from "next/link";
+import { Box, Typography } from "@mui/material";
+import { ExternalLink, SquareArrowOutUpRight } from "lucide-react";
 
-import { font, palette, radius } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
-import { scheduleTransfers } from "../dashboard.data";
-import SectionCard from "./SectionCard";
+import BaseCard from "@core/components/BaseCard";
+import { palette, radius, padding } from "@/theme/palette";
 
-export default function ScheduleCard() {
+export interface ScheduleItem {
+  id: string;
+  day: string;
+  month: string;
+  title: string;
+  status: string;
+  statusTone: "danger" | "info" | "success";
+  amount: string;
+  href?: string;
+}
+
+export const defaultScheduleItems: ScheduleItem[] = [
+  {
+    id: "1",
+    day: "25",
+    month: "JUN",
+    title: "Bakong Payment",
+    status: "Over Due",
+    statusTone: "danger",
+    amount: "$25.00",
+    href: "/transfer",
+  },
+  {
+    id: "2",
+    day: "25",
+    month: "JUN",
+    title: "NexPay Transfer",
+    status: "Progress",
+    statusTone: "info",
+    amount: "$40.00",
+    href: "/transfer",
+  },
+  {
+    id: "3",
+    day: "26",
+    month: "JUN",
+    title: "PayPal Refund",
+    status: "Completed",
+    statusTone: "success",
+    amount: "$10.00",
+    href: "/transfer",
+  },
+];
+
+const toneStyleMap: Record<ScheduleItem["statusTone"], { bg: string; fg: string }> = {
+  danger: { bg: "#FEE2E2", fg: "#EF4444" },
+  info: { bg: "#DBEAFE", fg: "#2563EB" },
+  success: { bg: "#DCFCE7", fg: "#16A34A" },
+};
+
+interface ScheduleCardProps {
+  items?: ScheduleItem[];
+  viewAllHref?: string;
+}
+
+export default function ScheduleCard({
+  items = defaultScheduleItems,
+  viewAllHref = "/transfer",
+}: ScheduleCardProps) {
   return (
-    <SectionCard title="Schedule" action="View All">
-      <Stack
+    <BaseCard
+      sx={{
+        p: `${padding.xxl}px`,
+        borderRadius: `${radius.xl}px`,
+        border: `1px solid ${palette.slate[200]}`,
+        bgcolor: palette.white,
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+      }}
+    >
+      {/* Header */}
+      <Box
         sx={{
-          width: "100%",
-          height: "100%",
-          bgcolor: palette.slate[50],
-          borderRadius: `${radius.lg}px`,
-          px: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
-        {scheduleTransfers.map((s, i) => {
-          const [amountValue, amountCurrency] = s.amount.split(" ");
+        <Typography
+          sx={{
+            fontSize: { xs: 18, sm: 20 },
+            fontWeight: 700,
+            color: palette.slate[900],
+            lineHeight: 1.2,
+          }}
+        >
+          Schedule
+        </Typography>
+
+        {/* External Link Icon */}
+        <Box
+          component={Link}
+          href={viewAllHref}
+          aria-label="View all scheduled items"
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: palette.slate[900],
+            p: 1,
+            backgroundColor:palette.hover[10],
+            borderRadius: "50%",
+            transition: "opacity 0.15s ease",
+            "&:hover": {
+              opacity: 0.7,
+            },
+          }}
+        >
+          <SquareArrowOutUpRight size={20} />
+        </Box>
+      </Box>
+
+      {/* List Items */}
+      <Box sx={{ display: "flex", flexDirection: "column" }}>
+        {items.map((item, index) => {
+          const isLast = index === items.length - 1;
+          const tone = toneStyleMap[item.statusTone] ?? toneStyleMap.info;
 
           return (
-            <Stack
-              key={s.label}
-              direction="row"
-              spacing={1.5}
+            <Box
+              key={item.id}
+              component={Link}
+              href={item.href ?? viewAllHref}
               sx={{
+                display: "flex",
                 alignItems: "center",
-                py: 2,
-                borderBottom:
-                  i < scheduleTransfers.length - 1
-                    ? `1px solid ${palette.slate[200]}`
-                    : "none",
+                justifyContent: "space-between",
+                py: 1.75,
+                borderBottom: isLast ? "none" : `1px solid ${palette.slate[100]}`,
+                textDecoration: "none",
+                color: "inherit",
+                transition: "background-color 0.15s ease",
+                px: 1,
+                borderRadius: `${radius.lg}px`,
+                "&:hover": {
+                  bgcolor: palette.slate[50],
+                },
               }}
             >
-              <Box
-                sx={{
-                  textAlign: "center",
-                  width: 48,
-                  height: 48,
-                  bgcolor: palette.white,
-                  borderRadius: `${radius.sm}px`,
-                  py: 0.75,
-                }}
-              >
-                <Typography
-                  variant="h5"
+              {/* Left: Date Badge + Title/Status */}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
+                {/* Date Container */}
+                <Box
                   sx={{
-                    lineHeight: 1,
-                    fontSize: font.size.base,
-                    fontWeight: font.weight.semibold,
+                    width: 44,
+                    height: 44,
+                    borderRadius: `${radius.md}px`,
+                    bgcolor: palette.slate[100],
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
                   }}
                 >
-                  {s.day}
-                </Typography>
-                <Typography variant="caption" sx={{ color: palette.slate[400] }}>
-                  {s.month}
-                </Typography>
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography sx={{ fontWeight: font.weight.regular, fontSize: font.size.base }}>
-                  {s.label}
-                </Typography>
-              </Box>
-              <Typography sx={{ fontSize: 14 }}>
-                <BaseBlurText>
-                  <Box component="span" sx={{ fontWeight: font.weight.bold }}>
-                    {amountValue}
-                  </Box>{" "}
+                  <Typography
+                    sx={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: palette.slate[900],
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {item.day}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: palette.slate[450],
+                      lineHeight: 1.1,
+                      mt: 0.25,
+                    }}
+                  >
+                    {item.month}
+                  </Typography>
+                </Box>
+
+                {/* Title and Status Chip */}
+                <Box>
+                  <Typography
+                    sx={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: palette.slate[900],
+                      lineHeight: 1.25,
+                      padding:1
+                    }}
+                  >
+                    {item.title}
+                  </Typography>
+
                   <Box
                     component="span"
-                    sx={{ fontWeight: font.weight.regular, color: palette.slate[400], fontSize: font.size.base }}
+                    sx={{
+                      display: "inline-block",
+                      mt: 0.5,
+                      px: 2.5,
+                      py: 1,
+                      borderRadius: `${radius.pill}px`,
+                      bgcolor: tone.bg,
+                      color: tone.fg,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      lineHeight: 1.3,
+                    }}
                   >
-                    {amountCurrency}
+                    {item.status}
                   </Box>
-                </BaseBlurText>
+                </Box>
+              </Box>
+
+              {/* Right: Amount */}
+              <Typography
+                component="div"
+                sx={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: palette.slate[900],
+                  textAlign: "right",
+                  flexShrink: 0,
+                }}
+              >
+                <BaseBlurText>{item.amount}</BaseBlurText>
               </Typography>
-            </Stack>
+            </Box>
           );
         })}
-      </Stack>
-    </SectionCard>
+      </Box>
+
+      {/* Footer View All Button */}
+      <Box
+        component={Link}
+        href={viewAllHref}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          py: 1.4,
+          borderRadius: `${radius.pill}px`,
+          bgcolor: palette.slate[100],
+          color: palette.slate[900],
+          fontSize: 15,
+          fontWeight: 500,
+          textDecoration: "none",
+          mt: 0.5,
+          transition: "background-color 0.15s ease",
+          "&:hover": {
+            bgcolor: palette.slate[200],
+          },
+        }}
+      >
+        View all
+      </Box>
+    </BaseCard>
   );
 }

@@ -8,7 +8,7 @@ import { Landmark } from "lucide-react";
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
-import { scheduleFrequencies, transferAccounts } from "../transfer.data";
+import { scheduleFrequencies } from "../transfer.data";
 import {
   accountOptionLabel,
   accountSelectOptions,
@@ -18,16 +18,17 @@ import {
   CURRENCY_OPTIONS,
   findAccount,
 } from "../transfer.utils";
-import PreviewTransferDialog, { type TransferPreviewField } from "./PreviewTransferDialog";
+import { useTransferAccounts } from "../use-transfer-accounts";
+import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
 
-export type ScheduleTransferDialogProps = {
+export type ScheduleTransferProps = {
   open: boolean;
   onClose: () => void;
 };
 
 const INITIAL_VALUES = {
-  fromAccountId: transferAccounts[0].id,
-  toAccountId: transferAccounts[1].id,
+  fromAccountId: "",
+  toAccountId: "",
   amount: "",
   currency: "USD",
   scheduleDate: "",
@@ -35,16 +36,26 @@ const INITIAL_VALUES = {
   remark: "",
 };
 
-export default function ScheduleTransferDialog({ open, onClose }: ScheduleTransferDialogProps) {
+export default function ScheduleTransfer({ open, onClose }: ScheduleTransferProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
+  const { accounts } = useTransferAccounts(open);
 
   const set = <K extends keyof typeof INITIAL_VALUES>(
     key: K,
     value: (typeof INITIAL_VALUES)[K],
   ) => setValues((prev) => ({ ...prev, [key]: value }));
 
-  const fromAccount = findAccount(transferAccounts, values.fromAccountId);
-  const toAccount = findAccount(transferAccounts, values.toAccountId);
+  const fromAccountId = values.fromAccountId || accounts[0]?.id || "";
+  const toAccountId = values.toAccountId || accounts.find((a) => a.id !== fromAccountId)?.id || "";
+
+  React.useEffect(() => {
+    if (!values.fromAccountId && accounts[0]?.id) {
+      set("fromAccountId", accounts[0].id);
+    }
+  }, [accounts, values.fromAccountId]);
+
+  const fromAccount = findAccount(accounts, fromAccountId);
+  const toAccount = findAccount(accounts, toAccountId);
   const frequencyLabel = scheduleFrequencies.find((f) => f.value === values.frequency)?.label ?? "";
 
   const previewFields: TransferPreviewField[] = [
@@ -59,12 +70,12 @@ export default function ScheduleTransferDialog({ open, onClose }: ScheduleTransf
   const summaryRows = buildTransferSummaryRows(values.amount, values.currency);
 
   return (
-    <PreviewTransferDialog
+    <PreviewTransfer
       open={open}
       onClose={onClose}
       title="Schedule Transfer"
       icon={<Landmark size={18} />}
-      canSubmit={Boolean(values.amount && values.scheduleDate && values.fromAccountId && values.toAccountId)}
+      canSubmit={Boolean(values.amount && values.scheduleDate && fromAccountId && toAccountId)}
       previewFields={previewFields}
       summaryRows={summaryRows}
       successMessage={`${values.amount} ${currencyLabel(values.currency)} scheduled to ${toAccount?.name ?? "the selected account"} starting ${values.scheduleDate}.`}
@@ -73,15 +84,16 @@ export default function ScheduleTransferDialog({ open, onClose }: ScheduleTransf
       <Stack spacing={2.5}>
         <BaseSelect
           label="From Account"
-          value={values.fromAccountId}
+          value={fromAccountId}
           onChange={(e) => set("fromAccountId", e.target.value as string)}
-          options={accountSelectOptions(transferAccounts)}
+          options={accountSelectOptions(accounts)}
         />
+        
         <BaseSelect
           label="To Account"
-          value={values.toAccountId}
+          value={toAccountId}
           onChange={(e) => set("toAccountId", e.target.value as string)}
-          options={accountSelectOptions(transferAccounts)}
+          options={accountSelectOptions(accounts)}
         />
 
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-end" }}>
@@ -124,6 +136,6 @@ export default function ScheduleTransferDialog({ open, onClose }: ScheduleTransf
           placeholder="Optional note"
         />
       </Stack>
-    </PreviewTransferDialog>
+    </PreviewTransfer>
   );
 }

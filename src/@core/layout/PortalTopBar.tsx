@@ -163,12 +163,12 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
             <Image src={collapsed ? "/assets/icons/expand.svg" : "/assets/icons/collapse.svg"} alt="Toggle Collapse Menu" width={40} height={40} />
           </IconButton>
           <Typography variant="h4" sx={{ fontWeight: "bold", color: palette.navy[800] }}>
-            SME Bank <span style={{ color: palette.primary.main }}>Biz</span>
+            BiKTECH <span style={{ color: palette.primary.main }}>Solution</span>
           </Typography>
         </Stack>
 
         <Box sx={{ flex: 1 }} />
-        <Stack
+        {/* <Stack
           direction="row"
           spacing={0.5}
           sx={{
@@ -199,7 +199,7 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
               </Typography>
             </>
           )}
-        </Stack>
+        </Stack> */}
 
         <Stack
           direction="row"
@@ -209,7 +209,7 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
             cursor: "pointer",
             border: 1,
             borderColor: "divider",
-            borderRadius: 1,
+            borderRadius: "50%",
             height: 40,
             px: 2,
             bgcolor: "white",
@@ -314,7 +314,7 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
 
         <SwitchLanguageMenu />
 
-        <Divider
+        {/* <Divider
           orientation="vertical"
           flexItem
           sx={{
@@ -325,7 +325,7 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
             borderColor: "#EDEDEC",
             borderRightWidth: "2px",
           }}
-        />
+        /> */}
 
         <Stack
           direction="row"
@@ -341,6 +341,7 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
             sx={{
               width: 34,
               height: 34,
+              borderRadius: "50%",
               fontSize: font.size.md,
               color: palette.white,
               bgcolor: palette.navy[800],
@@ -384,7 +385,7 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
               sx: {
                 mt: 1,
                 minWidth: 224,
-                border: "1px solid",
+                border: "1px= solid",
                 borderColor: "divider",
                 boxShadow: "0 6px 16px rgba(16,24,40,0.08)",
                 overflow: "hidden",

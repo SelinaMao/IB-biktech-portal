@@ -1,5 +1,6 @@
 export const palette = {
   primary: {
+    40:"#2764A5",
     50: "#fbf7f1",
     100: "#f5eddf",
     200: "#ead8be",
@@ -16,12 +17,20 @@ export const palette = {
     dark: "#b56e41",
     light: "#ead8be",
   },
+  hover:{
+    10:"#E2E8F0"
+  },
 
+  IconTransfer:{
+    to: "#FFF3E0",
+    from:"#E6F5F0"
+  },
   // Secondary accents — a subset of Twine (light tan + brand tan).
   secondary: { light: "#ead8be", main: "#cc9966", dark: "#b56e41" },
 
   // Info — Minsk (indigo). `main`/`bg` for chips + alerts.
   info: {
+    40:"#2764A514",
     50: "#eef2ff",
     100: "#e0e7ff",
     200: "#c7d1fe",
@@ -111,6 +120,7 @@ export const palette = {
   white50: "#ffffff45",
 
   black40: "#000000",
+  black30:"#3D4550",
 
   // Status — shared indicator color for Dormant & Frozen account states.
   status: { dormantFrozen: "#FFCC00" },

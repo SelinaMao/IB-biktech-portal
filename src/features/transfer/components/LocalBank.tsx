@@ -8,7 +8,7 @@ import { Globe } from "lucide-react";
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
-import { localBanks, transferAccounts } from "../transfer.data";
+import { localBanks } from "../transfer.data";
 import {
   accountOptionLabel,
   accountSelectOptions,
@@ -18,15 +18,16 @@ import {
   CURRENCY_OPTIONS,
   findAccount,
 } from "../transfer.utils";
-import PreviewTransferDialog, { type TransferPreviewField } from "./PreviewTransferDialog";
+import { useTransferAccounts } from "../use-transfer-accounts";
+import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
 
-export type LocalBankDialogProps = {
+export type LocalBankProps = {
   open: boolean;
   onClose: () => void;
 };
 
 const INITIAL_VALUES = {
-  fromAccountId: transferAccounts[0].id,
+  fromAccountId: "",
   beneficiaryBank: localBanks[0],
   beneficiaryAccountNumber: "",
   beneficiaryName: "",
@@ -35,15 +36,23 @@ const INITIAL_VALUES = {
   remark: "",
 };
 
-export default function LocalBankDialog({ open, onClose }: LocalBankDialogProps) {
+export default function LocalBank({ open, onClose }: LocalBankProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
+  const { accounts } = useTransferAccounts(open);
 
   const set = <K extends keyof typeof INITIAL_VALUES>(
     key: K,
     value: (typeof INITIAL_VALUES)[K],
   ) => setValues((prev) => ({ ...prev, [key]: value }));
 
-  const fromAccount = findAccount(transferAccounts, values.fromAccountId);
+  const fromAccountId = values.fromAccountId || accounts[0]?.id || "";
+  const fromAccount = findAccount(accounts, fromAccountId);
+
+  React.useEffect(() => {
+    if (!values.fromAccountId && accounts[0]?.id) {
+      set("fromAccountId", accounts[0].id);
+    }
+  }, [accounts, values.fromAccountId]);
 
   const previewFields: TransferPreviewField[] = [
     { label: "From Account", value: fromAccount ? accountOptionLabel(fromAccount) : "-" },
@@ -57,13 +66,13 @@ export default function LocalBankDialog({ open, onClose }: LocalBankDialogProps)
   const summaryRows = buildTransferSummaryRows(values.amount, values.currency);
 
   return (
-    <PreviewTransferDialog
+    <PreviewTransfer
       open={open}
       onClose={onClose}
       title="To Local Bank"
       icon={<Globe size={18} />}
       canSubmit={Boolean(
-        values.amount && values.beneficiaryAccountNumber && values.beneficiaryName && values.fromAccountId,
+        values.amount && values.beneficiaryAccountNumber && values.beneficiaryName && fromAccountId,
       )}
       previewFields={previewFields}
       summaryRows={summaryRows}
@@ -73,9 +82,9 @@ export default function LocalBankDialog({ open, onClose }: LocalBankDialogProps)
       <Stack spacing={2.5}>
         <BaseSelect
           label="From Account"
-          value={values.fromAccountId}
+          value={fromAccountId}
           onChange={(e) => set("fromAccountId", e.target.value as string)}
-          options={accountSelectOptions(transferAccounts)}
+          options={accountSelectOptions(accounts)}
         />
         <BaseSelect
           label="Beneficiary Bank"
@@ -121,6 +130,6 @@ export default function LocalBankDialog({ open, onClose }: LocalBankDialogProps)
           placeholder="Optional note"
         />
       </Stack>
-    </PreviewTransferDialog>
+    </PreviewTransfer>
   );
 }

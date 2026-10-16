@@ -193,7 +193,7 @@ export default function CashFlowCard() {
         <Box sx={{ flex: 1 }}>
           <Typography variant="body2">Average income</Typography>
           <Typography variant="h4" sx={{ color: "text.primary" }}>
-            {cashFlow.avgIncome}{" "}
+            {cashFlow.avgIncome ?? " "}{" "}
             <Typography component="span" variant="body2">
               {ccy === "KHR" ? "៛" : ccy}
             </Typography>

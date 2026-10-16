@@ -33,7 +33,7 @@ export default function AccountsSidebar({
   };
 
   const availableBalanceCard: SummaryCardProps = {
-    label: "Available Balance",
+    label: "Summary",
     value: formatCCY(totalBalanceUSD, "USD"),
     sub: formatCCY(totalBalanceKHR, "KHR"),
     icon: <Wallet color={palette.success.main} size={20} />,
@@ -43,14 +43,19 @@ export default function AccountsSidebar({
   return (
     <Stack spacing={2.5}>
       <Box>
-        <Typography sx={{ fontSize: 24, fontWeight: 400, color: "text.primary", mb: 1.5 }}>
+        {/* <Typography sx={{ fontSize: 24, fontWeight: 400, color: "text.primary", mb: 1.5 }}>
           Summary
-        </Typography>
+        </Typography> */}
         <SummaryCard {...availableBalanceCard} />
       </Box>
 
-      <Box>
-        <Typography sx={{ fontSize: 24, fontWeight: 400, color: "text.primary", mb: 1.5 }}>
+      <Box sx={{
+        border:"0px solid",
+        bgcolor:"white",
+        borderRadius:"20px",
+        padding:3
+      }}>
+        <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", mb: 1.5 }}>
           Accounts
         </Typography>
         <Stack spacing={2}>
@@ -67,10 +72,11 @@ export default function AccountsSidebar({
                   if (e.key === "Enter" || e.key === " ") onSelect(account.accountNumber);
                 }}
                 sx={{
+                  padding:"5px",
                   cursor: onSelect ? "pointer" : "default",
-                  border: `1px solid ${active ? `${account.color}` : "none"}`,
-                  backgroundColor: active ? adjustLightness(account?.color || "#2D9CDB", 95) : "white",
-                  outline: "none"
+                  // border: `0px solid ${active ? `${account.color}` : "0px"}`,
+                  backgroundColor: active ? "#2764A514" : "white",
+                  border:"none"
                 }}
               >
                 <Stack
@@ -80,7 +86,7 @@ export default function AccountsSidebar({
                     justifyContent: "space-between",
                     alignItems: "flex-start",
                     mb: 2,
-                    paddingLeft: '20px',
+                    paddingLeft: '10px',
                     // "&::before": {
                     //   content: '""',
                     //   top: '-20px',
@@ -99,17 +105,18 @@ export default function AccountsSidebar({
                       {account.accountName}
                     </Typography>
                     <Typography sx={{ fontSize: font.size.xs, color: palette.text.secondary, mt: 0.25 }}>
-                      {formatAccountNumber(account.accountNumber)} | {account.accountClassDescription}
+                      {formatAccountNumber(account.accountNumber)}
                     </Typography>
                   </Box>
-                  <ChevronRight
+                  {/* <ChevronRight
                     size={18}
                     color={active ? palette.navy[800] : palette.slate[400]}
-                  />
-                </Stack>
-                <Typography sx={{ fontWeight: font.weight.bold, fontSize: font.size.lg, color: palette.text.primary, paddingLeft: '20px' }}>
+                  /> */}
+                  <Typography sx={{ fontWeight: font.weight.bold, fontSize: font.size.sm, color: palette.text.primary, paddingLeft: '10px',margin:"5px" }}>
                   <BaseBlurText>{formatCCY(account.availableBalance, account.ccy)}</BaseBlurText>
                 </Typography>
+                </Stack>
+                
               </BaseCard>
             );
           })}

@@ -13,7 +13,7 @@ export default function TransferOptionCard({
   onClick,
 }: {
   option: TransferOption;
-  /** When provided, the card opens a dialog via this instead of navigating. */
+  /** When provided, the card opens an inline view via this instead of navigating. */
   onClick?: () => void;
 }) {
   const asButton = Boolean(onClick);
@@ -38,10 +38,15 @@ export default function TransferOptionCard({
       }}
     >
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
-        <Box
+       
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+           <Box
           sx={{
-            width: 60,
-            height: 60,
+            width: 40,
+            height: 40,
+            border:0,
+            bgcolor:palette.hover[10],
+            borderRadius:"50%",
             flexShrink: 0,
             color: palette.primary[600],
             display: "grid",
@@ -50,16 +55,15 @@ export default function TransferOptionCard({
         >
           {option.icon}
         </Box>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between", marginTop:4}}>
             <Typography sx={{ fontWeight: 600, fontSize: 14, color: "text.primary" }}>
               {option.label}
             </Typography>
-            <ChevronRight size={18} color={palette.slate[400]} style={{ flexShrink: 0 }} />
+            {/* <ChevronRight size={18} color={palette.slate[400]} style={{ flexShrink: 0 ,marginTop:4}} /> */}
           </Stack>
           <Typography
             variant="caption"
-            sx={{ display: "block", mt: 0.25, color: palette.slate[400] }}
+            sx={{ display: "block", mt: 0.25, color: palette.slate[400],marginTop:4 }}
           >
             {option.description}
           </Typography>

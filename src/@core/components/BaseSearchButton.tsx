@@ -9,6 +9,7 @@ import TextField from "@mui/material/TextField";
 
 import { palette } from "@/theme/palette";
 import BaseIconButton from "./BaseIconButton";
+import { Search } from "lucide-react";
 
 export interface BaseSearchButtonProps {
   value: string;
@@ -44,25 +45,25 @@ export default function BaseSearchButton({
     inputRef.current?.blur();
   };
 
-  if (!open) {
-    return (
-      <BaseIconButton
-        icon={<SearchRoundedIcon fontSize="small" />}
-        tooltip={tooltip}
-        onClick={() => {
-          setOpen(true);
-          requestAnimationFrame(() => inputRef.current?.focus());
-        }}
-        sx={{
-          width: 33,
-          height: 33,
-          borderRadius: "12px",
-          border: `1px solid ${palette.slate[200]}`,
-          "&:hover": { backgroundColor: palette.primary[100] },
-        }}
-      />
-    );
-  }
+  // if (!open) {
+  //   return (
+  //     <BaseIconButton
+  //       icon={<SearchRoundedIcon fontSize="small" />}
+  //       tooltip={tooltip}
+  //       onClick={() => {
+  //         setOpen(true);
+  //         requestAnimationFrame(() => inputRef.current?.focus());
+  //       }}
+  //       sx={{
+  //         width: 33,
+  //         height: 33,
+  //         borderRadius: "12px",
+  //         border: `1px solid ${palette.slate[200]}`,
+  //         "&:hover": { backgroundColor: palette.primary[100] },
+  //       }}
+  //     />
+  //   );
+  // }
 
   return (
     <TextField
@@ -75,14 +76,14 @@ export default function BaseSearchButton({
       onKeyDown={handleKeyDown}
       sx={{
         width,
-        "& .MuiOutlinedInput-root": { height: 33, borderRadius: "12px" },
+        "& .MuiOutlinedInput-root": { height: 43, borderRadius: "12px" },
         "& .MuiOutlinedInput-input": { paddingTop: 0, paddingBottom: 0 },
       }}
       slotProps={{
         input: {
           startAdornment: (
             <InputAdornment position="start">
-              <SearchRoundedIcon fontSize="small" sx={{ color: palette.slate[400] }} />
+              <Search fontSize="small" />
             </InputAdornment>
           ),
           endAdornment: value ? (
