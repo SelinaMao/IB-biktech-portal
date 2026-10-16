@@ -31,6 +31,7 @@ export type PreviewTransferProps = {
     onClose: () => void;
     title: string;
     icon?: React.ReactNode;
+    topSection?: React.ReactNode;
     /** Enables the Details -> Review "Next" button. */
     canSubmit: boolean;
     /** Bordered boxes shown at the top of the Review step (From/To Account, Amount, Remark, ...). */
@@ -69,6 +70,7 @@ export default function PreviewTransfer({
     open,
     onClose,
     title,
+    topSection,
     canSubmit,
     previewFields,
     summaryRows,
@@ -134,11 +136,28 @@ export default function PreviewTransfer({
     const footer =
         step === 0 ? (
             <BaseButton
-                title="Next"
+                title="Review"
                 variant="contained"
                 fullWidth
                 disabled={!canSubmit}
                 onClick={goToReview}
+                sx={{
+                    height: 52,
+                    borderRadius: "999px",
+                    bgcolor: "#2764A5",
+                    color: "#FFFFFF",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    textTransform: "none",
+                    boxShadow: "none",
+                    "&:hover": {
+                        bgcolor: "#1E5289",
+                    },
+                    "&.Mui-disabled": {
+                        bgcolor: "#CBD5E1",
+                        color: "#FFFFFF",
+                    },
+                }}
             />
         ) : step === 1 ? (
             <Stack direction="row" spacing={1.5}>
@@ -149,26 +168,63 @@ export default function PreviewTransfer({
                     disabled={authorization.submitting}
                     onClick={backToDetails}
                     sx={{
-                        backgroundColor: "#DFDFDE",
-                        borderColor: "#DFDFDE",
-                        color: palette.text.primary,
+                        height: 52,
+                        borderRadius: "999px",
+                        backgroundColor: "#E2E8F0",
+                        borderColor: "transparent",
+                        color: palette.slate[700],
+                        fontSize: 16,
+                        fontWeight: 600,
                         "&:hover": {
-                            backgroundColor: "#DFDFDE",
-                            borderColor: "#DFDFDE",
+                            backgroundColor: "#CBD5E1",
+                            borderColor: "transparent",
                         },
                     }}
                 />
                 <BaseButton
-                    title={authorization.submitting ? "Submitting…" : "Next"}
+                    title={authorization.submitting ? "Submitting…" : "Confirm"}
                     variant="contained"
                     fullWidth
                     disabled={!termsAccepted || !summaryReady}
                     isLoading={authorization.submitting}
                     onClick={handleReviewNext}
+                    sx={{
+                        height: 52,
+                        borderRadius: "999px",
+                        bgcolor: "#2764A5",
+                        color: "#FFFFFF",
+                        fontSize: 16,
+                        fontWeight: 600,
+                        textTransform: "none",
+                        "&:hover": {
+                            bgcolor: "#1E5289",
+                        },
+                        "&.Mui-disabled": {
+                            bgcolor: "#CBD5E1",
+                            color: "#FFFFFF",
+                        },
+                    }}
                 />
             </Stack>
         ) : (
-            <BaseButton title="Done" variant="contained" fullWidth onClick={handleClose} />
+            <BaseButton
+                title="Done"
+                variant="contained"
+                fullWidth
+                onClick={handleClose}
+                sx={{
+                    height: 52,
+                    borderRadius: "999px",
+                    bgcolor: "#2764A5",
+                    color: "#FFFFFF",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    textTransform: "none",
+                    "&:hover": {
+                        bgcolor: "#1E5289",
+                    },
+                }}
+            />
         );
 
     return (
@@ -240,23 +296,38 @@ export default function PreviewTransfer({
                         <TransferStepper steps={STEPS} activeStep={step} />
                     </Box>
             </Box>
-            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <Box sx={{ display: "block", justifyContent: "center", alignItems: "center" }}>
 
-                
+                {/* Top Card (only shown on Step 0 when topSection is provided) */}
+                {step === 0 && topSection && (
+                    <Box
+                        sx={{
+                            mx: "auto",
+                            width: { xs: "100%", sm: 500, md: 520 },
+                            maxWidth: "100%",
+                            bgcolor: "#FFFFFF",
+                            borderRadius: "20px",
+                            p: { xs: 2.5, md: 3 },
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                        }}
+                    >
+                        {topSection}
+                    </Box>
+                )}
                 {/* Main Content Card */}
                 <Box
                     sx={{
+                        mt: 2.5,
                         bgcolor: "#FFFFFF",
                         borderRadius: "20px",
-                        p: { xs: 3, md: 5 },
-                        width: { xs: "100%", md: "75%", lg: "50%" },
+                        p: { xs: 3, md: 3.5 },
+                        width: { xs: "100%", sm: 500, md: 520 },
                         maxWidth: "100%",
-                        mx: { xs: 0, md: "auto" },
+                        mx: "auto",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                     }}
                 >
-                
-
-                    <Box sx={{ mb: 4 }}>
+                    <Box sx={{ mb: 0 }}>
                         {step === 0 && children}
 
                         {step === 1 && (
@@ -363,7 +434,18 @@ export default function PreviewTransfer({
                             </Stack>
                         )}
                     </Box>
+                </Box>
 
+                {/* Bottom Action Button on page background */}
+                <Box
+                    sx={{
+                        mt: 3,
+                        mb: 5,
+                        width: { xs: "100%", sm: 500, md: 520 },
+                        maxWidth: "100%",
+                        mx: "auto",
+                    }}
+                >
                     {footer}
                 </Box>
 

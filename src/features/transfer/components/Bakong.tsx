@@ -8,7 +8,6 @@ import { Settings } from "lucide-react";
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
-import { transferAccounts } from "../transfer.data";
 import {
   accountOptionLabel,
   accountSelectOptions,
@@ -18,6 +17,7 @@ import {
   CURRENCY_OPTIONS,
   findAccount,
 } from "../transfer.utils";
+import { useTransferAccounts } from "../use-transfer-accounts";
 import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
 
 export type BakongProps = {
@@ -26,7 +26,7 @@ export type BakongProps = {
 };
 
 const INITIAL_VALUES = {
-  fromAccountId: transferAccounts[0].id,
+  fromAccountId: "",
   bakongId: "",
   recipientName: "",
   amount: "",
@@ -36,13 +36,21 @@ const INITIAL_VALUES = {
 
 export default function Bakong({ open, onClose }: BakongProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
+  const { accounts } = useTransferAccounts(open);
 
   const set = <K extends keyof typeof INITIAL_VALUES>(
     key: K,
     value: (typeof INITIAL_VALUES)[K],
   ) => setValues((prev) => ({ ...prev, [key]: value }));
 
-  const fromAccount = findAccount(transferAccounts, values.fromAccountId);
+  const fromAccountId = values.fromAccountId || accounts[0]?.id || "";
+  const fromAccount = findAccount(accounts, fromAccountId);
+
+  React.useEffect(() => {
+    if (!values.fromAccountId && accounts[0]?.id) {
+      set("fromAccountId", accounts[0].id);
+    }
+  }, [accounts, values.fromAccountId]);
 
   const previewFields: TransferPreviewField[] = [
     { label: "From Account", value: fromAccount ? accountOptionLabel(fromAccount) : "-" },
@@ -60,7 +68,7 @@ export default function Bakong({ open, onClose }: BakongProps) {
       onClose={onClose}
       title="To Bakong"
       icon={<Settings size={18} />}
-      canSubmit={Boolean(values.amount && values.bakongId && values.fromAccountId)}
+      canSubmit={Boolean(values.amount && values.bakongId && fromAccountId)}
       previewFields={previewFields}
       summaryRows={summaryRows}
       successMessage={`${values.amount} ${currencyLabel(values.currency)} sent to ${values.recipientName || values.bakongId} via Bakong.`}
@@ -69,9 +77,9 @@ export default function Bakong({ open, onClose }: BakongProps) {
       <Stack spacing={2.5}>
         <BaseSelect
           label="From Account"
-          value={values.fromAccountId}
+          value={fromAccountId}
           onChange={(e) => set("fromAccountId", e.target.value as string)}
-          options={accountSelectOptions(transferAccounts)}
+          options={accountSelectOptions(accounts)}
         />
         <BaseInput
           label="Bakong ID / Phone Number"

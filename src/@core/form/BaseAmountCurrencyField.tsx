@@ -62,18 +62,43 @@ export default function BaseAmountCurrencyField({
         disabled={disabled}
         error={error}
         helperText={helperText}
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            bgcolor: "#F8FAFC",
+            borderRadius: "16px",
+            "& .MuiOutlinedInput-notchedOutline": {
+              borderColor: "transparent",
+            },
+            "&:hover .MuiOutlinedInput-notchedOutline": {
+              borderColor: "#E2E8F0",
+            },
+            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+              borderColor: "#CBD5E1",
+              borderWidth: 1.5,
+            },
+          },
+        }}
         slotProps={{
+          htmlInput: {
+            style: {
+              fontSize: "20px",
+              fontWeight: 700,
+              color: "#0F172A",
+              padding: "12px 14px",
+            },
+          },
           input: {
             endAdornment: (
-              <InputAdornment position="end">
+              <InputAdornment position="end" sx={{ mr: 0.5 }}>
                 <Box
                   role="radiogroup"
                   sx={{
                     display: "inline-flex",
+                    alignItems: "center",
                     gap: 0.5,
-                    p: 0.5,
-                    borderRadius: `${radius.pill}px`,
-                    backgroundColor: palette.slate[200],
+                    p: "3px",
+                    borderRadius: "999px",
+                    backgroundColor: "#EAECEF",
                     flexShrink: 0,
                     opacity: disabled ? 0.5 : 1,
                   }}
@@ -90,15 +115,14 @@ export default function BaseAmountCurrencyField({
                         onClick={() => onCurrencyChange(option.value)}
                         sx={{
                           px: 2,
-                          py: 0.75,
-                          minWidth: 52,
-                          borderRadius: `${radius.pill}px`,
+                          py: 0.6,
+                          minWidth: 48,
+                          borderRadius: "999px",
                           fontSize: 13,
                           fontWeight: 600,
-                          color: selected ? palette.white : "text.primary",
-                          backgroundColor: selected ? "#37A37E" : "transparent",
-                          boxShadow: selected ? "0 2px 6px rgba(0,0,0,.18)" : "none",
-                          transition: "all .2s ease",
+                          color: selected ? "#FFFFFF" : "#0F172A",
+                          backgroundColor: selected ? "#2E937A" : "transparent",
+                          transition: "all .15s ease",
                         }}
                       >
                         {option.value}

@@ -254,6 +254,24 @@ export default function AccountPage() {
         <Grid size={{ xs: 12, lg: 3 }}>
           <AccountsSidebar summary={coreSummary} accounts={bankAccounts} selectedId={accountNumber} onSelect={(id) => setAccountNumber(id)} />
         </Grid>
+         {/* <Grid size={12}>
+              {!accountInfoDetail || !selectedCompany ? (
+                <AccountOverviewCardSkeleton />
+              ) : isFixedDeposit ? (
+                fixedDepositDetail && (
+                  <TDAccountOverviewCard
+                    key={accountNumber}
+                    fixedDeposit={fixedDepositDetail}
+                    company={selectedCompany}
+                    onViewDetails={() => setDetailsOpen(true)}
+                    currentRolloverCode={matchRolloverOptionCode("-")}
+                    onChangeRollover={(option) => setPendingRolloverOption(option)}
+                  />
+                )
+              ) : (
+                <AccountOverviewCard key={accountNumber} company={selectedCompany} data={cashFlowData} stats={accountInfoDetail} onViewDetails={() => setDetailsOpen(true)} />
+              )}
+            </Grid> */}
 
         <Grid size={{ xs: 12, lg: 9 }}>
           <Grid container spacing={2.5}
@@ -278,26 +296,12 @@ export default function AccountPage() {
                   key={accountNumber}
                   info={accountInfoDetail}
                   stats={accountInfoDetail}
+                  isFixedDeposit={isFixedDeposit}
+                  fixedDeposit={fixedDepositDetail}
+                  onOpenAccountInfo={() => setaccountInformationDetail(true)}
+                  onDownloadCertificate={handleDownloadCertificate}
                 />
               )}
-              <BaseButton
-                sx={{
-                  margin: "15px",
-                  bgcolor: palette.info[40],
-                }}
-                onClick={() => setaccountInformationDetail(true)}
-                startIcon={<Info />}
-                title="Account Information"
-              />
-              <BaseButton
-                sx={{
-                  margin: "15px",
-                  bgcolor: palette.info[40]
-                }}
-                startIcon={<ReceiptText />}
-                title="State Menagement"
-              />
-
             </Grid>
 
             <Grid size={12}>
