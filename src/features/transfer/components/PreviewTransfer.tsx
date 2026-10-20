@@ -134,6 +134,8 @@ export default function PreviewTransfer({
         },
     });
 
+    const router = useRouter();
+
     const fromField = previewFields.find((f) => /^from/i.test(f.label));
     const toField = previewFields.find((f) => /^(to|beneficiary|recipient)/i.test(f.label));
     const scheduleField = previewFields.find((f) => /schedule|frequency|date/i.test(f.label));
@@ -181,8 +183,6 @@ export default function PreviewTransfer({
         authorization.discard();
         setStep(0);
     };
-
-    const router = useRouter();
 
     const handleReviewNext = (e?: React.MouseEvent) => {
         if (e) {
