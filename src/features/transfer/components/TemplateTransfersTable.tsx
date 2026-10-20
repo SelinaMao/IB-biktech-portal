@@ -14,14 +14,21 @@ import { formatDate } from "@/utils/date-time";
 import { formatAccountNumber } from "@/utils/format-account-number";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import { baseTableHeaderTextSx } from "@core/components/BaseTableHeader";
-import type { TemplateTransfer } from "../transfer.types";
+import type { TransferTemplate } from "../transfer.types";
+
+const TRANSFER_TYPE_LABEL: Record<TransferTemplate["transferType"], string> = {
+  OWN_ACCOUNT: "Own Account",
+  OTHER_SME_ACCOUNT: "Other",
+  BAKONG_LOCAL_BANK: "Local Bank",
+  BAKONG_WALLET: "Bakong Account",
+};
 
 export type TemplateTransfersTableProps = {
-  templates: TemplateTransfer[];
+  templates: TransferTemplate[];
   isLoading?: boolean;
-  onView?: (template: TemplateTransfer) => void;
-  onEdit?: (template: TemplateTransfer) => void;
-  onDelete?: (template: TemplateTransfer) => void;
+  onView?: (template: TransferTemplate) => void;
+  onEdit?: (template: TransferTemplate) => void;
+  onDelete?: (template: TransferTemplate) => void;
 };
 
 function TemplateRowActions({
@@ -30,14 +37,14 @@ function TemplateRowActions({
   onEdit,
   onDelete,
 }: {
-  template: TemplateTransfer;
-  onView?: (template: TemplateTransfer) => void;
-  onEdit?: (template: TemplateTransfer) => void;
-  onDelete?: (template: TemplateTransfer) => void;
+  template: TransferTemplate;
+  onView?: (template: TransferTemplate) => void;
+  onEdit?: (template: TransferTemplate) => void;
+  onDelete?: (template: TransferTemplate) => void;
 }) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  const handleSelect = (action?: (template: TemplateTransfer) => void) => {
+  const handleSelect = (action?: (template: TransferTemplate) => void) => {
     setAnchorEl(null);
     action?.(template);
   };
@@ -108,7 +115,7 @@ export default function TemplateTransfersTable({
   onEdit,
   onDelete,
 }: TemplateTransfersTableProps) {
-  const columns: BaseTableColumn<TemplateTransfer>[] = [
+  const columns: BaseTableColumn<TransferTemplate>[] = [
     {
       key: "templateName",
       header: "Template Name",
@@ -136,15 +143,15 @@ export default function TemplateTransfersTable({
       key: "transferType",
       header: "Transfer Type",
       render: (template) => (
-        <Typography variant="body2">{template.transferType}</Typography>
+        <Typography variant="body2">{TRANSFER_TYPE_LABEL[template.transferType]}</Typography>
       ),
     },
     {
-      key: "dateCreated",
+      key: "createdAt",
       header: "Date Created",
       render: (template) => (
         <Typography variant="body2">
-          {formatDate(template.dateCreated, "DD MMM YYYY")}
+          {formatDate(template.createdAt, "DD MMM YYYY")}
         </Typography>
       ),
     },

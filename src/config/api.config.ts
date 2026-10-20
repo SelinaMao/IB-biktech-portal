@@ -178,6 +178,7 @@ export const adminApi = {
     LIST: "approver-groups",
     CREATE: "approver-groups", // POST {groupKey, name, memberIds}: confirmed on the phone, then approved
     UPDATE: "approver-groups/{groupId}", // PUT {name, memberIds}: name and members in order, as one change
+    MEMBERS: "approver-groups/{groupId}/members", // PUT {memberIds}: members and their order, alone
     DELETE: "approver-groups/{groupId}",
     CHANGES: "approver-groups/changes", // changes with the approvers, or approved but not applied
     CHANGE_AUTHENTICATOR: "approver-groups/changes/{changeId}/authenticator", // a new QR for the same change

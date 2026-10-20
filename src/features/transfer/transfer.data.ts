@@ -1,4 +1,4 @@
-import type { TemplateTransfer, TransferAccount } from "./transfer.types";
+import type { TransferAccount, TransferTemplate } from "./transfer.types";
 
 /** Mock accounts for transfer flows. Replace with RTK Query endpoints when wired. */
 export const transferAccounts: TransferAccount[] = [
@@ -8,30 +8,36 @@ export const transferAccounts: TransferAccount[] = [
 ];
 
 /** Mock saved transfer templates. Replace with RTK Query endpoints when wired. */
-export const templateTransfers: TemplateTransfer[] = [
+export const templateTransfers: TransferTemplate[] = [
   {
     id: "tpl-1",
     templateName: "Chamrouen",
     toAccountName: "SME Bank",
     toAccountNumber: "300 050 756",
-    transferType: "Other",
-    dateCreated: "2026-07-20",
+    transferType: "OTHER_SME_ACCOUNT",
+    createdBy: "system",
+    createdAt: "2026-07-20T00:00:00Z",
+    updatedAt: "2026-07-20T00:00:00Z",
   },
   {
     id: "tpl-2",
     templateName: "Sok Chea",
     toAccountName: "Bakong",
     toAccountNumber: "012 934 085",
-    transferType: "Bakong Account",
-    dateCreated: "2026-06-01",
+    transferType: "BAKONG_WALLET",
+    createdBy: "system",
+    createdAt: "2026-06-01T00:00:00Z",
+    updatedAt: "2026-06-01T00:00:00Z",
   },
   {
     id: "tpl-3",
     templateName: "Vannak Chhay",
     toAccountName: "Acleda Bank Plc",
     toAccountNumber: "789 456 123",
-    transferType: "Local Bank",
-    dateCreated: "2026-08-15",
+    transferType: "BAKONG_LOCAL_BANK",
+    createdBy: "system",
+    createdAt: "2026-08-15T00:00:00Z",
+    updatedAt: "2026-08-15T00:00:00Z",
   },
 ];
 
