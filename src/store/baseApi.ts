@@ -12,6 +12,6 @@ import { themisBaseQuery } from "./baseQuery";
 export const baseApi = createApi({
   reducerPath: "api",
   baseQuery: themisBaseQuery,
-  tagTypes: ["Session", "Role", "Permission", "User", "DeviceBinding", "Account", "TransactionLimit", "Meta", "WorkflowRule", "WorkflowFunction", "WorkflowInstance", "WorkflowTask", "ApproverGroup", "Entitlement", "Capability"],
+  tagTypes: ["Session", "Role", "Permission", "User", "DeviceBinding", "Account", "TransactionLimit", "Meta", "WorkflowRule", "WorkflowFunction", "WorkflowInstance", "WorkflowTask", "ApproverGroup", "Entitlement", "Capability", "TransferTemplate"],
   endpoints: () => ({}),
 });
