@@ -2,6 +2,7 @@
 
 import { Box, Divider, Grid, Stack, Typography } from "@mui/material";
 import { ChevronLeft } from "lucide-react";
+import dayjs from "dayjs";
 
 import { palette } from "@/theme/palette";
 import { formatAccountNumber } from "@/utils/format-account-number";
@@ -25,7 +26,15 @@ const QUICK_NAV_ITEMS = [
   "Cards",
 ];
 
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+function InfoRow({
+  label,
+  value,
+  valueColor,
+}: {
+  label: string;
+  value: React.ReactNode;
+  valueColor?: string;
+}) {
   return (
     <Stack
       direction="row"
@@ -44,7 +53,7 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
         sx={{
           fontSize: 14,
           fontWeight: 500,
-          color: "#0F172A",
+          color: valueColor || "#0F172A",
           textAlign: "right",
         }}
       >
@@ -58,10 +67,144 @@ export default function AccountInformationDetail({
   open,
   onClose,
   info,
+  fixedDeposit,
 }: AccountDetailsProps) {
   if (!open) return null;
 
-  const currency = info.ccy || info.currencyCode || "USD";
+  const isTD = info.accountType === "TD" || fixedDeposit?.accountType === "TD";
+  const currency = fixedDeposit?.currencyCode || info.ccy || info.currencyCode || "USD";
+
+  // Dedicated View for Term Deposit (TD) matching design
+  if (isTD) {
+    const accountHolder = info.accountName || "Shiiping co., ltd.";
+    const accountType = fixedDeposit?.productDesc || info.productDesc || "Fixed Term Deposit";
+    const fdAccountNumber = info.accountNumber || fixedDeposit?.accountNumber || "FD-2024-001892";
+    const linkedAccount =
+      fixedDeposit?.accountSettlementNumber ||
+      info.accountSettlementNumber ||
+      "000 190 068";
+    const branch = info.branchCode
+      ? `Main Branch, ${info.branchCode}`
+      : "Main Branch, Phnom Penh Cambodia";
+    const openingDate = info.openedDate
+      ? dayjs(info.openedDate).format("DD MMM YYYY")
+      : "08 Sep 2024";
+    const status = info.status || "Active";
+
+    const nomineeName = info.joinHolderDto?.[0]?.accountName || "Kok Soboros";
+    const relationship = info.joinHolderDto?.[0]?.joinType || "Director";
+    const nomineeShare = "100%";
+
+    return (
+      <Box sx={{ width: "100%", pb: 4 }}>
+        {/* Back Button & Title */}
+        <Box sx={{ mb: 3 }}>
+          <Box
+            component="button"
+            type="button"
+            onClick={onClose}
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.75,
+              border: "none",
+              bgcolor: "transparent",
+              p: 0,
+              mb: 1.5,
+              cursor: "pointer",
+              "&:hover": { opacity: 0.8 },
+            }}
+          >
+            <ChevronLeft size={18} color={palette.primary[40]} />
+            <Typography
+              sx={{
+                fontSize: 15,
+                fontWeight: 600,
+                color: palette.primary[40],
+              }}
+            >
+              Accounts
+            </Typography>
+          </Box>
+
+          <Typography
+            sx={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: "#0F172A",
+              lineHeight: 1.2,
+            }}
+          >
+            Account Information
+          </Typography>
+        </Box>
+
+        <Stack spacing={3}>
+          {/* Card 1: Account Information */}
+          <Box
+            sx={{
+              bgcolor: "#FFFFFF",
+              borderRadius: "20px",
+              p: { xs: 2.5, sm: 3.5 },
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: "#0F172A",
+                mb: 1,
+              }}
+            >
+              Account Information
+            </Typography>
+
+            <Stack divider={<Divider sx={{ borderColor: "#F1F5F9" }} />}>
+              <InfoRow label="Account Holder" value={accountHolder} />
+              <InfoRow label="Account Type" value={accountType} />
+              <InfoRow label="FD Account Number" value={fdAccountNumber} />
+              <InfoRow
+                label="Linked Savings Account"
+                value={formatAccountNumber(linkedAccount)}
+              />
+              <InfoRow label="Branch" value={branch} />
+              <InfoRow label="Currency" value={currency} />
+              <InfoRow label="Opening Date" value={openingDate} />
+              <InfoRow label="Status" value={status} valueColor="#166D35" />
+            </Stack>
+          </Box>
+
+          {/* Card 2: User Information */}
+          <Box
+            sx={{
+              bgcolor: "#FFFFFF",
+              borderRadius: "20px",
+              p: { xs: 2.5, sm: 3.5 },
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: "#0F172A",
+                mb: 1,
+              }}
+            >
+              User Information
+            </Typography>
+
+            <Stack divider={<Divider sx={{ borderColor: "#F1F5F9" }} />}>
+              <InfoRow label="Nominee Name" value={nomineeName} />
+              <InfoRow label="Relationship" value={relationship} />
+              <InfoRow label="Nominee Share" value={nomineeShare} />
+            </Stack>
+          </Box>
+        </Stack>
+      </Box>
+    );
+  }
+
+  // Default View for non-TD Accounts
   const formattedLimit =
     info.transactionLimitPerDay !== undefined
       ? `${info.transactionLimitPerDay.toLocaleString("en-US", {
@@ -166,7 +309,7 @@ export default function AccountInformationDetail({
                 </Box>
               </Stack>
 
-              <Stack divider={<Divider sx={{ borderColor: "#F1F5F9" ,padding:1}} />}>
+              <Stack divider={<Divider sx={{ borderColor: "#F1F5F9", padding: 1 }} />}>
                 <InfoRow
                   label="Account Name"
                   value={info.accountName || "Shiping co., ltd."}
@@ -202,7 +345,7 @@ export default function AccountInformationDetail({
                 Account Holder Information
               </Typography>
 
-              <Stack divider={<Divider sx={{ borderColor: "#F1F5F9",padding:1 }} />}>
+              <Stack divider={<Divider sx={{ borderColor: "#F1F5F9", padding: 1 }} />}>
                 <InfoRow
                   label="Company Name"
                   value={info.fullName || info.accountName || "Shiping co., ltd."}
@@ -239,7 +382,7 @@ export default function AccountInformationDetail({
                 Account Settings
               </Typography>
 
-              <Stack divider={<Divider sx={{ borderColor: "#F1F5F9",padding:1 }} />}>
+              <Stack divider={<Divider sx={{ borderColor: "#F1F5F9", padding: 1 }} />}>
                 <InfoRow
                   label="Daily Transaction Limit"
                   value={formattedLimit}
@@ -283,3 +426,4 @@ export default function AccountInformationDetail({
     </Box>
   );
 }
+

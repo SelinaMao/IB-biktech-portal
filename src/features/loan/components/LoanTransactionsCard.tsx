@@ -1,13 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { NorthEastRounded, SouthWestRounded } from "@mui/icons-material";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 
 import { palette } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
+import BaseButton from "@core/components/BaseButton";
 import BaseChip from "@core/components/BaseChip";
 import BaseDownloadPanel, { type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import BaseFilter, { BASE_FILTER_TYPE_LABELS, type BaseFilterValue } from "@core/components/BaseFilter";
@@ -16,6 +17,8 @@ import BaseSwitch from "@core/form/BaseSwitch";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import SectionCard from "@/features/dashboard/components/SectionCard";
 import type { LoanTransaction, TxnStatus } from "../loan.types";
+import { Search } from "lucide-react";
+import BaseFilterByDay from "@/@core/components/BaseFilterByDay";
 
 const ROWS_PER_PAGE = 5;
 
@@ -126,50 +129,29 @@ export default function LoanTransactionsCard({
 
   return (
     <SectionCard
-      title="Repayment History"
+      title="Repayment Schedule"
       header={
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-          <BaseSearchButton
-            value={query}
-            onChange={(v) => {
-              setQuery(v);
-              setPage(0);
-            }}
-            placeholder="Search repayments…"
-          />
 
-
-
-          <Button
+          <BaseButton
+            title="Export Schedule"
             variant="outlined"
-            size="small"
-            endIcon={<KeyboardArrowDownRoundedIcon />}
-            onClick={(e) => setRangeAnchor(e.currentTarget)}
-            sx={{ color: "text.primary", borderColor: palette.slate[200] }}
-          >
-            {BASE_FILTER_TYPE_LABELS[dateFilter.type]}
-          </Button>
-          <BaseFilter
-            anchorEl={rangeAnchor}
-            onClose={() => setRangeAnchor(null)}
-            defaultValue={dateFilter}
-            onApply={(value) => {
-              setDateFilter(value);
-              setRangeAnchor(null);
-              setPage(0);
-            }}
-          />
-
-          <Button
-            variant="outlined"
-            size="small"
-            endIcon={<KeyboardArrowDownRoundedIcon />}
-            startIcon={<DownloadRoundedIcon fontSize="small" />}
             onClick={(e) => setDownloadAnchor(e.currentTarget)}
-            sx={{ color: "text.primary", borderColor: palette.slate[200] }}
-          >
-            Download Statement
-          </Button>
+            sx={{
+              color: "#ffffff",
+              bgcolor: "#2764A5",
+              padding: "6px 14px",
+              borderRadius: "50px",
+              fontSize: "13px",
+              fontWeight: 500,
+              textTransform: "none",
+              "&:hover": {
+                        backgroundColor: 
+                          "white",
+                          color:"black"
+              }
+            }}
+          />
           <BaseDownloadPanel
             anchorEl={downloadAnchor}
             onClose={() => setDownloadAnchor(null)}
@@ -181,12 +163,28 @@ export default function LoanTransactionsCard({
       }
       showBorder={false}
     >
-      <Box
+      <Box 
         sx={{
           width: `calc(100% + ${CARD_PADDING_PX * 2}px)`,
           mx: `-${CARD_PADDING_PX}px`,
         }}
       >
+        <Stack sx={{ display:"flex", px: 2.5, py: 1.5 }}>
+          <Box sx={{display:"flex",justifyContent:"space-between"}}>
+            <BaseSearchButton 
+            value={query}
+            onChange={(v) => {
+              setQuery(v);
+              setPage(0);
+            }}
+            placeholder="Search repayments…"
+            tooltip="Search"
+            width={240}
+          />
+          <BaseFilterByDay 
+          />
+          </Box>
+        </Stack>
         <BaseTable
           columns={columns}
           rows={pageItems}

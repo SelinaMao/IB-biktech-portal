@@ -106,16 +106,14 @@ export function formatMoney(amount: number | null | undefined, currency: string)
  */
 export function quoteSummaryRows(quote: CalculateTransferResult | null): TransferReviewRow[] {
   return [
-    { label: "Amount", value: quote ? formatMoney(quote.amount, quote.currency) : "-" },
-    { label: "Fee", value: quote ? formatMoney(quote.feeAmount, quote.feeCurrency) : "-" },
-    {
-      label: "Exchange Rate",
-      value: quote?.exchangeRate ? `1 USD = ${quote.exchangeRate.toLocaleString("en-US")} KHR` : "-",
-    },
-    { label: "Debit Amount", value: quote ? formatMoney(quote.totalAmount, quote.originalCurrency) : "-" },
+    { label: "Amount Transferred", value: quote ? formatMoney(quote.amount, quote.currency) : "-" },
+    { label: "Transaction ID", value: "#TRX-28491024" },
+    { label: "Reference no", value: "SSM0499765223000" },
+    { label: "Debit amount", value: quote ? formatMoney(quote.totalAmount, quote.originalCurrency) : "-" },
     { label: "Credit Amount", value: quote ? formatMoney(quote.receivedAmount, quote.receivedCurrency) : "-" },
   ];
 }
+
 
 /**
  * Amount/Fee/Exchange-Rate/Debit-Amount rows for the Review step's "Summary"
@@ -126,9 +124,9 @@ export function quoteSummaryRows(quote: CalculateTransferResult | null): Transfe
 export function buildTransferSummaryRows(amount: string, currency: string): TransferReviewRow[] {
   const amountLabel = amount ? `${amount} ${currencyLabel(currency)}` : "-";
   return [
-    { label: "Amount", value: amountLabel },
-    { label: "Fee", value: `0.00 ${currencyLabel(currency)}` },
-    { label: "Exchange Rate", value: `1 USD = ${USD_TO_KHR_RATE.toLocaleString()} KHR` },
-    { label: "Debit Amount", value: amountLabel },
+    { label: "Amount Transferred", value: amountLabel },
+    { label: "Transaction ID", value: "#TRX-28491024" },
+    { label: "Reference no", value: "SSM0499765223000" },
+    { label: "Debit amount", value: amountLabel },
   ];
 }

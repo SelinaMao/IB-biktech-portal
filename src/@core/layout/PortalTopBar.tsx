@@ -162,9 +162,9 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
           >
             <Image src={collapsed ? "/assets/icons/expand.svg" : "/assets/icons/collapse.svg"} alt="Toggle Collapse Menu" width={40} height={40} />
           </IconButton>
-          <Typography variant="h4" sx={{ fontWeight: "bold", color: palette.navy[800] }}>
+          {/* <Typography variant="h4" sx={{ fontWeight: "bold", color: palette.navy[800] }}>
             BiKTECH <span style={{ color: palette.primary.main }}>Solution</span>
-          </Typography>
+          </Typography> */}
         </Stack>
 
         <Box sx={{ flex: 1 }} />

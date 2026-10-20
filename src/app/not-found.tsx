@@ -94,7 +94,7 @@ export default function NotFound() {
             onClick={() => router.back()}
             sx={{
               padding: "12px 16px",
-              color: palette.slate[500],
+              color: palette.primary[40],
               fontWeight: font.weight.medium,
               "&:hover": { bgcolor: palette.slate[100] },
             }}

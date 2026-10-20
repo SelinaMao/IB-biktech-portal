@@ -8,6 +8,7 @@ import { Settings } from "lucide-react";
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
+import Typography from "@mui/material/Typography";
 import {
   accountOptionLabel,
   accountSelectOptions,
@@ -19,6 +20,7 @@ import {
 } from "../transfer.utils";
 import { useTransferAccounts } from "../use-transfer-accounts";
 import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
+import { BaseAmountCurrencyField } from "@core/form";
 
 export type BakongProps = {
   open: boolean;
@@ -68,6 +70,11 @@ export default function Bakong({ open, onClose }: BakongProps) {
       onClose={onClose}
       title="To Bakong"
       icon={<Settings size={18} />}
+      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
+      toAccount={{
+        name: values.recipientName || "Bakong Recipient",
+        accountNumber: values.bakongId,
+      }}
       canSubmit={Boolean(values.amount && values.bakongId && fromAccountId)}
       previewFields={previewFields}
       summaryRows={summaryRows}
@@ -93,24 +100,20 @@ export default function Bakong({ open, onClose }: BakongProps) {
           onChange={(e) => set("recipientName", e.target.value)}
         />
 
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-end" }}>
-          <Box sx={{ flex: 1 }}>
-            <BaseInput
-              label="Amount"
-              value={values.amount}
-              onChange={(e) => set("amount", e.target.value)}
-              placeholder="0.00"
-            />
-          </Box>
-          <Box sx={{ width: 110 }}>
-            <BaseSelect
-              label=" "
-              value={values.currency}
-              onChange={(e) => set("currency", e.target.value as string)}
-              options={CURRENCY_OPTIONS}
-            />
-          </Box>
-        </Stack>
+        <Box>
+          <BaseAmountCurrencyField
+            label={
+              <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A", mb: 0.5 }}>
+                Amount
+              </Typography>
+            }
+            amount={values.amount}
+            onAmountChange={(value) => set("amount", value)}
+            currency={values.currency}
+            onCurrencyChange={(value) => set("currency", value)}
+            options={CURRENCY_OPTIONS}
+          />
+        </Box>
 
         <BaseTextArea
           label="Remark"

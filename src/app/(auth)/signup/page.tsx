@@ -28,6 +28,40 @@ import { useSignUpVerifyOtpMutation } from "@/features/auth/auth.api";
 import type { TSignUpForm } from "@core/types/auth";
 import { formatLocalPhoneDisplay, stripSpaces, toIntlPhone } from "@/utils";
 
+/* ---- UI spacing controls (MUI units: 1 = 8px) ---- */
+const LABEL_GAP = 1.25; // label -> input (10px)
+const FIELD_GAP = 3.5; // input -> next label (28px)
+const CHECKBOX_GAP = 4; // checkbox -> button (32px)
+const CHECKBOX_TOP = 0.5; // extra space above checkbox
+
+const labelSx = {
+  display: "block",
+  fontSize: "14px",
+  fontWeight: 500,
+  color: "#475569",
+  mb: LABEL_GAP,
+} as const;
+
+const inputSx = {
+  mb: FIELD_GAP,
+  "& .MuiOutlinedInput-root": {
+    height: 52,
+    borderRadius: "12px",
+    bgcolor: "#F8FAFC",
+    color: "#1E293B",
+    "& fieldset": { borderColor: "#E2E8F0" },
+    "&:hover fieldset": { borderColor: "#CBD5E1" },
+    "&.Mui-focused fieldset": { borderColor: "#3B82F6" },
+    "&.Mui-error fieldset": { borderColor: "#EF4444" },
+  },
+  "& .MuiInputBase-input": { px: 2 },
+  "& .MuiInputBase-input::placeholder": {
+    color: "#94A3B8",
+    opacity: 1,
+    fontSize: "14px",
+  },
+} as const;
+
 export default function ClientSignUpPage() {
   const router = useRouter();
   const t = useTranslations("login");
@@ -70,23 +104,20 @@ export default function ClientSignUpPage() {
     <BaseAuthLayout
       title="Signup"
       belowForm={
-        <Box sx={{ mt: { xs: 2.5, sm: 3.5 }, textAlign: "center" }}>
-          <Typography
-            component="span"
-            sx={{
-              fontSize: "14px",
-              color: "#64748B",
-            }}
-          >
-            Already have account?{" "}
-          </Typography>
+        <Typography
+          sx={{
+            fontSize: "14px",
+            color: "#475569",
+          }}
+        >
+          Already have account?{" "}
           <Link
             component={NextLink}
             href="/login"
             underline="none"
             sx={{
-              color: "#2563EB",
-              fontWeight: 600,
+              color: "#0969DA",
+              fontWeight: 700,
               fontSize: "14px",
               "&:hover": {
                 textDecoration: "underline",
@@ -95,154 +126,48 @@ export default function ClientSignUpPage() {
           >
             Login
           </Link>
-        </Box>
+        </Typography>
       }
-     
     >
       <Box component="form" onSubmit={handleSubmit(handleDoneSignUp)} noValidate>
         {/* 1. Account Number Field */}
-        <Typography
-          component="label"
-          htmlFor="accountNumber"
-          sx={{
-            display: "block",
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "#475569",
-            mb: 1,
-          }}
-        >
+        <Typography component="label" htmlFor="accountNumber" sx={labelSx}>
           Account Number
         </Typography>
         <ControlledBaseInput
           name="accountNumber"
           control={control}
-          placeholder="Enter account number"
+          placeholder="123 123 123"
           disabled={isSubmitting}
-          sx={{
-            mb: 2.5,
-            "& .MuiOutlinedInput-root": {
-              height: 48,
-              borderRadius: "10px",
-              bgcolor: "#F8FAFC",
-              color: "#1E293B",
-              "& fieldset": {
-                borderColor: "#E2E8F0",
-              },
-              "&:hover fieldset": {
-                borderColor: "#CBD5E1",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "#3B82F6",
-              },
-              "&.Mui-error fieldset": {
-                borderColor: "#EF4444",
-              },
-            },
-            "& .MuiInputBase-input::placeholder": {
-              color: "#94A3B8",
-              opacity: 1,
-              fontSize: "14px",
-            },
-          }}
+          sx={inputSx}
         />
 
         {/* 2. NID/Passport ID Field */}
-        <Typography
-          component="label"
-          htmlFor="nId"
-          sx={{
-            display: "block",
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "#475569",
-            mb: 1,
-          }}
-        >
+        <Typography component="label" htmlFor="nId" sx={labelSx}>
           NID/Passport ID
         </Typography>
         <ControlledBaseInput
           name="nId"
           control={control}
-          placeholder="NID/ Password ID"
+          placeholder="002338699"
           disabled={isSubmitting}
-          sx={{
-            mb: 2.5,
-            "& .MuiOutlinedInput-root": {
-              height: 48,
-              borderRadius: "10px",
-              bgcolor: "#F8FAFC",
-              color: "#1E293B",
-              "& fieldset": {
-                borderColor: "#E2E8F0",
-              },
-              "&:hover fieldset": {
-                borderColor: "#CBD5E1",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "#3B82F6",
-              },
-              "&.Mui-error fieldset": {
-                borderColor: "#EF4444",
-              },
-            },
-            "& .MuiInputBase-input::placeholder": {
-              color: "#94A3B8",
-              opacity: 1,
-              fontSize: "14px",
-            },
-          }}
+          sx={inputSx}
         />
 
         {/* 3. Mobile Number Field */}
-        <Typography
-          component="label"
-          htmlFor="phone"
-          sx={{
-            display: "block",
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "#475569",
-            mb: 1,
-          }}
-        >
+        <Typography component="label" htmlFor="phone" sx={labelSx}>
           Mobile Number
         </Typography>
         <ControlledBaseInput
           name="phone"
           control={control}
           format={formatLocalPhoneDisplay}
-          placeholder="eg: 012934975"
+          placeholder="012934975"
           disabled={isSubmitting}
           slotProps={{
             htmlInput: { inputMode: "numeric" },
           }}
-          sx={{
-            mb: 2.5,
-            "& .MuiOutlinedInput-root": {
-              height: 48,
-              borderRadius: "10px",
-              bgcolor: "#F8FAFC",
-              color: "#1E293B",
-              "& fieldset": {
-                borderColor: "#E2E8F0",
-              },
-              "&:hover fieldset": {
-                borderColor: "#CBD5E1",
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: "#3B82F6",
-              },
-              "&.Mui-error fieldset": {
-                borderColor: "#EF4444",
-              },
-            },
-            "& .MuiInputBase-input::placeholder": {
-              color: "#94A3B8",
-              opacity: 1,
-              fontSize: "14px",
-            },
-          }}
+          sx={inputSx}
         />
 
         {/* 4. Terms and Conditions Checkbox */}
@@ -253,7 +178,7 @@ export default function ClientSignUpPage() {
           sx={{
             color: "#CBD5E1",
             p: 0.5,
-            mr: 1,
+            mr: 1.5,
             "&.Mui-checked": {
               color: "#0D9488",
             },
@@ -265,7 +190,7 @@ export default function ClientSignUpPage() {
                 href="#"
                 underline="always"
                 sx={{
-                  color: "#2563EB",
+                  color: "#2764A5",
                   fontWeight: 500,
                 }}
               >
@@ -273,7 +198,12 @@ export default function ClientSignUpPage() {
               </Link>
             </Typography>
           }
-          labelSx={{ mb: { xs: 2.5, sm: 3 }, alignItems: "center", mx: 0 }}
+          labelSx={{
+            mt: CHECKBOX_TOP,
+            mb: CHECKBOX_GAP,
+            alignItems: "center",
+            mx: 0,
+          }}
         />
 
         {/* 5. Sign up Submit Button */}
@@ -282,18 +212,19 @@ export default function ClientSignUpPage() {
           type="button"
           onClick={() => router.push("/otp")}
           sx={{
+            display: "block",
             width: "100%",
-            height: 46,
-            borderRadius: "24px",
+            height: 50,
+            borderRadius: "999px",
             border: "none",
             fontSize: "15px",
             fontWeight: 600,
             cursor: "pointer",
-            bgcolor: "#2563EB",
+            bgcolor: "#2764A5",
             color: "#FFFFFF",
             transition: "all 0.2s ease-in-out",
             "&:hover": {
-              bgcolor: "#1D4ED8",
+              bgcolor: "#1E5289",
             },
           }}
         >

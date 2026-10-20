@@ -9,8 +9,8 @@ export interface SummaryCardProps {
   value: string;
   sub?: string;
   action?: string;
-  icon: React.ReactNode;
-  tone: SummaryTone;
+  icon?: React.ReactNode;
+  tone?: SummaryTone;
 }
 
 export type TxnDirection = "in" | "out";

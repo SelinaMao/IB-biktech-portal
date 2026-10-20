@@ -476,7 +476,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                     width: 6,
                     height: 6,
                     borderRadius: "50%",
-                    bgcolor: palette.success.main,
+                    bgcolor: palette.link,
                     flexShrink: 0,
                     ml: "auto",
                   }}
@@ -586,10 +586,10 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 ,padding:"8px"}}>
                 <Circle
-                  size={18}
+                  size={16}
                   strokeWidth={2.5}
-                  color={isLinked ? "#00875A" : palette.slate[400]}
-                  style={{ flexShrink: 0 }}
+                  color={isLinked ? "#00875A" : "#2C8468"}
+                  style={{ flexShrink: 0 ,backgroundColor: "#2C8468" ,borderRadius:"50%",border:"1px solid #36A17E"}}
                 />
                 <Typography
                   sx={{
@@ -597,6 +597,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                     fontWeight: font.weight.medium,
                     color: palette.slate[700],
                     whiteSpace: "nowrap",
+                    borderRadius:"10px"
                   }}
                 >
                   {t("mobile-activate")}
@@ -605,8 +606,8 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
 
               <Box
                 sx={{
-                  px: 1.25,
-                  py: 0.35,
+                  px: 1.35,
+                  py: 1.35,
                   bgcolor: isLinked ? "#E6F9F0" : palette.slate[100],
                   border: "1.5px solid",
                   borderColor: isLinked ? "#7FE3B5" : palette.slate[300],

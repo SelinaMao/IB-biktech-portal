@@ -4,7 +4,6 @@ import React from "react";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
-import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
 import { User } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -29,6 +28,7 @@ import {
 import { useTransferAccounts } from "../use-transfer-accounts";
 import { useTransferQuote } from "../use-transfer-quote";
 import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
+import TransferScheduleSection from "./TransferScheduleSection";
 
 export type OwnAccountProps = {
   open: boolean;
@@ -40,6 +40,11 @@ const INITIAL_VALUES = {
   amount: "",
   currency: "USD",
   remark: "",
+  scheduleTransfer: false,
+  frequency: "one-time" as "one-time" | "recurring",
+  timing: "today" as "today" | "later" | "weekly",
+  scheduleDate: "Today, 14 Mar 2026",
+  endCondition: "after-transfers" as "after-transfers" | "no-end-date",
 };
 
 export default function OwnAccount({ open, onClose }: OwnAccountProps) {
@@ -103,6 +108,12 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
       label: "Amount",
       value: amountPreviewValue(Number.isNaN(amount) ? "" : formatAmount(amount, values.currency), values.currency),
     },
+    ...(values.scheduleTransfer
+      ? [
+          { label: "Frequency", value: values.frequency === "one-time" ? "One-time" : "Recurring" },
+          { label: "Date", value: values.scheduleDate || "-" },
+        ]
+      : []),
     ...(values.remark.trim() ? [{ label: "Remark", value: values.remark.trim() }] : []),
   ];
 
@@ -135,6 +146,16 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
       onClose={onClose}
       title="Own Account Transfer"
       icon={<User size={18} />}
+      fromAccount={
+        fromAccount
+          ? { name: fromAccount.name, accountNumber: fromAccount.number }
+          : undefined
+      }
+      toAccount={
+        toAccount
+          ? { name: toAccount.name, accountNumber: toAccount.number }
+          : undefined
+      }
       topSection={
         <BaseFromAccount
           name="fromAccountId"
@@ -201,38 +222,18 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
           />
         </Box>
 
-        <Box>
-          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", py: 0.5 }}>
-            <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A" }}>Schedule</Typography>
-            <Switch
-              checked={false}
-              disabled
-              sx={{
-                width: 46,
-                height: 28,
-                p: 0,
-                "& .MuiSwitch-switchBase": {
-                  p: 0,
-                  m: "3px",
-                  "&.Mui-disabled": {
-                    color: "#FFFFFF",
-                  },
-                },
-                "& .MuiSwitch-thumb": {
-                  boxSizing: "border-box",
-                  width: 22,
-                  height: 22,
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                },
-                "& .MuiSwitch-track": {
-                  borderRadius: 14,
-                  backgroundColor: "#CBD5E1",
-                  opacity: 0.7,
-                },
-              }}
-            />
-          </Stack>
-        </Box>
+        <TransferScheduleSection
+          enabled={values.scheduleTransfer}
+          onToggle={(val) => set("scheduleTransfer", val)}
+          frequency={values.frequency}
+          onFrequencyChange={(val) => set("frequency", val)}
+          timing={values.timing}
+          onTimingChange={(val) => set("timing", val)}
+          startDate={values.scheduleDate}
+          onStartDateChange={(val) => set("scheduleDate", val)}
+          endCondition={values.endCondition}
+          onEndConditionChange={(val) => set("endCondition", val)}
+        />
 
         <Box>
           <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A", mb: 1 }}>

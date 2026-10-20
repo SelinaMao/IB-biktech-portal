@@ -3,8 +3,12 @@
 import React from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { Landmark } from "lucide-react";
+import { useForm } from "react-hook-form";
 
+import BaseFromAccount from "@core/components/BaseFromAccount";
+import BaseAmountCurrencyField from "@core/form/BaseAmountCurrencyField";
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
@@ -39,20 +43,24 @@ const INITIAL_VALUES = {
 export default function ScheduleTransfer({ open, onClose }: ScheduleTransferProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
   const { accounts } = useTransferAccounts(open);
+  const { control, watch, setValue, reset } = useForm({
+    defaultValues: { fromAccountId: "" },
+  });
+
+  const watchedFromId = watch("fromAccountId");
+  const fromAccountId = watchedFromId || accounts[0]?.id || "";
+  const toAccountId = values.toAccountId || accounts.find((a) => a.id !== fromAccountId)?.id || "";
+
+  React.useEffect(() => {
+    if (!watchedFromId && accounts[0]?.id) {
+      setValue("fromAccountId", accounts[0].id);
+    }
+  }, [accounts, watchedFromId, setValue]);
 
   const set = <K extends keyof typeof INITIAL_VALUES>(
     key: K,
     value: (typeof INITIAL_VALUES)[K],
   ) => setValues((prev) => ({ ...prev, [key]: value }));
-
-  const fromAccountId = values.fromAccountId || accounts[0]?.id || "";
-  const toAccountId = values.toAccountId || accounts.find((a) => a.id !== fromAccountId)?.id || "";
-
-  React.useEffect(() => {
-    if (!values.fromAccountId && accounts[0]?.id) {
-      set("fromAccountId", accounts[0].id);
-    }
-  }, [accounts, values.fromAccountId]);
 
   const fromAccount = findAccount(accounts, fromAccountId);
   const toAccount = findAccount(accounts, toAccountId);
@@ -75,20 +83,25 @@ export default function ScheduleTransfer({ open, onClose }: ScheduleTransferProp
       onClose={onClose}
       title="Schedule Transfer"
       icon={<Landmark size={18} />}
+      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
+      toAccount={toAccount ? { name: toAccount.name, accountNumber: toAccount.number } : undefined}
+      topSection={
+        <BaseFromAccount
+          name="fromAccountId"
+          control={control}
+          accounts={accounts}
+        />
+      }
       canSubmit={Boolean(values.amount && values.scheduleDate && fromAccountId && toAccountId)}
       previewFields={previewFields}
       summaryRows={summaryRows}
       successMessage={`${values.amount} ${currencyLabel(values.currency)} scheduled to ${toAccount?.name ?? "the selected account"} starting ${values.scheduleDate}.`}
-      onReset={() => setValues(INITIAL_VALUES)}
+      onReset={() => {
+        setValues(INITIAL_VALUES);
+        reset({ fromAccountId: accounts[0]?.id ?? "" });
+      }}
     >
       <Stack spacing={2.5}>
-        <BaseSelect
-          label="From Account"
-          value={fromAccountId}
-          onChange={(e) => set("fromAccountId", e.target.value as string)}
-          options={accountSelectOptions(accounts)}
-        />
-        
         <BaseSelect
           label="To Account"
           value={toAccountId}
@@ -96,24 +109,20 @@ export default function ScheduleTransfer({ open, onClose }: ScheduleTransferProp
           options={accountSelectOptions(accounts)}
         />
 
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-end" }}>
-          <Box sx={{ flex: 1 }}>
-            <BaseInput
-              label="Amount"
-              value={values.amount}
-              onChange={(e) => set("amount", e.target.value)}
-              placeholder="0.00"
-            />
-          </Box>
-          <Box sx={{ width: 110 }}>
-            <BaseSelect
-              label=" "
-              value={values.currency}
-              onChange={(e) => set("currency", e.target.value as string)}
-              options={CURRENCY_OPTIONS}
-            />
-          </Box>
-        </Stack>
+        <Box>
+          <BaseAmountCurrencyField
+            label={
+              <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A", mb: 0.5 }}>
+                Amount
+              </Typography>
+            }
+            amount={values.amount}
+            onAmountChange={(value) => set("amount", value)}
+            currency={values.currency}
+            onCurrencyChange={(value) => set("currency", value)}
+            options={CURRENCY_OPTIONS}
+          />
+        </Box>
 
         <BaseInput
           label="Start Date"

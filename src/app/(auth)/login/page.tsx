@@ -245,23 +245,20 @@ export default function ClientLoginPage() {
         />
       }
       belowForm={
-        <Box sx={{ mt: { xs: 2.5, sm: 3.5 }, textAlign: "center" }}>
-          <Typography
-            component="span"
-            sx={{
-              fontSize: "14px",
-              color: "#64748B",
-            }}
-          >
-            No account yet?{" "}
-          </Typography>
+        <Typography
+          sx={{
+            fontSize: "14px",
+            color: "#475569",
+          }}
+        >
+          No account yet?{" "}
           <Link
             component={NextLink}
             href="/signup"
             underline="none"
             sx={{
-              color: "#2563EB",
-              fontWeight: 600,
+              color: "#0969DA",
+              fontWeight: 700,
               fontSize: "14px",
               "&:hover": {
                 textDecoration: "underline",
@@ -270,7 +267,7 @@ export default function ClientLoginPage() {
           >
             Sign Up
           </Link>
-        </Box>
+        </Typography>
       }
     >
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ width: "100%" }}>
@@ -472,7 +469,7 @@ export default function ClientLoginPage() {
                 href="#"
                 underline="always"
                 sx={{
-                  color: "#2563EB",
+                  color: "#2764A5",
                   fontWeight: 500,
                 }}
               >
@@ -492,16 +489,16 @@ export default function ClientLoginPage() {
             marginTop: 2,
             width: "100%",
             height: 46,
-            borderRadius: "24px",
+            borderRadius: "999px",
             border: "none",
             fontSize: "15px",
             fontWeight: 600,
             cursor: canSubmit && !isSubmitting && !submitting ? "pointer" : "not-allowed",
-            bgcolor: canSubmit && !isSubmitting && !submitting ? "#2563EB" : "#DDE4EE",
+            bgcolor: canSubmit && !isSubmitting && !submitting ? "#2764A5" : "#DDE4EE",
             color: canSubmit && !isSubmitting && !submitting ? "#FFFFFF" : "#94A3B8",
             transition: "all 0.2s ease-in-out",
             "&:hover": {
-              bgcolor: canSubmit && !isSubmitting && !submitting ? "#1D4ED8" : "#DDE4EE",
+              bgcolor: canSubmit && !isSubmitting && !submitting ? "#1E5289" : "#DDE4EE",
             },
           }}
         >
@@ -515,7 +512,7 @@ export default function ClientLoginPage() {
             href="/forgotPassword"
             underline="none"
             sx={{
-              color: "#2563EB",
+              color: "#2764A5",
               fontSize: "14px",
               fontWeight: 500,
               cursor: "pointer",

@@ -23,6 +23,7 @@ export interface AccountDetailsProps {
   fixedDeposit?: IAccountDetailResponses;
   isFixedDeposit?: boolean;
   onOpenAccountInfo?: () => void;
+  onOpenStatements?: () => void;
   onDownloadCertificate?: () => void | Promise<void>;
 }
 
@@ -48,6 +49,7 @@ export default function AccountDetailsCard({
   fixedDeposit,
   isFixedDeposit = false,
   onOpenAccountInfo,
+  onOpenStatements,
   onDownloadCertificate,
 }: AccountDetailsProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -97,7 +99,7 @@ export default function AccountDetailsCard({
     ];
 
     return (
-      <Stack direction="column" sx={{ padding: "20px" }}>
+      <Stack direction="column" sx={{ p: { xs: 2.5, sm: 3.5 } }}>
         {/* Header: Name, Status badge, and top-right actions */}
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <Box>
@@ -159,29 +161,36 @@ export default function AccountDetailsCard({
           </Stack>
         </Box>
 
-        {/* Metrics Row: Principal Deposit Amount + Term to Maturity (Fixed progress) */}
+        {/* Metrics Row: Principal Deposit Amount + Term to Maturity positioned side by side */}
         <Stack
           direction={{ xs: "column", sm: "row" }}
-          spacing={4}
-          sx={{ mt: 3.5, mb: 2, justifyContent: "space-between", alignItems: { sm: "flex-start" } }}
+          spacing={{ xs: 3, sm: 6, md: 8 }}
+          sx={{
+            mt: 3.5,
+            mb: 2.5,
+            alignItems: "flex-start",
+          }}
         >
-          <Box sx={{ minWidth: 220 }}>
-            <Typography sx={{ fontSize: 14, color: "text.secondary", mb: 0.5 }}>
+          <Box sx={{ minWidth: 200 }}>
+            <Typography sx={{ fontSize: 14, color: "#64748B", mb: 1 }}>
               Principal Deposit Amount
             </Typography>
-            <Typography sx={{ fontSize: 24, fontWeight: 700, color: "text.primary" }}>
+            <Typography sx={{ fontSize: 24, fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>
               {formatCCY(principalAmount, ccy)}
             </Typography>
           </Box>
 
           <Box>
+            <Typography sx={{ fontSize: 14, color: "#64748B", mb: 1 }}>
+              Term to Maturity
+            </Typography>
             <BaseTermMaturity
-              label="Term to Maturity"
+              label=""
               totalMaturityDays={FIXED_MATURITY_DATA.ongoingDays}
               totalDays={FIXED_MATURITY_DATA.totalDays}
               segments={FIXED_MATURITY_DATA.segments}
-              barHeight={32}
-              barWidth={10}
+              barHeight={28}
+              barWidth={9}
               activeColor="#2589BD"
               trackColor="#E2EBF3"
             />
@@ -191,23 +200,25 @@ export default function AccountDetailsCard({
         {/* Account Details Box */}
         <Box
           sx={{
-            bgcolor: "#F5F6FA",
-            borderRadius: 3,
-            p: 2.5,
+            bgcolor: "#F8F9FA",
+            borderRadius: "16px",
+            p: { xs: 2.5, sm: 3 },
             mt: 1,
           }}
         >
-          <Typography sx={{ fontSize: 16, fontWeight: 600, mb: 1 }}>Account Details</Typography>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#0F172A", mb: 1 }}>
+            Account Details
+          </Typography>
 
-          <Stack divider={<Divider flexItem sx={{ borderColor: "#EEF0F6" }} />} spacing={0}>
+          <Stack divider={<Divider flexItem sx={{ borderColor: "#F1F5F9" }} />} spacing={0}>
             {tdRows.map((row) => (
               <Stack
                 key={row.label}
                 direction="row"
-                sx={{ justifyContent: "space-between", alignItems: "center", py: 1.25 }}
+                sx={{ justifyContent: "space-between", alignItems: "center", py: 1.5 }}
               >
-                <Typography sx={{ fontSize: 14, color: "text.secondary" }}>{row.label}</Typography>
-                <Typography sx={{ fontSize: 14, fontWeight: 600, color: row.color || "text.primary" }}>
+                <Typography sx={{ fontSize: 14, color: "#64748B" }}>{row.label}</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: row.color || "#0F172A" }}>
                   {row.value}
                 </Typography>
               </Stack>
@@ -216,34 +227,37 @@ export default function AccountDetailsCard({
         </Box>
 
         {/* Bottom Action Pill Buttons */}
-        <Stack direction="row" spacing={2} sx={{ mt: 2.5 }}>
+        <Stack direction="row" spacing={1.75} sx={{ mt: 3 }}>
           <BaseButton
             sx={{
-              bgcolor: palette.info[40],
+              padding: "8px 20px",
+              bgcolor: "#EBF3FC",
               borderRadius: "999px",
-              px: 2.5,
-              py: 1,
+              fontSize: "14px",
+              fontWeight: 500,
               textTransform: "none",
-              color: "text.primary",
+              color: "#1E293B",
               boxShadow: "none",
-              "&:hover": { bgcolor: palette.info[40], opacity: 0.9 },
+              "&:hover": { bgcolor: "#E2EDF9" },
             }}
             onClick={onOpenAccountInfo}
-            startIcon={<Info size={18} />}
+            startIcon={<Info size={17} />}
             title="Account Information"
           />
           <BaseButton
             sx={{
-              bgcolor: palette.info[40],
+              padding: "8px 20px",
+              bgcolor: "#EBF3FC",
               borderRadius: "999px",
-              px: 2.5,
-              py: 1,
+              fontSize: "14px",
+              fontWeight: 500,
               textTransform: "none",
-              color: "text.primary",
+              color: "#1E293B",
               boxShadow: "none",
-              "&:hover": { bgcolor: palette.info[40], opacity: 0.9 },
+              "&:hover": { bgcolor: "#E2EDF9" },
             }}
-            startIcon={<ReceiptText size={18} />}
+            onClick={onOpenStatements}
+            startIcon={<ReceiptText size={17} />}
             title="Statements"
           />
         </Stack>
@@ -261,7 +275,7 @@ export default function AccountDetailsCard({
 
   // Default Current Account UI
   return (
-    <Stack direction="column" sx={{ alignItems: "space-between", display: "flex", padding: "20px" }}>
+    <Stack direction="column" sx={{ p: { xs: 2.5, sm: 3.5 } }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Box sx={{ display: "flex", alignItems: "center" }}>
           <Typography sx={{ fontSize: font.size.lg, fontWeight: font.weight.medium }}>
@@ -327,26 +341,24 @@ export default function AccountDetailsCard({
 
       <Box
         sx={{
-          bgcolor: "#F5F6FA",
-          borderRadius: 3,
-          px: 2.5,
-          py: 2,
-          padding: "20px",
+          bgcolor: "#F8F9FA",
+          borderRadius: "16px",
+          p: { xs: 2.5, sm: 3 },
           marginTop: "16px",
         }}
       >
-        <Typography sx={{ fontSize: 16, fontWeight: 600, mb: 1.5 }}>
+        <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#0F172A", mb: 1.5 }}>
           Account Detail
         </Typography>
 
-        <Stack divider={<Divider flexItem />} spacing={0} marginTop="10px">
+        <Stack divider={<Divider flexItem sx={{ borderColor: "#F1F5F9" }} />} spacing={0}>
           {STAT_FIELDS.filter(({ key }) => stats[key] !== undefined).map(({ key, label }) => (
             <Stack
               key={key}
               direction="row"
               sx={{ justifyContent: "space-between", alignItems: "center", py: 1.5 }}
             >
-              <Typography sx={{ fontSize: 14, color: "text.secondary" }}>{label}</Typography>
+              <Typography sx={{ fontSize: 14, color: "#64748B" }}>{label}</Typography>
               <Typography sx={{ fontSize: 14, fontWeight: 600 }}>
                 {formatCCY(stats[key] ?? 0, ccy)}
               </Typography>
@@ -356,34 +368,37 @@ export default function AccountDetailsCard({
       </Box>
 
       {/* Bottom Action Pill Buttons */}
-      <Stack direction="row" spacing={2} sx={{ mt: 2.5 }}>
+      <Stack direction="row" spacing={1.75} sx={{ mt: 3 }}>
         <BaseButton
           sx={{
-            bgcolor: palette.info[40],
+            padding: "8px 20px",
+            bgcolor: "#EBF3FC",
             borderRadius: "999px",
-            px: 2.5,
-            py: 1,
+            fontSize: "14px",
+            fontWeight: 500,
             textTransform: "none",
-            color: "text.primary",
+            color: "#1E293B",
             boxShadow: "none",
-            "&:hover": { bgcolor: palette.info[40], opacity: 0.9 },
+            "&:hover": { bgcolor: "#E2EDF9" },
           }}
           onClick={onOpenAccountInfo}
-          startIcon={<Info size={18} />}
+          startIcon={<Info size={17} />}
           title="Account Information"
         />
         <BaseButton
           sx={{
-            bgcolor: palette.info[40],
+            padding: "8px 20px",
+            bgcolor: "#EBF3FC",
             borderRadius: "999px",
-            px: 2.5,
-            py: 1,
+            fontSize: "14px",
+            fontWeight: 500,
             textTransform: "none",
-            color: "text.primary",
+            color: "#1E293B",
             boxShadow: "none",
-            "&:hover": { bgcolor: palette.info[40], opacity: 0.9 },
+            "&:hover": { bgcolor: "#E2EDF9" },
           }}
-          startIcon={<ReceiptText size={18} />}
+          onClick={onOpenStatements}
+          startIcon={<ReceiptText size={17} />}
           title="Statements"
         />
       </Stack>

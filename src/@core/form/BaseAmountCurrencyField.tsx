@@ -115,7 +115,7 @@ export default function BaseAmountCurrencyField({
                         onClick={() => onCurrencyChange(option.value)}
                         sx={{
                           px: 2,
-                          py: 0.6,
+                          py: 1.6,
                           minWidth: 48,
                           borderRadius: "999px",
                           fontSize: 13,

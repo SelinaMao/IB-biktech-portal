@@ -111,7 +111,7 @@ export function TransactionDetailsContent({
 }: TransactionDetailsContentProps) {
   const isIn = isIncomingTransaction(transaction);
   const statusColor = STATUS_COLORS[status];
-
+  
   return (
     <Stack spacing={3}>
       <Stack spacing={1} sx={{ alignItems: "center", textAlign: "center", py: 2 }}>

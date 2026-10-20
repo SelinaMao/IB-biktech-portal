@@ -50,7 +50,7 @@ export default function BaseButton({
           ? "#94A3B8"
           : rest.variant === "outlined"
             ? palette.slate[700]
-            : "#000000",
+            : "#ffffff",
         "&:hover": {
           backgroundColor: isDisabled
             ? "#EDEDEC"

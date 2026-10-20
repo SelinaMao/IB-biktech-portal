@@ -26,7 +26,6 @@ export const adminApi = {
     LIST: "org/roles",
     CREATE: "org/roles",
     UPDATE_PERMISSIONS: "org/roles/{id}/permissions",
-    UPDATE_APPROVER: "org/roles/{id}/approver",
     DELETE: "org/roles/{id}",
     COMPARE: "org/roles/compare",
     DETAIL: "org/roles/{id}",
@@ -42,11 +41,17 @@ export const adminApi = {
   // Backoffice user management (admin surface). `{id}` is filled at call time.
   // TODO(core): ACTIVATE/DEACTIVATE paths are assumed from the list response's
   // deactivation metadata — confirm against AdminUserController and adjust.
+  // User and role changes are saved, confirmed on the maker's phone (QR), then approved by checkers.
+  // Every write above answers {changeId, type, status, authenticator}; nothing changes until approval.
+  ORG_CHANGE: {
+    LIST: "org/changes",
+    AUTHENTICATOR: "org/changes/{id}/authenticator",
+  },
   USER: {
     LIST: "org/users",
     CREATE: "org/users",
     DETAIL: "org/users/{id}",
-    UPDATE: "org/users/{id}",
+    UPDATE: "org/users/{id}", // PUT: details, roles and accounts as one change
     ACTIVATE: "org/users/{id}/reactivate",
     DEACTIVATE: "org/users/{id}/deactivate",
     UNLOCK: "org/users/{id}/unlock",
@@ -63,6 +68,10 @@ export const adminApi = {
   TRANSACTION: {
     // Body: {accountNumber, type, startedDate, endedDate, limit, offset}
     LIST: "transactions",
+    // Body: {accountNumber, limit, offset} — transfers out of the account not yet posted.
+    PENDING: "transactions/pending",
+    // Body: {accountNumber, startedDate?, endedDate?} — cash in/out per day from the CBS statement; the last 30 days by default.
+    CASH_FLOW: "transactions/dashboard",
     // Body: {accountNumber, type, startedDate, endedDate, fileType} — returns the file bytes.
     // fileType: "PDF" | "CSV" | "EXCEL" picks the exported format.
     DOWNLOAD: "transactions/download",
@@ -78,8 +87,10 @@ export const adminApi = {
     ORGANIZATION: "transaction-limits/organization",
     USER: "transaction-limits/users/{userId}",
     USER_UPDATE: "transaction-limits/users/{userId}",
-    // DELETE with ?functionCode=&method= — the row's identity never goes in the path.
+    // DELETE with { functionCode, method } in the body — the row's identity never goes in the URL.
     USER_RESET: "transaction-limits/users/{userId}/codes",
+    // AUTHENTICATOR
+    USER_AUTHENTICATOR: "transaction-limits/users/{userId}/changes/{changeId}/authenticator",
   },
   DEVICE_BINDING: {
     CREATE_SESSION: "bindings",
@@ -91,8 +102,44 @@ export const adminApi = {
   TRANSFER: {
     CALCULATE: "payment/transfers/calculate", // Body: {transferType, fromAccountNumber, fromAccountCurrency, toAccountNumber, toAccountCurrency, amount, currency}
     OWN_ACCOUNT: "payment/transfers/own-account", // Body: {fromAccountNumber, toAccountNumber, amount, currency, remark}
-    AUTHORIZE: "payment/transfers/{referenceId}/authorize", // Body: {authenticatorRequestId}
+    OTHER_SME_ACCOUNT: "payment/transfers/other-sme-account", // Body: {fromAccountNumber, toAccountNumber, amount, currency, remark}
+    BAKONG_LOCAL_BANK: "payment/transfers/bakong-local-bank", // Body: {fromAccountNumber, bankCode, toAccountNumber, amount, currency, remark, isSaveTemplate, schedule}
+    BAKONG_WALLET: "payment/transfers/bakong-wallet", // Body: {fromAccountNumber, bakongId, amount, currency, remark, isSaveTemplate, schedule}
     NEW_AUTHENTICATOR: "payment/transfers/{referenceId}/authenticator",
+    BANKS: "payment/banks", // Bakong member banks a local bank transfer can pay
+  },
+  // Bulk transfer: the portal reads the file and sends its rows as JSON; no file is uploaded.
+  BULK_TRANSFER: {
+    VALIDATE: "payment/bulk-transfers/validate", // Body: {fromAccountNumber, fileName, rows}
+    SUBMIT: "payment/bulk-transfers", // Body: {fromAccountNumber, fileName, rows, schedule}
+    ONE: "payment/bulk-transfers/{referenceId}",
+    NEW_AUTHENTICATOR: "payment/bulk-transfers/{referenceId}/authenticator",
+  },
+  // Scheduled transfers: listed, read, and paused, resumed or cancelled once the caller's phone authorizes it.
+  SCHEDULE: {
+    LIST: "payment/schedules",
+    ONE: "payment/schedules/{referenceId}",
+    TRANSACTIONS: "payment/schedules/{referenceId}/transactions", // Query: view=PENDING|HISTORY, page, size
+    ACTIONS: "payment/schedules/transactions/{referenceId}/actions", // One transaction. Body: {action: PAUSE|RESUME|CANCEL}
+  },
+  // Saved receivers; one is saved when the maker authorizes a transfer that asked for it.
+  TRANSFER_TEMPLATE: {
+    LIST: "payment/templates", // Query: transferType (optional)
+    ONE: "payment/templates/{id}", // PUT body: {templateName}; DELETE
+  },
+  // Who a transfer would pay, looked up before the payer submits it.
+  PAYMENT_INQUIRY: {
+    SME_ACCOUNT: "payment/inquiry/sme-account", // Body: {accountNumber}
+    EXTERNAL_ACCOUNT: "payment/inquiry/external-bank-account", // Body: {accountNumber, transferPlatform: BANK|BAKONG, transferPlatformCode, boundType: LOCAL}
+  },
+  // The caller's own notification inbox (notification-service); the same endpoints serve the back office.
+  NOTIFICATION: {
+    // The bell's three tabs (FSD IB): Query category=TRANSACTION|ALERT|ANNOUNCEMENT, page, size
+    INBOX: "notifications/me/inbox",
+    UNREAD_COUNTS: "notifications/me/unread-counts", // {transaction, alert, total}; announcements have no read state
+    READ_ALL: "notifications/me/read-all",
+    READ: "notifications/{id}/read",
+    SEEN_MANY: "notifications/seens", // Body: [id, ...]
   },
   // Authenticator: phone authorization of an action, polled by the session that raised it.
   AUTHENTICATOR: {
@@ -119,18 +166,20 @@ export const adminApi = {
     FUNCTION_APPROVERS: "workflow/function-approvers",
     FUNCTIONS: "workflow/functions",
     INSTANCES: "workflow/instances",
+    INSTANCES_SUMMARY: "workflow/instances/summary", // ?category= — the cards above the queue
     INSTANCE: "workflow/instances/{id}",
-    ACT: "workflow/instances/{id}/act", // Body: {decision, reason, authenticatorRequestId} — APPROVE needs the phone's authorization
+    ACT: "workflow/instances/{id}/act", // Body: {decision, reason} — REJECT; a corporate APPROVE is given on the phone
     AUTHENTICATOR: "workflow/instances/{id}/authenticator", // The QR an APPROVE is authorized with
     CANCEL: "workflow/instances/{id}/cancel",
     TASKS: "workflow/tasks",
   },
   APPROVER_GROUP: {
     LIST: "approver-groups",
-    CREATE: "approver-groups",
-    UPDATE: "approver-groups/{groupId}/name",
+    CREATE: "approver-groups", // POST {groupKey, name, memberIds}: confirmed on the phone, then approved
+    UPDATE: "approver-groups/{groupId}", // PUT {name, memberIds}: name and members in order, as one change
     DELETE: "approver-groups/{groupId}",
-    MEMBERS: "approver-groups/{groupId}/members",
+    CHANGES: "approver-groups/changes", // changes with the approvers, or approved but not applied
+    CHANGE_AUTHENTICATOR: "approver-groups/changes/{changeId}/authenticator", // a new QR for the same change
   },
   CAPABILITY: {
     LIST: "capabilities",
@@ -152,4 +201,19 @@ export const adminApi = {
     GET: "meta",
     EXCHANGE_RATES: "meta/exchange-rates",
   },
+  // Channel-wide maintenance window beacon from system-settings-service: a
+  // scheduled window when the whole channel (IB for this portal) is turned
+  // off, with bilingual banner copy. Separate from per-service switches
+  // (which come through meta.maintainerResponses).
+  CHANNEL: {
+    MAINTENANCE: "channels/{channel}/maintenance",
+  },
+  // product-fee-service client catalog: PUBLISHED loans and term deposits only, already in
+  // sort order. Name/description come in the Accept-Language the BFF forwards (km | en).
+  PRODUCT: {
+    LIST: "products", // Query: type (optional) — LOAN | TERM_DEPOSIT
+  },
+  
+ 
+
 };

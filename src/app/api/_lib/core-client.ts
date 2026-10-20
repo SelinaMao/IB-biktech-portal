@@ -14,6 +14,14 @@ export async function coreFetch(
     method?: string;
     body?: unknown;
     accessToken?: string;
+    /** Portal locale, forwarded so services return their own wording in the right language. */
+    acceptLanguage?: string;
+    /**
+     * ADR-004 Idempotency-Key, forwarded unchanged from the browser. The server's
+     * `IdempotencyKeyFilter` reads it on money-movement POSTs
+     * (`cbs.idempotency.paths` in payment-service `application.yml`).
+     */
+    idempotencyKey?: string;
   } = {},
 ): Promise<Response> {
   const env = getServerEnv();
@@ -26,6 +34,12 @@ export async function coreFetch(
   };
   if (init.accessToken) {
     headers.Authorization = `Bearer ${init.accessToken}`;
+  }
+  if (init.acceptLanguage) {
+    headers["Accept-Language"] = init.acceptLanguage;
+  }
+  if (init.idempotencyKey) {
+    headers["Idempotency-Key"] = init.idempotencyKey;
   }
 
   // Version is prepended here and ONLY here — endpoint paths stay unversioned.

@@ -35,8 +35,12 @@ export const accountApi = baseApi.injectEndpoints({
       transformResponse: (response: TransformResponse<CoreAccountsResponse>) =>
         response.data,
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
-        const { data } = await queryFulfilled;
-        dispatch(setAccounts(data));
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(setAccounts(data));
+        } catch {
+          // Handled by caller
+        }
       },
     }),
     getAccountDetail: build.mutation<IAccountDetailResponses, AccountDetailRequest>({
@@ -47,8 +51,12 @@ export const accountApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response: TransformResponse<IAccountDetailResponses>) => response.data,
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
-        const { data } = await queryFulfilled;
-        dispatch(setAccountDetail(data));
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(setAccountDetail(data));
+        } catch {
+          // Handled by caller
+        }
       },
     }),
 
@@ -60,8 +68,12 @@ export const accountApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response: TransformResponse<CoreAccountSummaryEntry>) => response.data,
       async onQueryStarted(arg, { dispatch, queryFulfilled }) {
-        const { data } = await queryFulfilled;
-        dispatch(setAccountSummary({ accountNumber: arg.accountNumber, data }));
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(setAccountSummary({ accountNumber: arg.accountNumber, data }));
+        } catch {
+          // Handled by caller
+        }
       },
     }),
     listTransactions: build.mutation<TransactionListPage, TransactionListRequest>({

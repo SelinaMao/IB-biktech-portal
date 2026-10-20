@@ -5,8 +5,8 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { Globe } from "lucide-react";
 import { useForm } from "react-hook-form";
-
-import BaseFromAccount from "../../../@core/components/BaseFromAccount";
+import Typography from "@mui/material/Typography";
+import BaseFromAccount from "@core/components/BaseFromAccount";
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
@@ -21,6 +21,8 @@ import {
 } from "../transfer.utils";
 import { useTransferAccounts } from "../use-transfer-accounts";
 import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
+import { BaseAmountCurrencyField } from "@core/form";
+import TransferScheduleSection from "./TransferScheduleSection";
 
 export type InternationalProps = {
   open: boolean;
@@ -37,6 +39,11 @@ const INITIAL_VALUES = {
   currency: "USD",
   purpose: transferPurposes[0],
   remark: "",
+  scheduleTransfer: false,
+  frequency: "one-time" as "one-time" | "recurring",
+  timing: "today" as "today" | "later" | "weekly",
+  scheduleDate: "Today, 14 Mar 2026",
+  endCondition: "after-transfers" as "after-transfers" | "no-end-date",
 };
 
 export default function International({ open, onClose }: InternationalProps) {
@@ -70,6 +77,12 @@ export default function International({ open, onClose }: InternationalProps) {
     { label: "Country", value: values.beneficiaryCountry },
     { label: "Amount", value: amountPreviewValue(values.amount, values.currency) },
     { label: "Purpose", value: values.purpose },
+    ...(values.scheduleTransfer
+      ? [
+          { label: "Frequency", value: values.frequency === "one-time" ? "One-time" : "Recurring" },
+          { label: "Date", value: values.scheduleDate || "-" },
+        ]
+      : []),
     ...(values.remark ? [{ label: "Remark", value: values.remark }] : []),
   ];
 
@@ -81,6 +94,11 @@ export default function International({ open, onClose }: InternationalProps) {
       onClose={onClose}
       title="International Transfer"
       icon={<Globe size={18} />}
+      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
+      toAccount={{
+        name: values.beneficiaryName || "Beneficiary",
+        accountNumber: values.beneficiaryAccountNumber,
+      }}
       topSection={
         <BaseFromAccount
           name="fromAccountId"
@@ -90,10 +108,10 @@ export default function International({ open, onClose }: InternationalProps) {
       }
       canSubmit={Boolean(
         values.amount &&
-          values.swiftCode &&
-          values.beneficiaryAccountNumber &&
-          values.beneficiaryName &&
-          fromAccountId,
+        values.swiftCode &&
+        values.beneficiaryAccountNumber &&
+        values.beneficiaryName &&
+        fromAccountId,
       )}
       previewFields={previewFields}
       summaryRows={summaryRows}
@@ -127,24 +145,33 @@ export default function International({ open, onClose }: InternationalProps) {
           options={transferCountries.map((c) => ({ value: c, label: c }))}
         />
 
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-end" }}>
-          <Box sx={{ flex: 1 }}>
-            <BaseInput
-              label="Amount"
-              value={values.amount}
-              onChange={(e) => set("amount", e.target.value)}
-              placeholder="0.00"
-            />
-          </Box>
-          <Box sx={{ width: 110 }}>
-            <BaseSelect
-              label=" "
-              value={values.currency}
-              onChange={(e) => set("currency", e.target.value as string)}
-              options={CURRENCY_OPTIONS}
-            />
-          </Box>
-        </Stack>
+        <Box>
+          <BaseAmountCurrencyField
+            label={
+              <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A", mb: 0.5 }}>
+                Amount
+              </Typography>
+            }
+            amount={values.amount}
+            onAmountChange={(value) => set("amount", value)}
+            currency={values.currency}
+            onCurrencyChange={(value) => set("currency", value)}
+            options={CURRENCY_OPTIONS}
+          />
+        </Box>
+
+        <TransferScheduleSection
+          enabled={values.scheduleTransfer}
+          onToggle={(val) => set("scheduleTransfer", val)}
+          frequency={values.frequency}
+          onFrequencyChange={(val) => set("frequency", val)}
+          timing={values.timing}
+          onTimingChange={(val) => set("timing", val)}
+          startDate={values.scheduleDate}
+          onStartDateChange={(val) => set("scheduleDate", val)}
+          endCondition={values.endCondition}
+          onEndConditionChange={(val) => set("endCondition", val)}
+        />
 
         <BaseSelect
           label="Purpose of Transfer"

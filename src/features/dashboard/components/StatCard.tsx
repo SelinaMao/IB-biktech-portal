@@ -76,8 +76,8 @@ export default function StatCard({
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 0.75,
-                px: 1.5,
-                py: 0.55,
+                px: 2.5,
+                py: 1.55,
                 borderRadius: "9999px",
                 bgcolor: palette.slate[100],
                 border: "none",
@@ -104,9 +104,11 @@ export default function StatCard({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 32,
-                height: 32,
-                borderRadius: "8px",
+                padding:"none",
+                marginLeft:"10px",
+                borderRadius: "50%",
+                width:"34px",
+                height:"34px",
                 bgcolor: palette.slate[100],
                 border: "none",
                 cursor: "pointer",
@@ -117,11 +119,11 @@ export default function StatCard({
               }}
             >
               <Image
-                src="/branding/KHQR.png"
+                src="/branding/khqr-small.png"
                 alt="KHQR"
-                width={18}
-                height={18}
-                style={{ objectFit: "contain" }}
+                width={48}
+                height={48}
+                style={{ objectFit: "contain" ,}}
               />
             </Box>
           </Box>
@@ -195,8 +197,8 @@ export default function StatCard({
             sx={{
               fontSize: 15,
               fontWeight: 400,
-              px: 4,
-              py: 1,
+               px: 4,
+              py: 1.5,
               bgcolor: "#EDF0F4",
               border: "0px",
               color: "#000000",
@@ -211,8 +213,8 @@ export default function StatCard({
             sx={{
               fontSize: 15,
               fontWeight: 400,
-              px: 4,
-              py: 1,
+             px: 4,
+              py: 1.5,
               bgcolor: "#EDF0F4",
               border: "0px",
               color: "#000000",

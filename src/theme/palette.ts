@@ -109,7 +109,7 @@ export const palette = {
     900: "#1E293B",
     950: "#111827",
   },
-
+  link :"#0969DA",
   // Text — warm near-blacks. `heading` is the brand-tinted dark; `primary` is the neutral body colour.
   text: { primary: "#0a0a0a", heading: "#351e15", label: "#ffffff", secondary: "#676766" },
 

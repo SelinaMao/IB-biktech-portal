@@ -16,6 +16,15 @@ const W = 560;
 const H = 200;
 const PAD = 8;
 
+const formatAmount = (amount: number, ccy: string) => {
+  const sign = amount >= 0 ? "+" : "-";
+  const formatted = Math.abs(amount).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${sign}${formatted} ${ccy}`;
+};
+
 const formatCompactNumber = (v: number) =>
   v === 0
     ? "0K"
@@ -53,7 +62,7 @@ export default function CashFlowCard() {
   const inPath = toPath(cashFlow.cashIn, max);
   const outPath = toPath(cashFlow.cashOut, max);
   const gridYs = [0, 0.25, 0.5, 0.75, 1];
-
+  const currencies = ["USD", "KHR"];
   return (
     <BaseCard sx={{ p: 3, height: "100%" }}>
       <Stack
@@ -73,10 +82,7 @@ export default function CashFlowCard() {
         <BaseSwitch
           value={ccy}
           onChange={(v) => setCcy(v)}
-          options={[
-            { value: "USD", label: "USD" },
-            { value: "KHR", label: "៛" },
-          ]}
+         options={currencies.map((ccy) => ({ value: ccy, label: ccy }))}
         />
       </Stack>
 

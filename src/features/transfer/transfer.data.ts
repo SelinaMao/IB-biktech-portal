@@ -67,6 +67,7 @@ export const scheduleFrequencies = [
 
 /** Mock directory used to resolve a beneficiary name from an "Other SME Bank" account number. */
 export const otherSmeBankDirectory = [
+  { number: "000 000 096", name: "Sarah Jenkins" },
   { number: "111 022 998", name: "Rous Soboros" },
   { number: "500 987 654", name: "Khalid" },
   { number: "300 050 756", name: "Chamrouen" },

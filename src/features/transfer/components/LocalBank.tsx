@@ -3,15 +3,18 @@
 import React from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { Globe } from "lucide-react";
+import { useForm } from "react-hook-form";
 
+import BaseFromAccount from "@core/components/BaseFromAccount";
+import BaseAmountCurrencyField from "@core/form/BaseAmountCurrencyField";
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
 import { localBanks } from "../transfer.data";
 import {
   accountOptionLabel,
-  accountSelectOptions,
   amountPreviewValue,
   buildTransferSummaryRows,
   currencyLabel,
@@ -20,6 +23,7 @@ import {
 } from "../transfer.utils";
 import { useTransferAccounts } from "../use-transfer-accounts";
 import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
+import TransferScheduleSection from "./TransferScheduleSection";
 
 export type LocalBankProps = {
   open: boolean;
@@ -34,25 +38,35 @@ const INITIAL_VALUES = {
   amount: "",
   currency: "USD",
   remark: "",
+  scheduleTransfer: false,
+  frequency: "one-time" as "one-time" | "recurring",
+  timing: "today" as "today" | "later" | "weekly",
+  scheduleDate: "Today, 14 Mar 2026",
+  endCondition: "after-transfers" as "after-transfers" | "no-end-date",
 };
 
 export default function LocalBank({ open, onClose }: LocalBankProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
   const { accounts } = useTransferAccounts(open);
+  const { control, watch, setValue, reset } = useForm({
+    defaultValues: { fromAccountId: "" },
+  });
+
+  const watchedFromId = watch("fromAccountId");
+  const fromAccountId = watchedFromId || accounts[0]?.id || "";
+
+  React.useEffect(() => {
+    if (!watchedFromId && accounts[0]?.id) {
+      setValue("fromAccountId", accounts[0].id);
+    }
+  }, [accounts, watchedFromId, setValue]);
 
   const set = <K extends keyof typeof INITIAL_VALUES>(
     key: K,
     value: (typeof INITIAL_VALUES)[K],
   ) => setValues((prev) => ({ ...prev, [key]: value }));
 
-  const fromAccountId = values.fromAccountId || accounts[0]?.id || "";
   const fromAccount = findAccount(accounts, fromAccountId);
-
-  React.useEffect(() => {
-    if (!values.fromAccountId && accounts[0]?.id) {
-      set("fromAccountId", accounts[0].id);
-    }
-  }, [accounts, values.fromAccountId]);
 
   const previewFields: TransferPreviewField[] = [
     { label: "From Account", value: fromAccount ? accountOptionLabel(fromAccount) : "-" },
@@ -60,6 +74,12 @@ export default function LocalBank({ open, onClose }: LocalBankProps) {
     { label: "Beneficiary Account", value: values.beneficiaryAccountNumber || "-" },
     { label: "Beneficiary Name", value: values.beneficiaryName || "-" },
     { label: "Amount", value: amountPreviewValue(values.amount, values.currency) },
+    ...(values.scheduleTransfer
+      ? [
+          { label: "Frequency", value: values.frequency === "one-time" ? "One-time" : "Recurring" },
+          { label: "Date", value: values.scheduleDate || "-" },
+        ]
+      : []),
     ...(values.remark ? [{ label: "Remark", value: values.remark }] : []),
   ];
 
@@ -71,21 +91,30 @@ export default function LocalBank({ open, onClose }: LocalBankProps) {
       onClose={onClose}
       title="To Local Bank"
       icon={<Globe size={18} />}
+      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
+      toAccount={{
+        name: values.beneficiaryName || "Beneficiary",
+        accountNumber: values.beneficiaryAccountNumber,
+      }}
+      topSection={
+        <BaseFromAccount
+          name="fromAccountId"
+          control={control}
+          accounts={accounts}
+        />
+      }
       canSubmit={Boolean(
         values.amount && values.beneficiaryAccountNumber && values.beneficiaryName && fromAccountId,
       )}
       previewFields={previewFields}
       summaryRows={summaryRows}
       successMessage={`${values.amount} ${currencyLabel(values.currency)} sent to ${values.beneficiaryName || "the beneficiary"} at ${values.beneficiaryBank}.`}
-      onReset={() => setValues(INITIAL_VALUES)}
+      onReset={() => {
+        setValues(INITIAL_VALUES);
+        reset({ fromAccountId: accounts[0]?.id ?? "" });
+      }}
     >
       <Stack spacing={2.5}>
-        <BaseSelect
-          label="From Account"
-          value={fromAccountId}
-          onChange={(e) => set("fromAccountId", e.target.value as string)}
-          options={accountSelectOptions(accounts)}
-        />
         <BaseSelect
           label="Beneficiary Bank"
           value={values.beneficiaryBank}
@@ -104,24 +133,33 @@ export default function LocalBank({ open, onClose }: LocalBankProps) {
           onChange={(e) => set("beneficiaryName", e.target.value)}
         />
 
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-end" }}>
-          <Box sx={{ flex: 1 }}>
-            <BaseInput
-              label="Amount"
-              value={values.amount}
-              onChange={(e) => set("amount", e.target.value)}
-              placeholder="0.00"
-            />
-          </Box>
-          <Box sx={{ width: 110 }}>
-            <BaseSelect
-              label=" "
-              value={values.currency}
-              onChange={(e) => set("currency", e.target.value as string)}
-              options={CURRENCY_OPTIONS}
-            />
-          </Box>
-        </Stack>
+        <Box>
+          <BaseAmountCurrencyField
+            label={
+              <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A", mb: 0.5 }}>
+                Amount
+              </Typography>
+            }
+            amount={values.amount}
+            onAmountChange={(value) => set("amount", value)}
+            currency={values.currency}
+            onCurrencyChange={(value) => set("currency", value)}
+            options={CURRENCY_OPTIONS}
+          />
+        </Box>
+
+        <TransferScheduleSection
+          enabled={values.scheduleTransfer}
+          onToggle={(val) => set("scheduleTransfer", val)}
+          frequency={values.frequency}
+          onFrequencyChange={(val) => set("frequency", val)}
+          timing={values.timing}
+          onTimingChange={(val) => set("timing", val)}
+          startDate={values.scheduleDate}
+          onStartDateChange={(val) => set("scheduleDate", val)}
+          endCondition={values.endCondition}
+          onEndConditionChange={(val) => set("endCondition", val)}
+        />
 
         <BaseTextArea
           label="Remark"
