@@ -26,6 +26,7 @@ export const adminApi = {
     LIST: "org/roles",
     CREATE: "org/roles",
     UPDATE_PERMISSIONS: "org/roles/{id}/permissions",
+    UPDATE_APPROVER: "org/roles/{id}/approver",
     DELETE: "org/roles/{id}",
     COMPARE: "org/roles/compare",
     DETAIL: "org/roles/{id}",

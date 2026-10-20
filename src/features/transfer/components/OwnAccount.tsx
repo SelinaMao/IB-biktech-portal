@@ -92,13 +92,16 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
     });
   };
 
-  const submit = () =>
+  const submit = (idempotencyKey: string) =>
     submitTransfer({
-      fromAccountNumber: fromAccount?.number ?? "",
-      toAccountNumber: toAccount?.number ?? "",
-      amount,
-      currency: values.currency,
-      remark: values.remark.trim() || undefined,
+      body: {
+        fromAccountNumber: fromAccount?.number ?? "",
+        toAccountNumber: toAccount?.number ?? "",
+        amount,
+        currency: values.currency,
+        remark: values.remark.trim() || undefined,
+      },
+      idempotencyKey,
     }).unwrap();
 
   const previewFields: TransferPreviewField[] = [

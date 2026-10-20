@@ -78,7 +78,7 @@ export type PreviewTransferProps = {
      * Submits the transfer for real. When given, Review's Next submits it and the linked phone
      * authorizes it by QR; without it the mocked QR step is shown.
      */
-    submit?: () => Promise<TransferResult>;
+    submit?: (idempotencyKey: string) => Promise<TransferResult>;
 };
 
 export type PreviewTransferDialogProps = PreviewTransferProps;
