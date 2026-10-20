@@ -78,7 +78,7 @@ function RowActionsMenu({ user, onView, onReset }: { user: AdminUser; onView?: (
             onReset?.();
           }}
         >
-          Reset
+          Reset----
         </MenuItem>
         <MenuItem
           onClick={() => {
