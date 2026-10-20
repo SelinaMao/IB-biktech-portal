@@ -4,10 +4,10 @@ import React from "react";
 
 import { showToast } from "@core/components/AppToast";
 
-import type { AuthenticatorRequest, AuthenticatorResult } from "@/features/authenticator";
+import type { AuthenticatorRequest } from "@/features/authenticator";
 import { toToastError } from "@/utils/api-error";
 import { useRequestTransferAuthenticatorMutation } from "./transfer.api";
-import type { TransferResult, TransferStatus } from "./transfer.types";
+import type { TransferResult } from "./transfer.types";
 import { useIdempotencyKey } from "./use-idempotency-key";
 import { AnalyticsEvent, trackEvent, trackFailure } from "../analytics";
 
@@ -48,11 +48,11 @@ export function useTransferAuthorization({
   const [requestNewAuthenticator] = useRequestTransferAuthenticatorMutation();
   const idem = useIdempotencyKey();
 
-  const start = async () => {
-    if (!submit) return;
+  const start = async (): Promise<boolean> => {
+    if (!submit) return false;
     if (pending) {
       setQrOpen(true);
-      return;
+      return true;
     }
     setSubmitting(true);
     const key = idem.ensure();
@@ -63,25 +63,27 @@ export function useTransferAuthorization({
       setQrOpen(true);
       // Terminal success — a fresh form submission starts a fresh key.
       idem.reset();
+      return true;
     } catch (error) {
       // Keep the key: the user may click Confirm again (retry) and the server
       // must recognise the same submission. On non-retryable failures the form
       // reset / Back button clears pending state (and the key with it via `discard`).
       trackFailure(AnalyticsEvent.TRANSFER_SUBMITTED, error);
       showToast("error", toToastError(error, "Transfer not submitted"));
+      return false;
     } finally {
       setSubmitting(false);
     }
   };
 
-  // The server carried it out once the phone authorized it; a refusal stays in the QR dialog
-  const done = (result: AuthenticatorResult) => {
+  // The server carried it out once the phone authorized it; `submit`'s response already
+  // carries the transfer's resulting status (e.g. AWAITING_APPROVAL, COMPLETED).
+  const authorize = async (_requestId: string): Promise<void> => {
     if (!pending) return;
     setQrOpen(false);
     setPending(null);
-    const completed = { ...pending, status: (result.status as TransferStatus | null | undefined) ?? pending.status };
-    trackEvent(AnalyticsEvent.TRANSFER_COMPLETED, { ...transferAnalytics(completed), status: completed.status });
-    onCompleted(completed);
+    trackEvent(AnalyticsEvent.TRANSFER_COMPLETED, { ...transferAnalytics(pending), status: pending.status });
+    onCompleted(pending);
   };
 
   const renew = async (): Promise<AuthenticatorRequest> => {
@@ -106,5 +108,5 @@ export function useTransferAuthorization({
     idem.reset();
   };
 
-  return { pending, qrOpen, submitting, start, done, renew, closeQr, discard };
+  return { pending, qrOpen, submitting, start, authorize, renew, closeQr, discard };
 }
