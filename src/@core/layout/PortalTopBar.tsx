@@ -17,14 +17,16 @@ import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { useAuth } from "@/features/auth";
 import { toggleHideAmount } from "@/store/global/global.slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { TOPBAR_HEIGHT } from "@/theme/layout";
-import { font, padding, palette } from "@/theme/palette";
+import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH, TOPBAR_HEIGHT } from "@/theme/layout";
+import { font, palette } from "@/theme/palette";
 import { SwitchLanguageMenu } from "@core/components/SwitchLanguageMenu";
 import {
   ChevronRightRounded,
@@ -35,11 +37,7 @@ import {
   PersonOutlineRounded,
   SettingsOutlined,
   TuneRounded,
-  Visibility,
-  VisibilityOff,
 } from "@mui/icons-material";
-import Badge from "@mui/material/Badge";
-import Image from "next/image";
 
 import ProfilePanel from "./ProfilePanel";
 
@@ -81,21 +79,53 @@ const NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
+const ROUTE_TITLES: { prefix: string; title: string }[] = [
+  { prefix: "/dashboard", title: "Dashboard" },
+  { prefix: "/transfer", title: "Transfer" },
+  { prefix: "/approval-workflow/requests", title: "Approval" },
+  { prefix: "/approval-workflow/approvers", title: "Approver" },
+  { prefix: "/approval-workflow", title: "Approval Matrix" },
+  { prefix: "/approval", title: "Approval" },
+  { prefix: "/account", title: "Accounts" },
+  { prefix: "/loan", title: "Loan" },
+  { prefix: "/limits", title: "Limits" },
+  { prefix: "/users", title: "Users" },
+  { prefix: "/rbac", title: "Roles & Permissions" },
+  { prefix: "/help", title: "Help & Support" },
+  { prefix: "/payments", title: "Payments" },
+  { prefix: "/schedule", title: "Schedule" },
+  { prefix: "/payroll", title: "Payroll" },
+  { prefix: "/merchant", title: "Merchant" },
+  { prefix: "/components", title: "Components" },
+];
+
 export type PortalTopBarProps = {
   collapsed: boolean;
   onToggleSidebar: () => void;
   hideAmount?: boolean;
   onToggleHideAmount?: () => void;
+  title?: string;
 };
 
 /**
- * White top bar: sidebar toggle · language switcher · user menu (logout).
- * Colors come from the theme (paper background, divider border) — no
- * hardcoded values here.
+ * Top bar: Left panel toggle icon + BiKTECH Solution logo.
+ * Right: Notification bell · Language switcher · User profile.
  */
-
-export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, onToggleHideAmount }: PortalTopBarProps) {
+export default function PortalTopBar({
+  collapsed,
+  onToggleSidebar,
+  hideAmount,
+  onToggleHideAmount,
+  title: customTitle,
+}: PortalTopBarProps) {
   const t = useTranslations("topbar");
+  const pathname = usePathname();
+  const pageTitle = useMemo(() => {
+    if (customTitle) return customTitle;
+    if (!pathname) return "";
+    const matched = ROUTE_TITLES.find((r) => pathname.startsWith(r.prefix));
+    return matched ? matched.title : "";
+  }, [pathname, customTitle]);
   const router = useRouter();
   const { logout } = useAuth();
   const user = useAppSelector((state) => state.auth.user);
@@ -104,8 +134,6 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const closeSettingsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Local state fallback if prop/context is not passed
-  const [localHideAmount, setLocalHideAmount] = useState(false);
 
   const cancelCloseSettings = () => {
     if (closeSettingsTimeout.current) {
@@ -125,14 +153,7 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
     setSettingsAnchorEl(null);
   };
 
-  const isHidden = onToggleHideAmount ? hideAmount : localHideAmount;
-
-  // Set hide amount
-  const dispatch = useAppDispatch();
-
-  const handleToggle = onToggleHideAmount ? () => dispatch(toggleHideAmount()) : () => setLocalHideAmount((prev) => !prev);
-
-  const initials = (user?.name ?? "?")
+  const initials = (user?.name ?? "RS")
     .split(" ")
     .map((part: string) => part[0])
     .slice(0, 2)
@@ -144,363 +165,412 @@ export default function PortalTopBar({ collapsed, onToggleSidebar, hideAmount, o
       position="sticky"
       elevation={0}
       sx={{
-        bgcolor: "background.paper",
+        bgcolor: "#FFFFFF",
         color: "text.primary",
-        borderBottom: 1,
-        borderColor: "divider",
+        borderBottom: `1px solid ${palette.slate[200]}`,
+        zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
-      <Toolbar sx={{ minHeight: `${TOPBAR_HEIGHT}px !important`, gap: "17px" }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
+      <Toolbar
+        disableGutters
+        sx={{
+          minHeight: `${TOPBAR_HEIGHT}px !important`,
+          pr: { xs: 2, sm: 3 },
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        {/* Left Side: Toggle Icon + Logo + Full-Height Vertical Ruler to the right of logo */}
+        <Box
+          sx={{
+            width: { xs: "auto", sm: `${SIDEBAR_WIDTH}px` },
+            minWidth: { xs: 0, sm: `${SIDEBAR_WIDTH}px` },
+            maxWidth: { xs: "none", sm: `${SIDEBAR_WIDTH}px` },
+            boxSizing: "border-box",
+            display: "flex",
+            alignItems: "center",
+            height: `${TOPBAR_HEIGHT}px`,
+            pl: { xs: 2, sm: 2.5 },
+            pr: 2,
+            gap: 1.75,
+            borderRight: { xs: "none", sm: `1px solid ${palette.slate[200]}` },
+            flexShrink: 0,
+          }}
+        // sx={{
+        //   // marginLeft:"15px",
+        //   width: `${SIDEBAR_WIDTH}px`,
+        //   minWidth: `${SIDEBAR_WIDTH}px`,
+        //   maxWidth: `${SIDEBAR_WIDTH}px`,
+        //   boxSizing: "border-box",
+        //   display: "flex",
+        //   alignItems: "center",
+        //   height: `${TOPBAR_HEIGHT}px`,
+        //   pl: { xs: 2, sm: 2.5 },
+        //   pr: 2,
+        //   gap: 1.75,
+        //   borderRight: `1px solid ${palette.slate[200]}`,
+        //   flexShrink: 0,
+        // }}
+        >
           <IconButton
             edge="start"
             onClick={onToggleSidebar}
             aria-label="Toggle sidebar"
             sx={{
-              padding: 0,
-            }}
-          >
-            <Image src={collapsed ? "/assets/icons/expand.svg" : "/assets/icons/collapse.svg"} alt="Toggle Collapse Menu" width={40} height={40} />
-          </IconButton>
-          {/* <Typography variant="h4" sx={{ fontWeight: "bold", color: palette.navy[800] }}>
-            BiKTECH <span style={{ color: palette.primary.main }}>Solution</span>
-          </Typography> */}
-        </Stack>
-
-        <Box sx={{ flex: 1 }} />
-        {/* <Stack
-          direction="row"
-          spacing={0.5}
-          sx={{
-            alignItems: "center",
-            cursor: "pointer",
-            border: 1,
-            borderColor: "divider",
-            borderRadius: 1,
-            height: 40,
-            px: 2,
-            bgcolor: "white",
-          }}
-          onClick={handleToggle}
-        >
-          {" "}
-          {isHidden ? (
-            <>
-              <Visibility sx={{ fontSize: 20, color: palette.slate[500] }} />
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                Show
-              </Typography>
-            </>
-          ) : (
-            <>
-              <VisibilityOff sx={{ fontSize: 20, color: palette.slate[500] }} />
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                Hide
-              </Typography>
-            </>
-          )}
-        </Stack> */}
-
-        <Stack
-          direction="row"
-          spacing={0.5}
-          sx={{
-            alignItems: "center",
-            cursor: "pointer",
-            border: 1,
-            borderColor: "divider",
-            borderRadius: "50%",
-            height: 40,
-            px: 2,
-            bgcolor: "white",
-          }}
-        >
-          <IconButton
-            sx={{ p: 0, color: palette.slate[500] }}
-            aria-label="Notifications"
-            onClick={(e) => setNotifAnchorEl(e.currentTarget)}
-          >
-            <Badge badgeContent={NOTIFICATIONS.length} color="error">
-              <NotificationsNoneRounded sx={{ fontSize: 20 }} />
-            </Badge>
-          </IconButton>
-        </Stack>
-
-        <Popover
-          open={Boolean(notifAnchorEl)}
-          anchorEl={notifAnchorEl}
-          onClose={() => setNotifAnchorEl(null)}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-          transformOrigin={{ vertical: "top", horizontal: "right" }}
-          slotProps={{
-            paper: {
-              elevation: 0,
-              sx: {
-                mt: 1,
-                width: 360,
-                maxHeight: 420,
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 2,
-                boxShadow: "0 6px 16px rgba(16,24,40,0.08)",
-                overflow: "hidden",
+              marginLeft: "5px",
+              p: 0.75,
+              color: palette.slate[700],
+              borderRadius: "8px",
+              flexShrink: 0,
+              transition: "background-color 0.15s ease",
+              "&:hover": {
+                bgcolor: palette.slate[100],
               },
-            },
-          }}
-        >
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ p: `${padding.xl}px`, borderBottom: 1, borderColor: "divider" }}
-          >
-            <Typography sx={{ fontWeight: font.weight.semibold, fontSize: font.size.xl }}>
-              Notifications
-            </Typography>
-            <IconButton size="small" onClick={() => setNotifAnchorEl(null)} aria-label="Close notifications">
-              <CloseRounded sx={{ fontSize: 18, color: palette.slate[500] }} />
-            </IconButton>
-          </Stack>
-
-          <Stack sx={{ maxHeight: 340, overflowY: "auto" }}>
-            {NOTIFICATIONS.map((notif, index) => (
-              <Box key={notif.id}>
-                <Stack direction="row" spacing={4} sx={{ p: `${padding.xl}px` }}>
-                  <Avatar
-                    variant="rounded"
-                    sx={{
-                      width: 34,
-                      height: 34,
-                      flexShrink: 0,
-                      fontSize: font.size.sm,
-                      color: palette.white,
-                      bgcolor: palette.navy[800],
-                    }}
-                  >
-                    {initials}
-                  </Avatar>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-                      <Typography
-                        sx={{
-                          fontSize: font.size.xs,
-                          fontWeight: font.weight.semibold,
-                          color: "text.secondary",
-                          textTransform: "uppercase",
-                          letterSpacing: 0.4,
-                        }}
-                      >
-                        {notif.category}
-                      </Typography>
-                      <Typography sx={{ fontSize: font.size.xs, color: "text.secondary", whiteSpace: "nowrap" }}>
-                        {notif.time}
-                      </Typography>
-                    </Stack>
-                    <Typography sx={{ fontSize: font.size.md, fontWeight: font.weight.medium, color: "text.primary", mt: 0.5 }}>
-                      {notif.title}
-                    </Typography>
-                    {notif.description && (
-                      <Typography sx={{ fontSize: font.size.sm, color: "text.secondary", mt: 0.25 }}>
-                        {notif.description}
-                      </Typography>
-                    )}
-                  </Box>
-                </Stack>
-                {index < NOTIFICATIONS.length - 1 && <Divider />}
-              </Box>
-            ))}
-          </Stack>
-        </Popover>
-
-        <SwitchLanguageMenu />
-
-        {/* <Divider
-          orientation="vertical"
-          flexItem
-          sx={{
-            display: { xs: "none", md: "block" },
-            margin: 0,
-            height: 40,
-            alignSelf: "center",
-            borderColor: "#EDEDEC",
-            borderRightWidth: "2px",
-          }}
-        /> */}
-
-        <Stack
-          direction="row"
-          sx={{
-            alignItems: "center",
-            cursor: "pointer",
-          }}
-          onClick={(e) => setAnchorEl(e.currentTarget)}
-          gap={1}
-        >
-          <Avatar
-            variant="rounded"
-            sx={{
-              width: 34,
-              height: 34,
-              borderRadius: "50%",
-              fontSize: font.size.md,
-              color: palette.white,
-              bgcolor: palette.navy[800],
             }}
           >
-            {initials}
-          </Avatar>
+            {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
+          </IconButton>
 
-          <Box sx={{ display: { xs: "none", md: "block" }, lineHeight: 1.2, ml: "8px" }}>
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Image
+              src="/branding/BiKTECH.png"
+              alt="BiKTECH Solution"
+              width={140}
+              height={28}
+              style={{
+                height: "28px",
+                width: "auto",
+                objectFit: "contain",
+              }}
+              priority
+            />
+          </Box>
+        </Box>
+
+        {/* Page / Section Title (to the right of the vertical ruler) */}
+        {pageTitle && (
+          <Box sx={{ pl: 2.5 }}>
             <Typography
               sx={{
-                fontWeight: font.weight.semibold,
-                color: "text.primary",
-                fontSize: 13,
+                fontSize: "17px",
+                fontWeight: 600,
+                color: "#1E659E",
+                lineHeight: 1.2,
+                whiteSpace: "nowrap",
               }}
             >
-              {user?.name}
+              {pageTitle}
             </Typography>
-            <Typography variant="caption">{user?.roles?.[0]?.name || "ADMIN"}</Typography>
+          </Box>
+        )}
+
+        <Box sx={{ flex: 1 }} />
+
+        {/* Right Side: Notification + Language + Profile */}
+        <Stack direction="row" alignItems="center" spacing={2}>
+          {/* Notification Bell */}
+          <Box
+            onClick={(e) => setNotifAnchorEl(e.currentTarget)}
+            sx={{
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              bgcolor: palette.slate[100],
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              position: "relative",
+              transition: "background-color 0.15s ease",
+              "&:hover": {
+                bgcolor: palette.slate[200],
+              },
+            }}
+          >
+            <NotificationsNoneRounded sx={{ fontSize: 20, color: palette.slate[700] }} />
+            <Box
+              sx={{
+                position: "absolute",
+                top: -2,
+                right: -2,
+                minWidth: 18,
+                height: 18,
+                borderRadius: "50%",
+                bgcolor: "#E11D48",
+                color: "#FFFFFF",
+                fontSize: 10,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                px: 0.5,
+                border: "2px solid #FFFFFF",
+              }}
+            >
+              10
+            </Box>
           </Box>
 
-          <KeyboardArrowDownRounded
-            sx={{
-              fontSize: 18,
-              color: "text.secondary",
-              transition: "transform 0.15s ease",
-              transform: Boolean(anchorEl) ? "rotate(180deg)" : "none",
-            }}
-          />
-        </Stack>
-
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={closeUserMenu}
-          disableAutoFocusItem
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-          slotProps={{
-            paper: {
-              elevation: 0,
-              sx: {
-                mt: 1,
-                minWidth: 224,
-                border: "1px= solid",
-                borderColor: "divider",
-                boxShadow: "0 6px 16px rgba(16,24,40,0.08)",
-                overflow: "hidden",
-                ul: {
-                  py: 0,
+          <Popover
+            open={Boolean(notifAnchorEl)}
+            anchorEl={notifAnchorEl}
+            onClose={() => setNotifAnchorEl(null)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+            slotProps={{
+              paper: {
+                elevation: 0,
+                sx: {
+                  mt: 1,
+                  width: 360,
+                  maxHeight: 420,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                  boxShadow: "0 6px 16px rgba(16,24,40,0.08)",
+                  overflow: "hidden",
                 },
               },
-            },
-          }}
-          transformOrigin={{ vertical: "top", horizontal: "right" }}
-        >
-          <MenuItem
-            sx={{ py: 1.5, gap: 1.25 }}
-            onClick={() => {
-              closeUserMenu();
-              setProfileOpen(true);
             }}
           >
-            <ListItemIcon>
-              <PersonOutlineRounded fontSize="small" />
-            </ListItemIcon>
-            <Box component="span" sx={{ flex: 1 }}>
-              {t("profile")}
+            <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider" }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                Notifications
+              </Typography>
             </Box>
-            <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
-          </MenuItem>
-
-          <MenuItem
-            sx={{ py: 1.5, gap: 1.25, bgcolor: Boolean(settingsAnchorEl) ? "action.hover" : undefined }}
-            onMouseEnter={openSettingsSubmenu}
-            onMouseLeave={scheduleCloseSettingsSubmenu}
-            onClick={openSettingsSubmenu}
-          >
-            <ListItemIcon>
-              <SettingsOutlined fontSize="small" />
-            </ListItemIcon>
-            <Box component="span" sx={{ flex: 1 }}>
-              {t("settings")}
+            <Box sx={{ maxHeight: 340, overflowY: "auto" }}>
+              {NOTIFICATIONS.map((item) => (
+                <Box
+                  key={item.id}
+                  sx={{
+                    p: 2,
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
+                    "&:hover": { bgcolor: "action.hover" },
+                    cursor: "pointer",
+                  }}
+                >
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 600 }}>
+                      {item.category}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                      {item.time}
+                    </Typography>
+                  </Stack>
+                  <Typography variant="body2" sx={{ fontWeight: 500, mt: 0.5 }}>
+                    {item.title}
+                  </Typography>
+                </Box>
+              ))}
             </Box>
-            <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
-          </MenuItem>
+          </Popover>
 
-          <MenuItem sx={{ py: 1.5, gap: 1.25 }} onClick={closeUserMenu}>
-            <ListItemIcon>
-              <LockOutlined fontSize="small" />
-            </ListItemIcon>
-            <Box component="span" sx={{ flex: 1 }}>
-              {t("changePassword")}
-            </Box>
-            <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
-          </MenuItem>
+          {/* Language Switcher */}
+          <SwitchLanguageMenu />
 
-          <Divider sx={{ my: 0.5 }} />
-
-          <MenuItem
-            sx={{ py: 1.5, gap: 1.25, color: "error.main" }}
-            onClick={() => {
-              closeUserMenu();
-              void logout();
-            }}
-          >
-            <ListItemIcon sx={{ color: "inherit" }}>
-              <LogoutOutlinedIcon fontSize="small" />
-            </ListItemIcon>
-            {t("logout")}
-          </MenuItem>
-        </Menu>
-
-        <Popper
-          open={Boolean(anchorEl) && Boolean(settingsAnchorEl)}
-          anchorEl={settingsAnchorEl}
-          placement="right-start"
-          modifiers={[{ name: "offset", options: { offset: [0, 8] } }]}
-          sx={{ zIndex: (theme) => theme.zIndex.modal + 1 }}
-        >
-          <Paper
-            elevation={0}
-            onMouseEnter={cancelCloseSettings}
-            onMouseLeave={scheduleCloseSettingsSubmenu}
+          {/* User Profile */}
+          <Stack
+            direction="row"
             sx={{
-              minWidth: 240,
-              border: "1px solid",
-              borderColor: "divider",
-              boxShadow: "0 6px 16px rgba(16,24,40,0.08)",
-              overflow: "hidden",
+              alignItems: "center",
+              cursor: "pointer",
+              gap: 1.25,
             }}
+            onClick={(e) => setAnchorEl(e.currentTarget)}
           >
-            <MenuList sx={{ py: 0 }}>
-              <MenuItem
-                sx={{ py: 1.5, gap: 1.25 }}
-                onClick={() => {
-                  closeUserMenu();
-                  router.push("/limits");
+            <Avatar
+              sx={{
+                width: 38,
+                height: 38,
+                borderRadius: "50%",
+                bgcolor: "#E2E8F0",
+                color: "#1E293B",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              {initials || "RS"}
+            </Avatar>
+
+            <Box sx={{ display: { xs: "none", md: "block" }, lineHeight: 1.2 }}>
+              <Typography
+                sx={{
+                  fontWeight: 700,
+                  color: palette.slate[900],
+                  fontSize: 13,
+                  lineHeight: 1.2,
                 }}
               >
-                <ListItemIcon>
-                  <TuneRounded fontSize="small" />
-                </ListItemIcon>
-                <Box component="span" sx={{ flex: 1 }}>
-                  {t("limitManagement")}
-                </Box>
-                <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
-              </MenuItem>
-              <MenuItem sx={{ py: 1.5, gap: 1.25 }} onClick={closeUserMenu}>
-                <ListItemIcon>
-                  <NotificationsNoneRounded fontSize="small" />
-                </ListItemIcon>
-                <Box component="span" sx={{ flex: 1 }}>
-                  {t("notificationsManagement")}
-                </Box>
-                <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
-              </MenuItem>
-            </MenuList>
-          </Paper>
-        </Popper>
+                Shiiping co., ltd
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: 11,
+                  color: palette.slate[500],
+                  lineHeight: 1.2,
+                  mt: 0.25,
+                }}
+              >
+                {user?.name || "Rous Samol"} - {user?.roles?.[0]?.name || "Admin"}
+              </Typography>
+            </Box>
+
+
+          </Stack>
+
+          {/* User Menu Dropdown */}
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={closeUserMenu}
+            disableAutoFocusItem
+            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+            slotProps={{
+              paper: {
+                elevation: 0,
+                sx: {
+                  mt: 1,
+                  minWidth: 224,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  boxShadow: "0 6px 16px rgba(16,24,40,0.08)",
+                  borderRadius: "16px",
+                  overflow: "hidden",
+                  ul: { py: 0 },
+                },
+              },
+            }}
+            transformOrigin={{ vertical: "top", horizontal: "right" }}
+          >
+            <MenuItem
+              sx={{ py: 1.5, gap: 1.25 }}
+              onClick={() => {
+                closeUserMenu();
+                setProfileOpen(true);
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 32,
+                  color: palette.slate[700],
+                }}
+              >
+                <PersonOutlineRounded fontSize="small" />
+              </ListItemIcon>
+              <Box component="span" sx={{ flex: 1, fontSize: 14 }}>
+                {t("profile")}
+              </Box>
+              <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
+            </MenuItem>
+
+            <MenuItem
+              sx={{
+                py: 1.5,
+                gap: 1.25,
+                bgcolor: Boolean(settingsAnchorEl) ? "action.hover" : undefined,
+              }}
+              onMouseEnter={openSettingsSubmenu}
+              onMouseLeave={scheduleCloseSettingsSubmenu}
+              onClick={openSettingsSubmenu}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: 32,
+                  color: palette.slate[700],
+                }}
+              >
+                <SettingsOutlined fontSize="small" />
+              </ListItemIcon>
+              <Box component="span" sx={{ flex: 1, fontSize: 14 }}>
+                {t("settings")}
+              </Box>
+              <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
+            </MenuItem>
+
+            <MenuItem sx={{ py: 1.5, gap: 1.25 }} onClick={closeUserMenu}>
+              <ListItemIcon
+                sx={{
+                  minWidth: 32,
+                  color: palette.slate[700],
+                }}
+              >
+                <LockOutlined fontSize="small" />
+              </ListItemIcon>
+              <Box component="span" sx={{ flex: 1, fontSize: 14 }}>
+                {t("changePassword")}
+              </Box>
+              <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
+            </MenuItem>
+
+            <Divider sx={{ my: 0.5 }} />
+
+            <MenuItem
+              sx={{ py: 1.5, gap: 1.25, color: "error.main" }}
+              onClick={() => {
+                closeUserMenu();
+                void logout();
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 32, color: "inherit" }}>
+                <LogoutOutlinedIcon fontSize="small" />
+              </ListItemIcon>
+              <Box component="span" sx={{ fontSize: 14, fontWeight: 500 }}>
+                {t("logout")}
+              </Box>
+            </MenuItem>
+          </Menu>
+
+          {/* Settings Submenu */}
+          <Popper
+            open={Boolean(anchorEl) && Boolean(settingsAnchorEl)}
+            anchorEl={settingsAnchorEl}
+            placement="right-start"
+            modifiers={[{ name: "offset", options: { offset: [0, 8] } }]}
+            sx={{ zIndex: (theme) => theme.zIndex.modal + 1 }}
+          >
+            <Paper
+              elevation={0}
+              onMouseEnter={cancelCloseSettings}
+              onMouseLeave={scheduleCloseSettingsSubmenu}
+              sx={{
+                minWidth: 240,
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "0 6px 16px rgba(16,24,40,0.08)",
+                borderRadius: "16px",
+                overflow: "hidden",
+              }}
+            >
+              <MenuList sx={{ py: 0 }}>
+                <MenuItem
+                  sx={{ py: 1.5, gap: 1.25 }}
+                  onClick={() => {
+                    closeUserMenu();
+                    router.push("/limits");
+                  }}
+                >
+                  <ListItemIcon>
+                    <TuneRounded fontSize="small" />
+                  </ListItemIcon>
+                  <Box component="span" sx={{ flex: 1 }}>
+                    {t("limitManagement")}
+                  </Box>
+                  <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
+                </MenuItem>
+                <MenuItem sx={{ py: 1.5, gap: 1.25 }} onClick={closeUserMenu}>
+                  <ListItemIcon>
+                    <NotificationsNoneRounded fontSize="small" />
+                  </ListItemIcon>
+                  <Box component="span" sx={{ flex: 1 }}>
+                    {t("notificationsManagement")}
+                  </Box>
+                  <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
+                </MenuItem>
+              </MenuList>
+            </Paper>
+          </Popper>
+        </Stack>
       </Toolbar>
 
       <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />

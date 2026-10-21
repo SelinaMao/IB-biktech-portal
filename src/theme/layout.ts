@@ -2,7 +2,7 @@
  * Layout constants — single source for chrome dimensions, next to the palette
  * so all "config" lives under src/theme.
  */
-export const SIDEBAR_WIDTH = 300;
+export const SIDEBAR_WIDTH = 240;
 export const SIDEBAR_COLLAPSED_WIDTH = 72;
 export const TOPBAR_HEIGHT = 64;
 
