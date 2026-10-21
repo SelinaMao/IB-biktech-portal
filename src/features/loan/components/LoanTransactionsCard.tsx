@@ -169,22 +169,29 @@ export default function LoanTransactionsCard({
           mx: `-${CARD_PADDING_PX}px`,
         }}
       >
-        <Stack sx={{ display:"flex", px: 2.5, py: 1.5 }}>
-          <Box sx={{display:"flex",justifyContent:"space-between"}}>
-            <BaseSearchButton 
-            value={query}
-            onChange={(v) => {
-              setQuery(v);
-              setPage(0);
-            }}
-            placeholder="Search repayments…"
-            tooltip="Search"
-            width={240}
-          />
-          <BaseFilterByDay 
-          />
-          </Box>
-        </Stack>
+        <Stack sx={{ px: 2.5, py: 1.5 }}>
+  <Box
+    sx={{
+      display: 'flex',
+      flexDirection: { xs: 'column', sm: 'column',md:'row' },
+      justifyContent: 'space-between',
+      alignItems: { xs: 'stretch', sm: 'center' },
+      gap: 1.5,
+    }}
+  >
+    <BaseSearchButton
+      value={query}
+      onChange={(v) => {
+        setQuery(v);
+        setPage(0);
+      }}
+      placeholder="Search repayments…"
+      tooltip="Search"
+      width={240}
+    />
+    <BaseFilterByDay />
+  </Box>
+</Stack>
         <BaseTable
           columns={columns}
           rows={pageItems}

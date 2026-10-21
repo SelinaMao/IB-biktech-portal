@@ -39,7 +39,6 @@ export default function BaseButton({
         )
       }
       sx={{
-        padding: "12px 16px",
         borderRadius: "50px",
         backgroundColor: isDisabled
           ? "#EDEDEC"
