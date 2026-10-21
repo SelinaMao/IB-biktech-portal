@@ -242,7 +242,9 @@ export default function LoanDetailCard({
       </Box>
 
       {/* Bottom Action Pill Buttons */}
-      <Stack direction="row" spacing={1.75} sx={{ mt: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.75}
+        sx={{ mt: 3 }}>
         <BaseButton
           sx={{
             padding: "8px 20px",

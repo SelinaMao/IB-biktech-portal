@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { ArrowDownLeft, ArrowUpRight, CirclePlus, MoreVertical } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CirclePlus, MoreVertical, MoveDownRight, MoveUpLeft } from "lucide-react";
 
 import { formatCCY } from "@/utils/format-ccy";
 import { font, palette, radius, padding } from "@/theme/palette";
@@ -46,18 +46,34 @@ function renderAmount(val: string, color: string) {
     const main = val.slice(0, dotIndex);
     const decimals = val.slice(dotIndex);
     return (
-      <Box component="span" sx={{ display: "inline-flex", alignItems: "baseline", color }}>
-        <Typography component="span" sx={{ fontSize: 22, fontWeight: 700, color: "inherit", lineHeight: 1 }}>
+      <Box
+        component="span"
+        sx={{ display: "inline-flex", alignItems: "flex-start", color }}
+      >
+        <Typography
+          component="span"
+          sx={{ fontSize: 22, fontWeight: 400, color: "inherit", lineHeight: 1 }}
+        >
           {main}
         </Typography>
-        <Typography component="span" sx={{ fontSize: 13, fontWeight: 600, color: "inherit", lineHeight: 1, ml: 0.2 }}>
+        <Typography
+          component="span"
+          sx={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: "inherit",
+            lineHeight: 1,
+            ml: 0.25,
+            mt: "2px", // fine-tune vertical position
+          }}
+        >
           {decimals}
         </Typography>
       </Box>
     );
   }
   return (
-    <Typography component="span" sx={{ fontSize: 22, fontWeight: 700, color, lineHeight: 1 }}>
+    <Typography component="span" sx={{ fontSize: 22, fontWeight: 400, color, lineHeight: 1 }}>
       {val}
     </Typography>
   );
@@ -128,7 +144,8 @@ export default function CashFlowChart({
                 alignItems: "center",
                 bgcolor: palette.slate[100],
                 borderRadius: "999px",
-                p: "3px",
+                  px: 0.1,
+                      py: 0.2,
               }}
             >
               {currencies.map((ccy) => {
@@ -141,13 +158,13 @@ export default function CashFlowChart({
                       onCurrencyChange?.(ccy);
                     }}
                     sx={{
-                      px: 1.75,
-                      py: 0.4,
+                      px: 2.5,
+                      py: 1.5,
                       borderRadius: "999px",
                       bgcolor: isActive ? "#1E659E" : "transparent",
                       color: isActive ? "#FFFFFF" : palette.slate[500],
                       fontSize: "12px",
-                      fontWeight: isActive ? 600 : 500,
+                      fontWeight: isActive ? 400 : 400,
                       cursor: "pointer",
                       transition: "all 0.15s ease",
                     }}
@@ -225,7 +242,7 @@ export default function CashFlowChart({
                 flexShrink: 0,
               }}
             >
-              <ArrowUpRight size={18} strokeWidth={1.8} />
+              <MoveUpLeft size={18} strokeWidth={1.8} />
             </Box>
             <Box>
               <Typography
@@ -261,7 +278,7 @@ export default function CashFlowChart({
                 flexShrink: 0,
               }}
             >
-              <ArrowDownLeft size={18} strokeWidth={1.8} />
+              <MoveDownRight size={18} strokeWidth={1.8} />
             </Box>
             <Box>
               <Typography

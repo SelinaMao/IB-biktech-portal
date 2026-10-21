@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { Box, Typography } from "@mui/material";
+import BaseButton from "@core/components/BaseButton";
 import {
   ArrowUpRight,
   ChevronRight,
@@ -10,6 +11,7 @@ import {
   HandCoins,
   ScrollText,
   Settings,
+  SquareArrowOutUpRight,
 } from "lucide-react";
 
 import BaseCard from "@core/components/BaseCard";
@@ -109,7 +111,7 @@ export default function PendingRequestsCard({
               width: 24,
               height: 24,
               borderRadius: "50%",
-              bgcolor: "#EA580C",
+              bgcolor: palette.orange,
               color: palette.white,
               fontSize: 12,
               fontWeight: 700,
@@ -123,21 +125,22 @@ export default function PendingRequestsCard({
         <Box
           component={Link}
           href={viewAllHref}
-          aria-label="View all pending requests"
+          aria-label="View all scheduled items"
           sx={{
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
             color: palette.slate[900],
-            p: 0.5,
-            borderRadius: 1,
+            p: 1,
+            backgroundColor:palette.slate[100],
+            borderRadius: "50%",
             transition: "opacity 0.15s ease",
             "&:hover": {
               opacity: 0.7,
             },
           }}
         >
-          <ExternalLink size={20} />
+          <SquareArrowOutUpRight size={20} />
         </Box>
       </Box>
 
@@ -187,7 +190,7 @@ export default function PendingRequestsCard({
                   <Typography
                     sx={{
                       fontSize: 15,
-                      fontWeight: 600,
+                      fontWeight: 500,
                       color: palette.slate[900],
                       lineHeight: 1.25,
                     }}
@@ -233,14 +236,12 @@ export default function PendingRequestsCard({
       </Box>
 
       {/* Footer View All Button */}
-      <Box
+      <BaseButton
         component={Link}
         href={viewAllHref}
+        title="View all"
+        fullWidth
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "100%",
           py: 1.4,
           borderRadius: "9999px",
           bgcolor: palette.slate[100],
@@ -249,14 +250,11 @@ export default function PendingRequestsCard({
           fontWeight: 500,
           textDecoration: "none",
           mt: 0.5,
-          transition: "background-color 0.15s ease",
           "&:hover": {
             bgcolor: palette.slate[200],
           },
         }}
-      >
-        View all
-      </Box>
+      />
     </BaseCard>
   );
 }

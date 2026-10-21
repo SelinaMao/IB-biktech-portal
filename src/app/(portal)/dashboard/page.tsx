@@ -79,42 +79,46 @@ export default function ClientDashboardPage() {
 
   return (
     <Box sx={{ width: "100%", pb: 4 }}>
-      <Grid container spacing={2.5}>
-        {/* Left Column (8 cols): Available Balance, Cash Flow, Transactions */}
-        <Grid size={{ xs: 12, lg: 8 }}>
-          <Stack spacing={2.5}>
-            {kpiCards.map((c) => (
-              <StatCard key={c.label} {...c} />
-            ))}
+      <Stack spacing={2.5}>
+        {/* Full-width Top Card: Available Balance */}
+        {kpiCards.map((c) => (
+          <StatCard key={c.label} {...c} />
+        ))}
 
-            <CashFlowChart
-              data={SAMPLE_CASH_FLOW}
-              height={200}
-              onCurrencyChange={() => {
-                // TODO(api): refetch DASHBOARD.INFLOW_OUTFLOW with the selected ccy.
-              }}
-            />
+        {/* Two-Column Grid: Left (Cash Flow, Transactions) & Right (Pending Request, Schedule, Exchange rate) */}
+        <Grid container spacing={2.5}>
+          {/* Left Column (8 cols) */}
+          <Grid size={{ xs: 12, lg: 8 }}>
+            <Stack spacing={2.5}>
+              <CashFlowChart
+                data={SAMPLE_CASH_FLOW}
+                height={200}
+                onCurrencyChange={() => {
+                  // TODO(api): refetch DASHBOARD.INFLOW_OUTFLOW with the selected ccy.
+                }}
+              />
 
-            <TransactionsCard
-              accountNumber={defaultAccount?.accountNumber}
-              type={defaultAccount?.accountType}
-            />
-          </Stack>
+              <TransactionsCard
+                accountNumber={defaultAccount?.accountNumber}
+                type={defaultAccount?.accountType}
+              />
+            </Stack>
+          </Grid>
+
+          {/* Right Column (4 cols) */}
+          <Grid size={{ xs: 12, lg: 4 }}>
+            <Stack spacing={2.5}>
+              <PendingRequestsCard />
+              <ScheduleCard />
+              <ExchangeRatesCard
+                data={exchangeRatesData}
+                isLoading={isExchangeRatesLoading}
+                isError={isExchangeRatesError}
+              />
+            </Stack>
+          </Grid>
         </Grid>
-
-        {/* Right Column (4 cols): Pending Request, Schedule, Exchange rate */}
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Stack spacing={2.5}>
-            <PendingRequestsCard />
-            <ScheduleCard />
-            <ExchangeRatesCard
-              data={exchangeRatesData}
-              isLoading={isExchangeRatesLoading}
-              isError={isExchangeRatesError}
-            />
-          </Stack>
-        </Grid>
-      </Grid>
+      </Stack>
     </Box>
   );
 }

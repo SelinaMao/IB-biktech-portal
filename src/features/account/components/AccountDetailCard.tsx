@@ -227,7 +227,7 @@ export default function AccountDetailsCard({
         </Box>
 
         {/* Bottom Action Pill Buttons */}
-        <Stack direction="row" spacing={1.75} sx={{ mt: 3 }}>
+        <Stack direction="row" spacing={1.75} sx={{ mt: { xs: 2, sm: 3 } }}>
           <BaseButton
             sx={{
               padding: "8px 20px",
@@ -368,12 +368,14 @@ export default function AccountDetailsCard({
       </Box>
 
       {/* Bottom Action Pill Buttons */}
-      <Stack direction="row" spacing={1.75} sx={{ mt: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.75}
+        sx={{ mt: 3 }}>
         <BaseButton
           sx={{
-            padding: "8px 20px",
+            padding: "8px 15px",
             bgcolor: "#EBF3FC",
-            borderRadius: "999px",
+            borderRadius: "99px",
             fontSize: "14px",
             fontWeight: 500,
             textTransform: "none",

@@ -20,7 +20,7 @@ export const palette = {
   hover:{
     10:"#E2E8F0"
   },
-
+  orange:"#F57C00",
   IconTransfer:{
     to: "#FFF3E0",
     from:"#E6F5F0"

@@ -15,11 +15,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { alpha } from "@mui/material/styles";
+
 import { ActivateAppPromptDialog, MobileBindingDialog, useCurrentDeviceBindingQuery } from "@/features/bind";
-import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH } from "@/theme/layout";
+import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH, TOPBAR_HEIGHT } from "@/theme/layout";
 import { font, palette, radius } from "@/theme/palette";
-import { ArrowLeftRight, ChevronDown, ChevronUp, Circle, CircleDollarSign, CreditCard, HandCoins, ListCollapse, Shield, SquareCheckBig, Store, UsersRound } from "lucide-react";
+import { ArrowLeftRight, BanknoteArrowDown, ChevronDown, ChevronUp, Circle, CircleDollarSign, CreditCard, Form, HandCoins, ListCollapse, ReceiptText, Shield, SquareCheckBig, Store, UserShield, UsersRound } from "lucide-react";
 import { CLIENT_PERMISSIONS, useAuth, useMeQuery } from "@/features/auth";
 import { setHideAmount } from "@/store/global/global.slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -45,7 +45,7 @@ const NAV_ITEMS = [
   {
     key: "Account",
     href: "/account",
-    Icon: CreditCard,
+    Icon: Form,
     permissions: Object.values(CLIENT_PERMISSIONS.ACCOUNT),
   },
   {
@@ -64,7 +64,7 @@ const NAV_ITEMS = [
   {
     key: "Transfers",
     href: "/transfer",
-    Icon: ArrowLeftRight,
+    Icon: "/assets/icons/banknote-arrow-right.svg",
     // Not in CLIENT_PERMISSIONS — confirmed codes are payment.transfer.{create,approve},
     // no transfer.view code exists yet; not substituting since create/approve is a
     // different scope than view.
@@ -73,7 +73,7 @@ const NAV_ITEMS = [
   {
     key: "Payments",
     href: "/client-dashboard",
-    Icon: CircleDollarSign,
+    Icon: ReceiptText,
     // Not in CLIENT_PERMISSIONS — confirmed codes are payment.payment.{create,approve},
     // no payment.view code exists yet; not substituting since create/approve is a
     // different scope than view.
@@ -96,7 +96,7 @@ const NAV_ITEMS = [
   {
     key: "Administrator",
     href: "/client-dashboard",
-    Icon: Shield,
+    Icon: UserShield,
     // No static `permissions` here — visibility is derived from `children`
     // (see hasNavAccess/visibleNavItems) so it can never drift out of sync
     // with the child permission lists below.
@@ -128,6 +128,28 @@ const cleanPath = (path: string) => path.split(/[?#]/)[0].replace(/\/+$/, "") ||
 const NAV_HREFS = NAV_ITEMS.flatMap((navItem) => [navItem.href, ...("children" in navItem && navItem.children ? navItem.children.map((child) => child.href) : [])]).map(cleanPath);
 
 // BOTTOM_ITEMS is now defined dynamically inside the component to support React state and custom click actions (CLAUDE.md/USER directive)
+
+const renderNavIcon = (Icon: React.ElementType | string, size = 20) => {
+  if (typeof Icon === "string") {
+    const src = Icon.replace(/^\/?public[\\/]/, "/").replace(/\\/g, "/");
+    const cleanSrc = src.startsWith("/") ? src : `/${src}`;
+    return (
+      <Box
+        component="span"
+        sx={{
+          width: size,
+          height: size,
+          display: "inline-block",
+          bgcolor: "currentColor",
+          mask: `url("${cleanSrc}") no-repeat center / contain`,
+          WebkitMask: `url("${cleanSrc}") no-repeat center / contain`,
+        }}
+      />
+    );
+  }
+  const Component = Icon;
+  return <Component fontSize="small" size={size} sx={{ width: size, height: size }} />;
+};
 
 export type ClientSidebarProps = {
   collapsed: boolean;
@@ -246,52 +268,39 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         display: "flex",
         flexDirection: "column",
         position: "sticky",
-        top: 0,
-        height: "100vh",
+        top: `${TOPBAR_HEIGHT}px`,
+        height: `calc(100vh - ${TOPBAR_HEIGHT}px)`,
+        maxHeight: `calc(100vh - ${TOPBAR_HEIGHT}px)`,
         transition: "width 200ms ease",
-        overflowX: "hidden",
+        overflow: "hidden",
+        borderRight: `1px solid ${palette.slate[200]}`,
+        zIndex: 10,
       }}
     >
-      {/* Brand */}
-      <Box
-        sx={{
-          p: 0,
-          bgcolor: "#F5F7FA",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          width: "100%",
-          flexShrink: 0,
-          px: !collapsed ? { xs: 1.5, sm: 2 } : 1,
-          transition: "max-width 0.2s ease-in-out, padding 0.2s ease-in-out",
-
-          // outline drawn inside the box
-          outline: "2px solid",
-          outlineColor: alpha("#0000", 0.1),
-          outlineOffset: "-2px",
-        }}
-      >
-        <Image
-          src="/branding/BiKTECH.png"
-          alt="SME Bank"
-          loading="eager"
-          priority
-          // High base resolution for crisp rendering
-          width={200}
-          height={200}
-          style={{
-            width: "100%",
-            height: "60%",
-            objectFit: "contain",
-            transition: "all 0.2s ease-in-out",
-          }}
-        />
-      </Box>
-
       {/* Navigation */}
       <List sx={{
-        pl: collapsed ? 5 : 6, pr: collapsed ? 5 : 6, flex: 1, overflowY: "auto", borderRight: "2px solid",
-        borderRightColor: alpha("#000", 0.1),
+        px: collapsed ? 2 : 2,
+        py: 2,
+        flex: 1,
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
+        "&::-webkit-scrollbar": {
+          width: "4px",
+        },
+        "&::-webkit-scrollbar-track": {
+          backgroundColor: "transparent",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: palette.slate[300],
+          borderRadius: "4px",
+        },
+        "&::-webkit-scrollbar-thumb:hover": {
+          backgroundColor: palette.slate[400],
+        },
+        scrollbarWidth: "thin",
+        scrollbarColor: `${palette.slate[300]} transparent`,
+
       }}>
         {visibleNavItems.map((navItem) => {
           const { key, href, Icon } = navItem;
@@ -331,7 +340,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                     color: "inherit",
                   }}
                 >
-                  <Icon fontSize="small" size={20} sx={{ width: 20, height: 20 }} />
+                  {renderNavIcon(Icon, 20)}
                 </ListItemIcon>
                 {!collapsed && (
                   <>
@@ -453,7 +462,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                   color: "inherit",
                 }}
               >
-                <Icon fontSize="small" size={20} sx={{ width: 20, height: 20 }} />
+                {renderNavIcon(Icon, 20)}
               </ListItemIcon>
               {!collapsed && (
                 <ListItemText
@@ -470,18 +479,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 />
               )}
 
-              {active && !collapsed && (
-                <Box
-                  sx={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    bgcolor: palette.link,
-                    flexShrink: 0,
-                    ml: "auto",
-                  }}
-                />
-              )}
+            
             </ListItemButton>
           );
 
@@ -498,20 +496,22 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
       {/* Bottom Component */}
       <Box
         sx={{
-          outline: "2px solid",
-          outlineColor: alpha("#0000", 0.1),
-          outlineOffset: "-2px",
+          flexShrink: 0,
+          borderTop: `1px solid ${palette.slate[200]}`,
+
+
           px: collapsed ? 1.5 : 2,
           py: 2,
           mt: "auto",
         }}
       >
         {collapsed ? (
-          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "start", gap: 1 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
             <Tooltip title={`${t("mobile-activate")} — ${statusText}`} placement="right">
               <Box
                 onClick={() => setMobileActivateOpen(true)}
                 sx={{
+
                   width: 44,
                   height: 44,
                   display: "flex",
@@ -530,7 +530,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 }}
               >
                 <Circle
-                  size={18}
+                  size={16}
                   strokeWidth={2.5}
                   color={isLinked ? "#00875A" : palette.slate[400]}
                 />
@@ -562,7 +562,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
             </Tooltip>
           </Box>
         ) : (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 ,padding:"5px"}}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             {/* Mobile Activate Card */}
             <Box
               onClick={() => setMobileActivateOpen(true)}
@@ -572,9 +572,9 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 justifyContent: "space-between",
                 border: "1.5px solid",
                 borderColor: palette.slate[200],
-                borderRadius: "12px",
+                borderRadius: "10px",
                 px: 2,
-                py: 1.25,
+                py: 2,
                 bgcolor: "#FFFFFF",
                 cursor: "pointer",
                 transition: "all 0.15s ease",
@@ -584,20 +584,19 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 },
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 ,padding:"8px"}}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
                 <Circle
                   size={16}
                   strokeWidth={2.5}
-                  color={isLinked ? "#00875A" : "#2C8468"}
-                  style={{ flexShrink: 0 ,backgroundColor: "#2C8468" ,borderRadius:"50%",border:"1px solid #36A17E"}}
+                  color={isLinked ? "#00875A" : palette.slate[400]}
+                  style={{ flexShrink: 0 }}
                 />
                 <Typography
                   sx={{
-                    fontSize: "15px",
+                    fontSize: "14px",
                     fontWeight: font.weight.medium,
                     color: palette.slate[700],
                     whiteSpace: "nowrap",
-                    borderRadius:"10px"
                   }}
                 >
                   {t("mobile-activate")}
@@ -606,12 +605,12 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
 
               <Box
                 sx={{
-                  px: 1.35,
+                  px: 1.25,
                   py: 1.35,
                   bgcolor: isLinked ? "#E6F9F0" : palette.slate[100],
                   border: "1.5px solid",
                   borderColor: isLinked ? "#7FE3B5" : palette.slate[300],
-                  borderRadius: "8px",
+                  borderRadius: "5px",
                   color: isLinked ? "#065F46" : palette.slate[500],
                   fontSize: "12px",
                   fontWeight: font.weight.bold,
@@ -661,7 +660,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 slotProps={{
                   primary: {
                     sx: {
-                      fontSize: "15px",
+                      fontSize: "14px",
                       fontWeight: font.weight.medium,
                       color: "inherit",
                       whiteSpace: "nowrap",

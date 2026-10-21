@@ -13,12 +13,10 @@ import { SIDEBAR_COLLAPSED_KEY } from "@/theme/layout";
 import React from "react";
 
 /**
- * Chrome for every authenticated screen: collapsible navy sidebar + white
- * top bar. SessionProvider restores the Redux session mirror from the
- * httpOnly cookie (via /me) after a full page load. Collapsed state is
- * remembered in localStorage (read after mount to avoid SSR hydration
- * mismatch). useGetMetaQuery is warmed here so every dropdown category is
- * cached before any screen needs it; later calls elsewhere reuse this entry.
+ * Chrome for authenticated portal screens:
+ * Full-width top bar across the top.
+ * ClientSidebar below on the left (responsive to toggle button in TopBar).
+ * Main content scroll area on the right.
  */
 export default function PortalLayout({
   children,
@@ -28,6 +26,7 @@ export default function PortalLayout({
   const hideAmount = useAppSelector((s) => s.global.hideAmount);
   const handleToggleHideAmount = () => dispatch(toggleHideAmount());
   useGetMetaQuery();
+
   useEffect(() => {
     setCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true");
   }, []);
@@ -40,25 +39,28 @@ export default function PortalLayout({
 
   return (
     <SessionProvider>
-      <Box sx={{ display: "flex", minHeight: "100vh" }}>
-        <ClientSidebar collapsed={collapsed} />
+      <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", bgcolor: palette.slate[100] }}>
+        {/* Full-width TopBar */}
+        <PortalTopBar
+          collapsed={collapsed}
+          onToggleSidebar={toggleSidebar}
+          hideAmount={hideAmount}
+          onToggleHideAmount={handleToggleHideAmount}
+        />
 
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            minWidth: 0, // allow content (tables) to shrink instead of overflowing
-            // columnGap: 2,
-            // rowGap: 2
-          }}
-        >
-          <PortalTopBar collapsed={collapsed} onToggleSidebar={toggleSidebar} hideAmount={hideAmount}
-            onToggleHideAmount={handleToggleHideAmount} />
+        {/* Content area: Sidebar on left, main content on right */}
+        <Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
+          <ClientSidebar collapsed={collapsed} />
 
-          {/* Tinted ground so cards and tables read as surfaces on it. slate[100] is the
-              app background the palette already names — it was never applied. */}
-          <Box component="main" sx={{ flex: 1, p: 6, backgroundColor: palette.slate[100] }}>
+          <Box
+            component="main"
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              p: { xs: 2.5, sm: 3, md: 4 },
+              backgroundColor: palette.slate[100],
+            }}
+          >
             {children}
           </Box>
         </Box>

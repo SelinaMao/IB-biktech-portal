@@ -194,6 +194,7 @@ export default function CashFlowCard() {
       {/* Averages */}
       <Stack
         direction="row"
+
         sx={{ mt: 2, borderTop: `1px solid ${palette.slate[100]}`, pt: 2 }}
       >
         <Box sx={{ flex: 1 }}>
@@ -224,3 +225,4 @@ export default function CashFlowCard() {
     </BaseCard>
   );
 }
+

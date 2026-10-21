@@ -121,8 +121,8 @@ export default function StatCard({
               <Image
                 src="/branding/khqr-small.png"
                 alt="KHQR"
-                width={48}
-                height={48}
+                width={24}
+                height={24}
                 style={{ objectFit: "contain" ,}}
               />
             </Box>

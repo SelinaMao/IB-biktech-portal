@@ -53,7 +53,7 @@ export default function NotFound() {
         }}
       >
         <Image
-          src="/branding/logo-gold.png"
+          src="/branding/BiKTECH.png"
           alt="SME Bank"
           width={120}
           height={120}
@@ -87,13 +87,13 @@ export default function NotFound() {
 
         <Stack direction={{ xs: "column", sm: "row" }} sx={{ gap: 1.5, width: "100%", justifyContent: "center" }}>
           <Link href="/dashboard" style={{ textDecoration: "none" }}>
-            <BaseButton title={t("backToDashboard")} sx={{ width: { xs: "100%", sm: "auto" } }} />
+            <BaseButton title={t("backToDashboard")} sx={{padding:"2 3", width: { xs: "100%", sm: "auto" } }} />
           </Link>
           {/* router.back() rather than a link: whatever they came from is the page they wanted. */}
           <Button
             onClick={() => router.back()}
             sx={{
-              padding: "12px 16px",
+              padding: "4 2",
               color: palette.primary[40],
               fontWeight: font.weight.medium,
               "&:hover": { bgcolor: palette.slate[100] },

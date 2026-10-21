@@ -8,6 +8,7 @@ import { ExternalLink, SquareArrowOutUpRight } from "lucide-react";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
 import { palette, radius, padding } from "@/theme/palette";
+import BaseButton from "@/@core/components/BaseButton";
 
 export interface ScheduleItem {
   id: string;
@@ -110,7 +111,7 @@ export default function ScheduleCard({
             justifyContent: "center",
             color: palette.slate[900],
             p: 1,
-            backgroundColor:palette.hover[10],
+            backgroundColor:palette.slate[100],
             borderRadius: "50%",
             transition: "opacity 0.15s ease",
             "&:hover": {
@@ -193,7 +194,7 @@ export default function ScheduleCard({
                   <Typography
                     sx={{
                       fontSize: 15,
-                      fontWeight: 600,
+                      fontWeight: 500,
                       color: palette.slate[900],
                       lineHeight: 1.25,
                       padding:1
@@ -241,30 +242,25 @@ export default function ScheduleCard({
       </Box>
 
       {/* Footer View All Button */}
-      <Box
-        component={Link}
-        href={viewAllHref}
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "100%",
-          py: 1.4,
-          borderRadius: `${radius.pill}px`,
-          bgcolor: palette.slate[100],
-          color: palette.slate[900],
-          fontSize: 15,
-          fontWeight: 500,
-          textDecoration: "none",
-          mt: 0.5,
-          transition: "background-color 0.15s ease",
-          "&:hover": {
-            bgcolor: palette.slate[200],
-          },
-        }}
-      >
-        View all
-      </Box>
+<BaseButton
+  component={Link}
+  href={viewAllHref}
+  title="View all"
+  fullWidth
+  sx={{
+    py: 1.4,
+    borderRadius: "9999px",
+    bgcolor: palette.slate[100],
+    color: palette.slate[900],
+    fontSize: 15,
+    fontWeight: 500,
+    textDecoration: "none",
+    mt: 0.5,
+    "&:hover": {
+      bgcolor: palette.slate[200],
+    },
+  }}
+/>
     </BaseCard>
   );
 }

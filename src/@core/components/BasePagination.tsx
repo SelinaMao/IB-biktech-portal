@@ -60,10 +60,10 @@ export default function BasePagination({
         direction="row"
         sx={{
           alignItems: "center",
-          justifyContent: "flex-end",
+          justifyContent: { xs: "center", md: "flex-end" },
           flexWrap: "wrap",
-          gap: 2,
-          py: 1,
+          gap: { xs: 0.75, sm: 1.25, md: 2 },
+          py: { xs: 0.5, md: 1 },
         }}
       >
         {/* Total Count Label */}
@@ -81,11 +81,11 @@ export default function BasePagination({
         {/* "Page:" Pill */}
         <Box
           sx={{
+            display: { xs: "none", sm: "inline-flex" },
             bgcolor: "#ECEFF5",
             borderRadius: "9999px",
-            px: 2.25,
-            height: 38,
-            display: "inline-flex",
+            px: { sm: 1.75, md: 2.25 },
+            height: { sm: 34, md: 38 },
             alignItems: "center",
             justifyContent: "center",
           }}

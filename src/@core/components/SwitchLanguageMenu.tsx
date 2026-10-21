@@ -5,8 +5,7 @@ import { Box, Menu, MenuItem, Stack, Typography } from "@mui/material";
 import { CheckRounded, KeyboardArrowDownRounded } from "@mui/icons-material";
 
 import { useLocale, type Locale } from "@/i18n";
-import { font } from "@/theme/palette";
-import { red } from "@mui/material/colors";
+import { font, palette } from "@/theme/palette";
 
 export function SwitchLanguageMenu() {
   const { locale, setLocale, languages } = useLocale();
@@ -17,17 +16,19 @@ export function SwitchLanguageMenu() {
     <>
       <Stack
         direction="row"
-        spacing={0.75}
+        spacing={1}
         onClick={(e) => setAnchor(e.currentTarget)}
         sx={{
           alignItems: "center",
           cursor: "pointer",
-          border: 0,
-          borderColor: "divider",
-          borderRadius: 2,
-          height: 40,
-          px: 2,
+          borderRadius: "9999px",
+          height: 38,
+          px: 1.75,
           bgcolor: "#EDF0F4",
+          transition: "background-color 0.15s ease",
+          "&:hover": {
+            bgcolor: "#E2E8F0",
+          },
         }}
       >
         <Box
@@ -43,17 +44,16 @@ export function SwitchLanguageMenu() {
         />
         <Typography
           sx={{
-            fontWeight: font.weight.semibold,
-            fontSize: font.size.md,
+            fontWeight: 500,
+            fontSize: 14,
             color: "text.primary",
-            pl:2
           }}
         >
           {languages[locale].label}
         </Typography>
         <KeyboardArrowDownRounded
           sx={{
-            fontSize: font.icon.sm,
+            fontSize: 18,
             color: "text.secondary",
             transition: "transform 0.15s ease",
             transform: open ? "rotate(180deg)" : "none",
@@ -100,25 +100,26 @@ export function SwitchLanguageMenu() {
               src={languages[key].flag}
               alt={languages[key].short}
               sx={{
-                width: 22,
-                height: 22,
+                width: 20,
+                height: 20,
                 borderRadius: "50%",
                 objectFit: "cover",
               }}
             />
-            {languages[key].label}
-            {locale === key && (
-              <CheckRounded
-                sx={{
-                  fontSize: font.icon.sm,
-                  ml: "auto",
-                  color: "success.main",
-                }}
-              />
-            )}
+            <Typography
+              sx={{
+                fontWeight: locale === key ? font.weight.semibold : font.weight.regular,
+                fontSize: font.size.md,
+                flex: 1,
+              }}
+            >
+              {languages[key].label}
+            </Typography>
+            {locale === key && <CheckRounded sx={{ fontSize: font.icon.sm, color: "primary.main" }} />}
           </MenuItem>
         ))}
       </Menu>
     </>
   );
 }
+export default SwitchLanguageMenu;
