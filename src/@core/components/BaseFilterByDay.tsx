@@ -190,7 +190,7 @@ export default function BaseFilterByDay({
     <>
       <Stack
         direction="row"
-        spacing={1}
+        spacing={2}
         sx={{
           alignItems: "center",
           flexWrap: "wrap",
@@ -242,14 +242,14 @@ export default function BaseFilterByDay({
                 },
               }}
             >
-              {opt.value === "custom" && (
+              {/* {opt.value === "custom" && (
                 <CalendarTodayRoundedIcon
                   sx={{
                     fontSize: 14,
                     color: isActive && activeVariant === "primary" ? "#FFFFFF" : palette.slate[400],
                   }}
                 />
-              )}
+              )} */}
               <span>{displayLabel}</span>
             </Box>
           );

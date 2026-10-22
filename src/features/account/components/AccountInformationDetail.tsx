@@ -7,6 +7,7 @@ import dayjs from "dayjs";
 import { palette } from "@/theme/palette";
 import { formatAccountNumber } from "@/utils/format-account-number";
 import BaseRightSideNavbar from "@core/components/BaseRightSideNavbar";
+import { useTopBarBreadcrumb } from "@core/layout";
 import type { IAccountDetailResponses } from "../account.types";
 
 export interface AccountDetailsProps {
@@ -69,6 +70,16 @@ export default function AccountInformationDetail({
   info,
   fixedDeposit,
 }: AccountDetailsProps) {
+  useTopBarBreadcrumb(
+    open
+      ? {
+          prefix: "Accounts",
+          subPrefix: "Account Information",
+          onBack: onClose,
+        }
+      : null
+  );
+
   if (!open) return null;
 
   const isTD = info.accountType === "TD" || fixedDeposit?.accountType === "TD";
@@ -98,46 +109,7 @@ export default function AccountInformationDetail({
     return (
       <Box sx={{ width: "100%", pb: 4 }}>
         {/* Back Button & Title */}
-        <Box sx={{ mb: 3 }}>
-          <Box
-            component="button"
-            type="button"
-            onClick={onClose}
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 0.75,
-              border: "none",
-              bgcolor: "transparent",
-              p: 0,
-              mb: 1.5,
-              cursor: "pointer",
-              "&:hover": { opacity: 0.8 },
-            }}
-          >
-            <ChevronLeft size={18} color={palette.primary[40]} />
-            <Typography
-              sx={{
-                fontSize: 15,
-                fontWeight: 600,
-                color: palette.primary[40],
-              }}
-            >
-              Accounts
-            </Typography>
-          </Box>
-
-          <Typography
-            sx={{
-              fontSize: 28,
-              fontWeight: 700,
-              color: "#0F172A",
-              lineHeight: 1.2,
-            }}
-          >
-            Account Information
-          </Typography>
-        </Box>
+        
 
         <Stack spacing={3}>
           {/* Card 1: Account Information */}
@@ -219,58 +191,7 @@ export default function AccountInformationDetail({
         {/* Left Main Content Column */}
         <Grid size={{ xs: 12, lg: 8.5 }}>
           {/* Back Button & Title */}
-          <Box sx={{ mb: 3 }}>
-            <Box
-              component="button"
-              type="button"
-              onClick={onClose}
-              sx={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 1,
-                border: "none",
-                bgcolor: "transparent",
-                p: 0,
-                mb: 1,
-                cursor: "pointer",
-                "&:hover": { opacity: 0.85 },
-              }}
-            >
-              <Box
-                sx={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: "50%",
-                  bgcolor: "#E6EEF8",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ChevronLeft size={15} color={palette.primary[40]} />
-              </Box>
-              <Typography
-                sx={{
-                  fontSize: 16,
-                  fontWeight: 600,
-                  color: palette.primary[40],
-                }}
-              >
-                Accounts
-              </Typography>
-            </Box>
-
-            <Typography
-              sx={{
-                fontSize: 28,
-                fontWeight: 700,
-                color: "#0F172A",
-                lineHeight: 1.2,
-              }}
-            >
-              Account Information
-            </Typography>
-          </Box>
+          
 
           <Stack spacing={3}>
             {/* Card 1: Account Overview */}

@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleHideAmount } from "@/store/global/global.slice";
 
-import { ClientSidebar, PortalTopBar } from "@core/layout";
+import { ClientSidebar, PortalTopBar, TopBarProvider } from "@core/layout";
 import { palette } from "@/theme/palette";
 import { SessionProvider } from "@/features/auth";
 import { useGetMetaQuery } from "@/features/meta";
@@ -39,15 +39,16 @@ export default function PortalLayout({
 
   return (
     <SessionProvider>
-      <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", bgcolor: palette.slate[100] }}>
-        {/* Full-width TopBar */}
-        <PortalTopBar
-          collapsed={collapsed}
-          onToggleSidebar={toggleSidebar}
-          hideAmount={hideAmount}
-          onToggleHideAmount={handleToggleHideAmount}
-        />
-
+      <TopBarProvider>
+        <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", bgcolor: palette.slate[100] }}>
+          {/* Full-width TopBar */}
+          <PortalTopBar
+            collapsed={collapsed}
+            onToggleSidebar={toggleSidebar}
+            hideAmount={hideAmount}
+            onToggleHideAmount={handleToggleHideAmount}
+          />
+        
         {/* Content area: Sidebar on left, main content on right */}
         <Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
           <ClientSidebar collapsed={collapsed} />
@@ -65,6 +66,7 @@ export default function PortalLayout({
           </Box>
         </Box>
       </Box>
-    </SessionProvider>
+    </TopBarProvider>
+  </SessionProvider>
   );
 }

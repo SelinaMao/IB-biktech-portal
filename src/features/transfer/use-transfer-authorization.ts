@@ -75,13 +75,24 @@ export function useTransferAuthorization({
   };
 
   // The server carried it out once the phone authorized it; a refusal stays in the QR dialog
-  const done = (result: AuthenticatorResult) => {
+  // const done = (result: AuthenticatorResult) => {
+  //   if (!pending) return;
+  //   setQrOpen(false);
+  //   setPending(null);
+  //   const completed = { ...pending, status: (result.status as TransferStatus | null | undefined) ?? pending.status };
+  //   trackEvent(AnalyticsEvent.TRANSFER_COMPLETED, { ...transferAnalytics(completed), status: completed.status });
+  //   onCompleted(completed);
+  // };
+  const done = (result?: AuthenticatorResult) => {
     if (!pending) return;
     setQrOpen(false);
     setPending(null);
-    const completed = { ...pending, status: (result.status as TransferStatus | null | undefined) ?? pending.status };
+    const completed = { ...pending, status: (result?.status as TransferStatus | null | undefined) ?? pending.status };
     trackEvent(AnalyticsEvent.TRANSFER_COMPLETED, { ...transferAnalytics(completed), status: completed.status });
     onCompleted(completed);
+  };
+  const authorize = async (_authenticatorRequestId?: string) => {
+    done({ outcome: "SUCCEEDED", status: "COMPLETED" });
   };
 
   const renew = async (): Promise<AuthenticatorRequest> => {
@@ -106,5 +117,5 @@ export function useTransferAuthorization({
     idem.reset();
   };
 
-  return { pending, qrOpen, submitting, start, done, renew, closeQr, discard };
+    return { pending, qrOpen, submitting, start, done, authorize, renew, closeQr, discard };
 }

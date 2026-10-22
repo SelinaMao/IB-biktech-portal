@@ -26,7 +26,15 @@ export const palette = {
     from:"#E6F5F0"
   },
   // Secondary accents — a subset of Twine (light tan + brand tan).
-  secondary: { light: "#ead8be", main: "#cc9966", dark: "#b56e41" },
+  secondary: { 
+    light: "#ead8be",
+    main: "#cc9966",
+    dark: "#b56e41",
+    100:"#C0E8DC",
+    200:"#8DD4BE",
+    500:"#2C8468",
+    600:"#226852"
+  },
 
   // Info — Minsk (indigo). `main`/`bg` for chips + alerts.
   info: {
@@ -47,6 +55,7 @@ export const palette = {
   },
   // Success — Malachite (green).
   success: {
+    active:"#1A7F37",
     50: "#f1fcf3",
     100: "#defae3",
     200: "#bff3c9",

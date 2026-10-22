@@ -48,6 +48,7 @@ export type BaseTableProps<T> = {
    * SectionCard) so the table sits flat instead of double-rounding.
    */
   rounded?: boolean;
+  getRowSx?: (row: T, index: number) => SxProps<Theme>;
 };
 
 /**
@@ -73,6 +74,7 @@ export default function BaseTable<T>({
   headerTextColor,
   headerBorderTop = true,
   rounded = true,
+  getRowSx,
 }: BaseTableProps<T>) {
   const displayedRows =
     pagination && rows.length > pagination.rowsPerPage
@@ -153,9 +155,12 @@ export default function BaseTable<T>({
                 displayedRows.map((row, index) => (
                   <TableRow
                     key={rowKeys[index]}
-                    hover
+                    hover={!getRowSx}
                     onClick={onRowClick ? () => onRowClick(row) : undefined}
-                    sx={{ cursor: onRowClick ? "pointer" : "default" }}
+                    sx={{
+                      cursor: onRowClick ? "pointer" : "default",
+                      ...(getRowSx ? (getRowSx(row, index) as object) : {}),
+                    }}
                   >
                     {columns.map((col) => (
                       <TableCell

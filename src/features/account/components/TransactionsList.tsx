@@ -17,6 +17,7 @@ import SectionCard from "@/features/dashboard/components/SectionCard";
 import { formatTransactionAmount, isIncomingTransaction } from "../account.slice";
 import type { TTransactionDetailResponse } from "../account.types";
 import { MoveDownRight, MoveUpLeft } from "lucide-react";
+import BaseFilterByDay from "@/@core/components/BaseFilterByDay";
 
 /** Matches BaseCard's padding — bled edge-to-edge so the header tint reaches the card border. */
 const CARD_PADDING_PX = 20;
@@ -221,6 +222,9 @@ export default function TransactionsList({
                 justifyContent: "space-between",
                 flexWrap: "wrap",
                 gap: 2,
+                paddingTop:6,
+                borderTop:"1px solid",
+                borderTopColor:palette.secondary[100]
               }}
             >
               <BaseSearchButton
@@ -229,46 +233,7 @@ export default function TransactionsList({
                 placeholder="Search transactions…"
               />
 
-              <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-                <Button variant="outlined" sx={{
-                  textTransform: "none",
-                  fontWeight: 400,
-                  fontSize: 15,
-                  color: "#4B5563",
-                  borderColor: "#DDE3F0",
-                  borderRadius: "10px",
-                  height: 38,
-                  px: 2.25,
-                  backgroundColor: "#fff",
-                  "&:hover": { borderColor: "#B8C2DB", backgroundColor: "#F8FAFF" },
-                }}>Last 7days</Button>
-
-                <Button variant="outlined" sx={{
-                  textTransform: "none",
-                  fontWeight: 400,
-                  fontSize: 15,
-                  color: "#4B5563",
-                  borderColor: "#DDE3F0",
-                  borderRadius: "10px",
-                  height: 38,
-                  px: 2.25,
-                  backgroundColor: "#fff",
-                  "&:hover": { borderColor: "#B8C2DB", backgroundColor: "#F8FAFF" },
-                }}>Last 30days</Button>
-                {/* <Button variant="outlined" sx={{display: "flex", gap: 1.5, flexWrap: "wrap" }}> */}
-                <Button variant="outlined" sx={{
-                  textTransform: "none",
-                  fontWeight: 400,
-                  fontSize: 15,
-                  color: "#4B5563",
-                  borderColor: "#DDE3F0",
-                  borderRadius: "10px",
-                  height: 38,
-                  px: 2.25,
-                  backgroundColor: "#fff",
-                  "&:hover": { borderColor: "#B8C2DB", backgroundColor: "#F8FAFF" },
-                }}>Custom date</Button>
-              </Box>
+              <BaseFilterByDay />
             </Box>
           </Box>
           <BaseTable

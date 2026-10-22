@@ -19,7 +19,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivateAppPromptDialog, MobileBindingDialog, useCurrentDeviceBindingQuery } from "@/features/bind";
 import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH, TOPBAR_HEIGHT } from "@/theme/layout";
 import { font, palette, radius } from "@/theme/palette";
-import { ArrowLeftRight, BanknoteArrowDown, ChevronDown, ChevronUp, Circle, CircleDollarSign, CreditCard, Form, HandCoins, ListCollapse, ReceiptText, Shield, SquareCheckBig, Store, UserShield, UsersRound } from "lucide-react";
+import { ArrowLeftRight, BanknoteArrowDown, CalendarSync, ChevronDown, ChevronUp, Circle, CircleDollarSign, CreditCard, Form, HandCoins, ListCollapse, ReceiptText, Shield, SquareCheckBig, SquareMenu, Store, UserShield, UsersRound } from "lucide-react";
 import { CLIENT_PERMISSIONS, useAuth, useMeQuery } from "@/features/auth";
 import { setHideAmount } from "@/store/global/global.slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -80,9 +80,25 @@ const NAV_ITEMS = [
     permissions: Object.values(CLIENT_PERMISSIONS.PAYMENT),
   },
   {
+    key: "Schedule",
+    href: "/client-dashboard",
+    Icon: CalendarSync,
+    // Not in CLIENT_PERMISSIONS — confirmed codes are payment.payment.{create,approve},
+    // no payment.view code exists yet; not substituting since create/approve is a
+    // different scope than view.
+    permissions: Object.values(CLIENT_PERMISSIONS.PAYMENT),
+  },
+  {
     key: "Payroll",
     href: "/client-dashboard",
     Icon: UsersRound,
+    // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
+    permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
+  },
+  {
+    key: "Other Services",
+    href: "/client-dashboard",
+    Icon: SquareMenu,
     // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
     permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
   },
@@ -356,7 +372,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                         },
                       }}
                     />
-                    {childActive && (
+                    {/* {childActive && (
                       <Box
                         sx={{
                           width: 6,
@@ -368,7 +384,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                           mr: 1,
                         }}
                       />
-                    )}
+                    )} */}
                     {isOpen ? <ChevronUp size={16} style={{ flexShrink: 0 }} /> : <ChevronDown size={16} style={{ flexShrink: 0 }} />}
                   </>
                 )}
@@ -530,8 +546,9 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 }}
               >
                 <Circle
-                  size={16}
+                  size={12}
                   strokeWidth={2.5}
+                  style={{ flexShrink: 0 ,backgroundColor:palette.success.active,borderRadius:"50%"}}
                   color={isLinked ? "#00875A" : palette.slate[400]}
                 />
               </Box>
@@ -586,10 +603,10 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
                 <Circle
-                  size={16}
+                  size={12}
                   strokeWidth={2.5}
                   color={isLinked ? "#00875A" : palette.slate[400]}
-                  style={{ flexShrink: 0 }}
+                  style={{ flexShrink: 0 ,backgroundColor:palette.success.active,borderRadius:"50%"}}
                 />
                 <Typography
                   sx={{

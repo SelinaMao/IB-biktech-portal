@@ -20,8 +20,9 @@ import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
+import { useTopBar } from "./TopBarContext";
 import { useAuth } from "@/features/auth";
 import { toggleHideAmount } from "@/store/global/global.slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -127,6 +128,18 @@ export default function PortalTopBar({
     return matched ? matched.title : "";
   }, [pathname, customTitle]);
   const router = useRouter();
+  const { breadcrumb } = useTopBar();
+
+  const handleBack = () => {
+    if (breadcrumb?.onBack) {
+      breadcrumb.onBack();
+    } else if (breadcrumb?.backHref) {
+      router.push(breadcrumb.backHref);
+    } else {
+      router.back();
+    }
+  };
+
   const { logout } = useAuth();
   const user = useAppSelector((state) => state.auth.user);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -168,7 +181,7 @@ export default function PortalTopBar({
         bgcolor: "#FFFFFF",
         color: "text.primary",
         borderBottom: `1px solid ${palette.slate[200]}`,
-        zIndex: (theme) => theme.zIndex.drawer + 1,
+        zIndex: (theme) => theme.zIndex.appBar,
       }}
     >
       <Toolbar
@@ -247,22 +260,112 @@ export default function PortalTopBar({
           </Box>
         </Box>
 
-        {/* Page / Section Title (to the right of the vertical ruler) */}
-        {pageTitle && (
-          <Box sx={{ pl: 2.5 }}>
+        {/* Page / Section Title or Breadcrumbs */}
+        {breadcrumb ? (
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ pl: 2.5 }}>
+            {/* Circular Back Button */}
+            <IconButton
+              size="small"
+              onClick={handleBack}
+              aria-label="Back"
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                bgcolor: "#EEF2F6",
+                color: "#334155",
+                p: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background-color 0.15s ease",
+                "&:hover": {
+                  bgcolor: "#E2E8F0",
+                },
+              }}
+            >
+              <ChevronLeft size={18} />
+            </IconButton>
+
+            {/* Prefix (e.g. Accounts) */}
+            <Typography
+              onClick={handleBack}
+              sx={{
+                fontSize: "15px",
+                fontWeight: 500,
+                color: "#94A3B8",
+                cursor: "pointer",
+                lineHeight: 1.2,
+                "&:hover": {
+                  color: "#0F172A",
+                },
+              }}
+            >
+              {breadcrumb.prefix}
+            </Typography>
+
+            {/* Separator Slash */}
+            <Typography
+              sx={{
+                fontSize: "16px",
+                color: "#94A3B8",
+                fontWeight: 400,
+                lineHeight: 1,
+                userSelect: "none",
+              }}
+            >
+              /
+            </Typography>
+
+            {/* SubPrefix (e.g. Account Information) */}
+            <Typography
+              sx={{
+                fontSize: "17px",
+                fontWeight: 700,
+                color: "#0F172A",
+                lineHeight: 1.2,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {breadcrumb.subPrefix}
+            </Typography>
+          </Stack>
+        ) : pageTitle ? (
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ pl: 2.5 }}>
+             <IconButton
+              size="small"
+              aria-label="Back"
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                bgcolor: "#EEF2F6",
+                color: "#334155",
+                p: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background-color 0.15s ease",
+                "&:hover": {
+                  bgcolor: "#E2E8F0",
+                },
+              }}
+            >
+              <ChevronLeft size={18} />
+            </IconButton>
             <Typography
               sx={{
                 fontSize: "17px",
                 fontWeight: 600,
-                color: "#1E659E",
+                color: "#0F172A",
                 lineHeight: 1.2,
                 whiteSpace: "nowrap",
               }}
             >
               {pageTitle}
             </Typography>
-          </Box>
-        )}
+          </Stack>
+        ) : null}
 
         <Box sx={{ flex: 1 }} />
 
