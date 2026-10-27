@@ -3,8 +3,7 @@
     "dashboard": "Dashboard",
     "components": "Components",
     "client-dashboard": "Client Dashboard",
-    "Account": "Account",
-    "Limits": "Limits",
+    "Account": "Accounts",
     "Loan": "Loan",
     "Transfers": "Fund Transfers",
     "Payments": "Payments",
@@ -21,7 +20,9 @@
     "logout": "Logout",
     "approvalRequests": "Approvals",
     "approvalSetup": "Approval Matrix",
+      "Limits": "Limits",
     "approvalApprovers": "Approver"
+    
   },
   "topbar": {
     "logout": "Logout",

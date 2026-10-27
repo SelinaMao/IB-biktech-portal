@@ -392,9 +392,9 @@ export default function PreviewTransfer({
                 mb: 4,
                 px: 6,
                 py: 4,
-                bgcolor: "background.paper",
-                borderBottom: 0.1,
-                borderColor: "divider",
+                // bgcolor: "background.paper",
+                // borderBottom: 0.1,
+                // borderColor: "divider",
             }}>
                 {/* <Box
                     component="button"

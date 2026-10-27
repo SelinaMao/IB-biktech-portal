@@ -336,9 +336,10 @@ export default function LoanTransactionsCard({
         let bg = "#F1F5F9";
         let color = "#475569";
         let label = "Upcoming";
-
+ 
         if (s === "due") {
           bg = "#FDEFD9";
+        
           color = "#92400E";
           label = "Due";
         } else if (s === "upcoming") {
@@ -365,8 +366,8 @@ export default function LoanTransactionsCard({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              px: 1.8,
-              py: 0.45,
+              px: 2.8,
+              py: 1.45,
               borderRadius: "9999px",
               bgcolor: bg,
               color: color,
@@ -399,7 +400,7 @@ export default function LoanTransactionsCard({
               padding: "6px 14px",
               borderRadius: "50px",
               fontSize: "13px",
-              fontWeight: 500,
+              fontWeight: 300,
               textTransform: "none",
               "&:hover": {
                 backgroundColor: "white",
@@ -455,8 +456,7 @@ export default function LoanTransactionsCard({
               }}
             />
           </Box>
-        </Stack>
-        <BaseTable
+           <BaseTable
           columns={columns}
           rows={pageItems}
           getRowKey={(t) => t.ref || String(t.no)}
@@ -498,10 +498,11 @@ export default function LoanTransactionsCard({
           paginationSx={{
             pr: `${CARD_PADDING_PX}px`,
             pl: `${CARD_PADDING_PX}px`,
-            py: 1.5,
           }}
           paginationVariant="compact"
         />
+        </Stack>
+       
         
       </Box>
     </SectionCard>

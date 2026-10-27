@@ -34,7 +34,7 @@ export default function TransferOptionCard({
         textAlign: "left",
         cursor: "pointer",
         transition: "box-shadow 0.2s ease, border-color 0.2s ease",
-        "&:hover": { boxShadow: 2, borderColor: palette.primary[300] },
+        "&:hover": { boxShadow: 2},
       }}
     >
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>

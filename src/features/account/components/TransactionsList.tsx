@@ -16,11 +16,11 @@ import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import SectionCard from "@/features/dashboard/components/SectionCard";
 import { formatTransactionAmount, isIncomingTransaction } from "../account.slice";
 import type { TTransactionDetailResponse } from "../account.types";
-import { MoveDownRight, MoveUpLeft } from "lucide-react";
+import { Icon, MoveDownRight, MoveUpLeft } from "lucide-react";
 import BaseFilterByDay from "@/@core/components/BaseFilterByDay";
 
 /** Matches BaseCard's padding — bled edge-to-edge so the header tint reaches the card border. */
-const CARD_PADDING_PX = 20;
+const CARD_PADDING_PX = 10;
 
 export interface TransactionsListProps {
   transactions: TTransactionDetailResponse[];
@@ -82,7 +82,7 @@ export default function TransactionsList({
       render: (t) => {
         const isIn = isIncomingTransaction(t);
         return (
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
             <Box
               sx={{
                 width: 32,
@@ -95,10 +95,22 @@ export default function TransactionsList({
                 color: isIn ? palette.danger.main : palette.danger.main,
               }}
             >
+
               {isIn ? (
-                <MoveUpLeft  fontSize={"14px"}/>
+                <Box
+                  component="img"
+                  src="/assets/icons/move-up-right.svg"
+                  alt="Transfer"
+                  sx={{ width: 24, height: 24 }}
+                />
+                // <MoveUpLeft />
               ) : (
-                <MoveDownRight  />
+                 <Box
+                  component="img"
+                  src="/assets/icons/move-down-right.svg"
+                  alt="Transfer"
+                  sx={{ width: 24, height: 24 }}
+                />
               )}
             </Box>
             <Box>
@@ -111,8 +123,10 @@ export default function TransactionsList({
     },
     {
       key: "date",
+      headSx: { pl: `${CARD_PADDING_PX}px` },
+      cellSx: { pl: `${CARD_PADDING_PX}px` },
       header: "Transaction Date",
-      render: (t) => <Typography variant="body2">{t.transactionDate}</Typography>,
+      render: (t) => <Typography variant="body2" sx={{ alignContent: "flex-start" }}>{t.transactionDate}</Typography>,
     },
     {
       key: "account",
@@ -130,8 +144,8 @@ export default function TransactionsList({
         return (
           <Typography
             sx={{
-              fontWeight: 600,
-              color: isIn ? palette.navy[100] : palette.danger[500],
+              fontWeight: 700,
+              color: isIn ? palette.success.active : palette.black40,
             }}
           >
             <BaseBlurText style={{ fontSize: 16 }}>{formatTransactionAmount(t)}</BaseBlurText>
@@ -222,9 +236,9 @@ export default function TransactionsList({
                 justifyContent: "space-between",
                 flexWrap: "wrap",
                 gap: 2,
-                paddingTop:6,
-                borderTop:"1px solid",
-                borderTopColor:palette.secondary[100]
+                paddingTop: 6,
+                borderTop: "1px solid",
+                borderTopColor: palette.secondary[100]
               }}
             >
               <BaseSearchButton
@@ -246,7 +260,7 @@ export default function TransactionsList({
             headerBgColor={"white"}
             headerBorderColor={palette.slate[200]}
             headerBorderTop={false}
-            headerTextColor={palette.slate[400]}
+            headerTextColor={palette.black40}
             rounded={false}
             emptyTitle={error ? "Could not load transactions." : "No transactions in this period."}
             emptyDescription={error ? "Please try again." : undefined}

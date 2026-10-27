@@ -102,13 +102,13 @@ export default function Transfer() {
           mb: 4,
           px: 6,
           py: 4,
-          bgcolor: "background.paper",
-          borderBottom: 0.1,
-          borderColor: "divider",
+          // bgcolor: "background.paper",
+          // borderBottom: 0.1,
+          // borderColor: "divider",
         }}
       >
-        <BaseTitle fontSize={24} fontWeight={"bold"} fontFamily={"ui-sans-serif"}>
-          Transfer
+        <BaseTitle fontSize={24} fontWeight={"bold"} fontFamily={"Inter"}>
+          Choose Type Of Transfer
         </BaseTitle>
       </Box>
       <Grid container spacing={2.5}>

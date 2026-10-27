@@ -49,12 +49,6 @@ const NAV_ITEMS = [
     permissions: Object.values(CLIENT_PERMISSIONS.ACCOUNT),
   },
   {
-    key: "Limits",
-    href: "/limits",
-    Icon: CreditCard,
-    permissions: Object.values(CLIENT_PERMISSIONS.TRANSACTION_LIMIT),
-  },
-  {
     key: "Loan",
     href: "/loan",
     Icon: HandCoins,
@@ -108,6 +102,12 @@ const NAV_ITEMS = [
     Icon: Store,
     // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
     permissions: Object.values(CLIENT_PERMISSIONS.MERCHANT),
+  },
+  {
+    key: "Limits",
+    href: "/limits",
+    Icon: CreditCard,
+    permissions: Object.values(CLIENT_PERMISSIONS.TRANSACTION_LIMIT),
   },
   {
     key: "Administrator",
@@ -495,7 +495,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 />
               )}
 
-            
+
             </ListItemButton>
           );
 
@@ -548,7 +548,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 <Circle
                   size={12}
                   strokeWidth={2.5}
-                  style={{ flexShrink: 0 ,backgroundColor:palette.success.active,borderRadius:"50%"}}
+                  style={{ flexShrink: 0, backgroundColor: palette.success.active, borderRadius: "50%" }}
                   color={isLinked ? "#00875A" : palette.slate[400]}
                 />
               </Box>
@@ -606,7 +606,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                   size={12}
                   strokeWidth={2.5}
                   color={isLinked ? "#00875A" : palette.slate[400]}
-                  style={{ flexShrink: 0 ,backgroundColor:palette.success.active,borderRadius:"50%"}}
+                  style={{ flexShrink: 0, backgroundColor: palette.success.active, borderRadius: "50%" }}
                 />
                 <Typography
                   sx={{
@@ -690,7 +690,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         )}
       </Box>
 
-      <MobileBindingDialog  open={mobileActivateOpen} linked={Boolean(bindingState?.linked)} deviceModel={bindingState?.deviceModel} lastSeenAt={bindingState?.lastSeenAt} onClose={() => setMobileActivateOpen(false)} />
+      <MobileBindingDialog open={mobileActivateOpen} linked={Boolean(bindingState?.linked)} deviceModel={bindingState?.deviceModel} lastSeenAt={bindingState?.lastSeenAt} onClose={() => setMobileActivateOpen(false)} />
 
       <ActivateAppPromptDialog open={activatePromptOpen} onClose={handleCloseActivatePrompt} onGetStarted={handleGetStartedActivate} />
     </Box>

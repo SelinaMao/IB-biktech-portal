@@ -20,7 +20,7 @@ import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Bell, ChevronLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { useTopBar } from "./TopBarContext";
 import { useAuth } from "@/features/auth";
@@ -390,7 +390,7 @@ export default function PortalTopBar({
               },
             }}
           >
-            <NotificationsNoneRounded sx={{ fontSize: 20, color: palette.slate[700] }} />
+            <Bell />
             <Box
               sx={{
                 position: "absolute",

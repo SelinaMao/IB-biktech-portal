@@ -66,7 +66,7 @@ export default function NotFound() {
           sx={{
             fontSize: font.size["4xl"],
             fontWeight: font.weight.bold,
-            color: palette.primary.main,
+            color: palette.danger[400],
             lineHeight: 1,
           }}
         >

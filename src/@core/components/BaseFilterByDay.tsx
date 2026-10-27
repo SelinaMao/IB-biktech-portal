@@ -277,7 +277,7 @@ export default function BaseFilterByDay({
         }}
       >
         <Stack spacing={2}>
-          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" ,padding:2}}>
             <Typography sx={{ fontSize: 14, fontWeight: 600, color: palette.slate[900] }}>
               Select Date Range
             </Typography>
@@ -286,7 +286,7 @@ export default function BaseFilterByDay({
             </IconButton>
           </Stack>
 
-          <Stack spacing={1.5}>
+          <Stack spacing={3.5}>
             <TextField
               label="From"
               type="date"
