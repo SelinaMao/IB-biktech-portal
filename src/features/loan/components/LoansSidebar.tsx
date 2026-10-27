@@ -59,9 +59,9 @@ export default function LoansSidebar({
 
   return (
     <Stack spacing={2.5}>
-      <Box>
+      {/* <Box>
         <SummaryCard {...summaryCard} />
-      </Box>
+      </Box> */}
 
       <Box
         sx={{

@@ -196,42 +196,74 @@ export default function PortalTopBar({
         {/* Left Side: Toggle Icon + Logo + Full-Height Vertical Ruler to the right of logo */}
         <Box
           sx={{
-            width: { xs: "auto", sm: `${SIDEBAR_WIDTH}px` },
-            minWidth: { xs: 0, sm: `${SIDEBAR_WIDTH}px` },
-            maxWidth: { xs: "none", sm: `${SIDEBAR_WIDTH}px` },
+            width: {
+              xs: "auto",
+              sm: `${collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH}px`,
+            },
+            minWidth: {
+              xs: 0,
+              sm: `${collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH}px`,
+            },
+            maxWidth: {
+              xs: "none",
+              sm: `${collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH}px`,
+            },
             boxSizing: "border-box",
             display: "flex",
             alignItems: "center",
+            justifyContent: "space-between",
             height: `${TOPBAR_HEIGHT}px`,
-            pl: { xs: 2, sm: 2.5 },
-            pr: 2,
-            gap: 1.75,
+            px: collapsed ? 1 : { xs: 2, sm: 6.5 },
             borderRight: { xs: "none", sm: `1px solid ${palette.slate[200]}` },
             flexShrink: 0,
+            transition: "width 200ms ease, min-width 200ms ease, max-width 200ms ease, padding 200ms ease",
           }}
-        // sx={{
-        //   // marginLeft:"15px",
-        //   width: `${SIDEBAR_WIDTH}px`,
-        //   minWidth: `${SIDEBAR_WIDTH}px`,
-        //   maxWidth: `${SIDEBAR_WIDTH}px`,
-        //   boxSizing: "border-box",
-        //   display: "flex",
-        //   alignItems: "center",
-        //   height: `${TOPBAR_HEIGHT}px`,
-        //   pl: { xs: 2, sm: 2.5 },
-        //   pr: 2,
-        //   gap: 1.75,
-        //   borderRight: `1px solid ${palette.slate[200]}`,
-        //   flexShrink: 0,
-        // }}
         >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              cursor: "pointer",
+            }}
+            onClick={() => router.push("/dashboard")}
+          >
+            {collapsed ? (
+              <Image
+                src="/branding/BikTech Official Logo 2.png"
+                alt="BiKTECH"
+                width={50}
+                height={50}
+                style={{
+                  marginLeft:"10px",
+                  height: "50px",
+                  width: "50px",
+                  objectFit: "contain",
+                }}
+                priority
+              />
+            ) : (
+              <Image
+                src="/branding/BiKTECH.png"
+                alt="BiKTECH Solution"
+                width={140}
+                height={28}
+                style={{
+                  height: "28px",
+                  width: "auto",
+                  objectFit: "contain",
+                }}
+                priority
+              />
+            )}
+          </Box>
           <IconButton
             edge="start"
             onClick={onToggleSidebar}
             aria-label="Toggle sidebar"
             sx={{
-              marginLeft: "5px",
-              p: 0.75,
+              marginTop: "2px",
+              marginLeft: collapsed ? "5px" : "0px",
+              p: collapsed ? 0 : 1.75,
               color: palette.slate[700],
               borderRadius: "8px",
               flexShrink: 0,
@@ -241,23 +273,8 @@ export default function PortalTopBar({
               },
             }}
           >
-            {collapsed ? <PanelLeftOpen size={22} /> : <PanelLeftClose size={22} />}
+            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
           </IconButton>
-
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Image
-              src="/branding/BiKTECH.png"
-              alt="BiKTECH Solution"
-              width={140}
-              height={28}
-              style={{
-                height: "28px",
-                width: "auto",
-                objectFit: "contain",
-              }}
-              priority
-            />
-          </Box>
         </Box>
 
         {/* Page / Section Title or Breadcrumbs */}
@@ -332,7 +349,7 @@ export default function PortalTopBar({
           </Stack>
         ) : pageTitle ? (
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ pl: 2.5 }}>
-             <IconButton
+             {/* <IconButton
               size="small"
               aria-label="Back"
               sx={{
@@ -352,7 +369,7 @@ export default function PortalTopBar({
               }}
             >
               <ChevronLeft size={18} />
-            </IconButton>
+            </IconButton> */}
             <Typography
               sx={{
                 fontSize: "17px",

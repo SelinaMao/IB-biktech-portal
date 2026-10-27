@@ -3,7 +3,7 @@
  * so all "config" lives under src/theme.
  */
 export const SIDEBAR_WIDTH = 240;
-export const SIDEBAR_COLLAPSED_WIDTH = 72;
+export const SIDEBAR_COLLAPSED_WIDTH = 82;
 export const TOPBAR_HEIGHT = 64;
 
 /** Default gap (theme spacing units) between a topbar vertical divider and its neighbors. Pass `sx={{ mx }}` to a <Divider> to override per-instance. */

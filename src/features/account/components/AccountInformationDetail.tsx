@@ -189,7 +189,7 @@ export default function AccountInformationDetail({
     <Box sx={{ width: "100%" }}>
       <Grid container spacing={3}>
         {/* Left Main Content Column */}
-        <Grid size={{ xs: 12, lg: 8.5 }}>
+        <Grid size={{ xs: 12, lg: 12 }}>
           {/* Back Button & Title */}
           
 
@@ -340,9 +340,9 @@ export default function AccountInformationDetail({
         </Grid>
 
         {/* Right Sidebar: Quick Navigation */}
-        <Grid size={{ xs: 12, lg: 3.5 }}>
+        {/* <Grid size={{ xs: 12, lg: 3.5 }}>
           <BaseRightSideNavbar items={QUICK_NAV_ITEMS} />
-        </Grid>
+        </Grid> */}
       </Grid>
     </Box>
   );

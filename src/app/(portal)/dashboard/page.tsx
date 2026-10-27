@@ -81,9 +81,6 @@ export default function ClientDashboardPage() {
     <Box sx={{ width: "100%", pb: 4 }}>
       <Stack spacing={2.5}>
         {/* Full-width Top Card: Available Balance */}
-        {kpiCards.map((c) => (
-          <StatCard key={c.label} {...c} />
-        ))}
 
         {/* Two-Column Grid: Left (Cash Flow, Transactions) & Right (Pending Request, Schedule, Exchange rate) */}
         <Grid container spacing={2.5}>
@@ -108,6 +105,10 @@ export default function ClientDashboardPage() {
           {/* Right Column (4 cols) */}
           <Grid size={{ xs: 12, lg: 4 }}>
             <Stack spacing={2.5}>
+              {kpiCards.map((c) => (
+                <StatCard key={c.label} {...c} />
+              ))}
+
               <PendingRequestsCard />
               <ScheduleCard />
               <ExchangeRatesCard

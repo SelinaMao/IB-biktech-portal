@@ -37,12 +37,14 @@ export default function StatCard({
     return (
       <BaseCard
         sx={{
+          background: 'linear-gradient(to right, #2764A5, #21558C, #1B4674, #143457, #0F263F)',
           height: "100%",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
           p: `${padding.xxl}px`,
           borderRadius: `${radius.xl}px`,
+          color:"white",
           border: `1px solid ${palette.slate[200]}`,
           bgcolor: palette.white,
         }}
@@ -60,7 +62,7 @@ export default function StatCard({
             sx={{
               fontSize: 16,
               fontWeight: 500,
-              color: palette.slate[900],
+              color: palette.white,
             }}
           >
             {label}
@@ -137,7 +139,7 @@ export default function StatCard({
               sx={{
                 fontSize: { xs: 22, sm: 26 },
                 fontWeight: 700,
-                color: palette.slate[900],
+                color: palette.white,
                 letterSpacing: "-0.02em",
                 lineHeight: 1.25,
               }}
@@ -151,9 +153,9 @@ export default function StatCard({
             sx={{
               fontSize: { xs: 16, sm: 19 },
               fontWeight: 700,
-              color: palette.slate[900],
+              color: palette.white ,
               lineHeight: 1.25,
-              mt: 0.75,
+              mt: 2.75,
             }}
           >
             <BaseBlurText>{value}</BaseBlurText>
@@ -207,22 +209,6 @@ export default function StatCard({
               },
             }}
           />
-          <BaseButton
-            startIcon={<ListCollapse size={15}/>}
-            title="Detail"
-            sx={{
-              fontSize: 15,
-              fontWeight: 400,
-             px: 4,
-              py: 1.5,
-              bgcolor: "#EDF0F4",
-              border: "0px",
-              color: "#000000",
-              "&:hover": {
-                backgroundColor: "#d4d4d4",
-              },
-            }}
-          />
 
 
         </Box>
@@ -232,7 +218,7 @@ export default function StatCard({
 
   // Fallback for other stat cards
   return (
-    <BaseCard sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <BaseCard sx={{ height: "100%", display: "flex", flexDirection: "column", }}>
       <Box sx={{ flex: 1 }}>
         <Box>
           <Typography variant="subtitle1" sx={{ color: "text.primary", fontSize: 16 }}>

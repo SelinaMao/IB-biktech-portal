@@ -152,14 +152,14 @@ export default function LoanDetailCard({
       </Stack>
 
       {/* Outstanding Amount */}
-      <Box sx={{ mt: 3 }}>
+      {/* <Box sx={{ mt: 3 }}>
         <Typography sx={{ fontSize: 13, color: "#64748B", mb: 0.5 }}>
           Outstanding amount
         </Typography>
         <Typography sx={{ fontSize: { xs: 24, sm: 28 }, fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
           <BaseBlurText>{formatCCY(outstanding, ccy)}</BaseBlurText>
         </Typography>
-      </Box>
+      </Box> */}
 
       {/* Next Payment Due Banner */}
       <Box

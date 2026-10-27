@@ -1,6 +1,5 @@
 "use client";
 
-import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import Box from "@mui/material/Box";
 import Badge from "@mui/material/Badge";
 import Collapse from "@mui/material/Collapse";
@@ -19,7 +18,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivateAppPromptDialog, MobileBindingDialog, useCurrentDeviceBindingQuery } from "@/features/bind";
 import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH, TOPBAR_HEIGHT } from "@/theme/layout";
 import { font, palette, radius } from "@/theme/palette";
-import { ArrowLeftRight, BanknoteArrowDown, CalendarSync, ChevronDown, ChevronUp, Circle, CircleDollarSign, CreditCard, Form, HandCoins, ListCollapse, ReceiptText, Shield, SquareCheckBig, SquareMenu, Store, UserShield, UsersRound } from "lucide-react";
+import { ArrowLeftRight, BanknoteArrowDown, CalendarSync, ChevronDown, ChevronUp, Circle, CircleDollarSign, CreditCard, Form, HandCoins, LayoutDashboard, LayoutGrid, ListCollapse, ReceiptText, Shield, SquareCheckBig, SquareMenu, Store, UserShield, UsersRound } from "lucide-react";
 import { CLIENT_PERMISSIONS, useAuth, useMeQuery } from "@/features/auth";
 import { setHideAmount } from "@/store/global/global.slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -35,7 +34,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
  * (e.g. dashboard).
  */
 const NAV_ITEMS = [
-  { key: "dashboard", href: "/dashboard", Icon: DashboardOutlinedIcon },
+  { key: "dashboard", href: "/dashboard", Icon: LayoutDashboard },
   {
     key: "approvalRequests",
     href: "/approval-workflow/requests",
@@ -180,8 +179,6 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [closedActiveKey, setClosedActiveKey] = useState<string | null>(null);
   const meQueryResult = useMeQuery(undefined);
-
-  const user = useAppSelector((state) => state.auth.user);
   const { logout } = useAuth();
 
   const dispatch = useAppDispatch();
@@ -217,18 +214,20 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
 
   const isPathActive = (targetHref: string) => cleanPath(targetHref) === activeHref;
 
-  const visibleNavItems = NAV_ITEMS.map((navItem) => {
-    if (!("children" in navItem) || !navItem.children) return navItem;
-    return {
-      ...navItem,
-      children: navItem.children.filter((child) => hasNavAccess(child.permissions)),
-    };
-  }).filter((navItem) => {
-    if ("children" in navItem && navItem.children) {
-      return navItem.children.length > 0;
-    }
-    return hasNavAccess("permissions" in navItem ? (navItem.permissions as readonly string[]) : undefined);
-  });
+  const visibleNavItems = useMemo(() => {
+    return NAV_ITEMS.map((navItem) => {
+      if (!("children" in navItem) || !navItem.children) return navItem;
+      return {
+        ...navItem,
+        children: navItem.children.filter((child) => hasNavAccess(child.permissions)),
+      };
+    }).filter((navItem) => {
+      if ("children" in navItem && navItem.children) {
+        return navItem.children.length > 0;
+      }
+      return hasNavAccess("permissions" in navItem ? (navItem.permissions as readonly string[]) : undefined);
+    });
+  }, [meQueryResult.data?.permissions]);
 
   useEffect(() => {
     if (collapsed) {
@@ -295,12 +294,15 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
     >
       {/* Navigation */}
       <List sx={{
-        px: collapsed ? 2 : 2,
+        px: collapsed ? 1.5 : 2,
         py: 2,
         flex: 1,
         minHeight: 0,
         overflowY: "auto",
         overflowX: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: collapsed ? "center" : "stretch",
         "&::-webkit-scrollbar": {
           width: "4px",
         },
@@ -332,27 +334,39 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 href={collapsed ? children[0].href : undefined}
                 onClick={collapsed ? undefined : () => (childActive ? setClosedActiveKey((prev) => (prev === key ? null : key)) : setExpandedKey((prev) => (prev === key ? null : key)))}
                 sx={{
-                  borderRadius: `${radius.xl}px`,
-                  mb: 0.5,
+                  borderRadius: collapsed ? "12px" : `${radius.xl}px`,
+                  mb: collapsed ? 1 : 0.5,
                   minHeight: 44,
+                  height: 44,
+                  flexGrow: 0,
+                  flexShrink: 0,
+                  width: collapsed ? 44 : "100%",
                   justifyContent: collapsed ? "center" : "flex-start",
-                  px: collapsed ? 1.5 : 2,
-                  color: childActive ? palette.black30 : palette.black30,
-                  pr: 4,
-                  pl: 4,
-                  bgcolor: childActive ? palette.white50 : "transparent",
+                  alignItems: "center",
+                  p: collapsed ? 0 : undefined,
+                  px: collapsed ? 0 : 2,
+                  mx: collapsed ? "auto" : undefined,
                   cursor: "pointer",
+                  color: childActive ? palette.primary[40] : palette.black30,
+                  bgcolor: childActive ? (collapsed ? "#EBF3FC" : palette.hover[10]) : "transparent",
                   "&:hover": {
-                    bgcolor: palette.hover[10],
+                    bgcolor: childActive ? (collapsed ? "#E2EDF9" : palette.hover[10]) : palette.hover[10],
                     color: palette.primary[40],
                   },
+                  // color: childActive ? palette.white : palette.black30,
+                  //             bgcolor: childActive ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.white,
+                  //             "&:hover": {
+                  //               bgcolor: childActive ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.primary[40],
+                  //               color: childActive ? palette.white : palette.white ,
+                  //             },
                 }}
               >
                 <ListItemIcon
                   sx={{
                     minWidth: 0,
-                    mr: collapsed ? 1 : 1.5,
+                    mr: collapsed ? 0 : 1.5,
                     justifyContent: "center",
+                    alignItems: "center",
                     color: "inherit",
                   }}
                 >
@@ -372,19 +386,6 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                         },
                       }}
                     />
-                    {/* {childActive && (
-                      <Box
-                        sx={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          bgcolor: palette.success.main,
-                          flexShrink: 0,
-                          ml: "auto",
-                          mr: 1,
-                        }}
-                      />
-                    )} */}
                     {isOpen ? <ChevronUp size={16} style={{ flexShrink: 0 }} /> : <ChevronDown size={16} style={{ flexShrink: 0 }} />}
                   </>
                 )}
@@ -392,7 +393,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
             );
 
             return (
-              <Box key={key}>
+              <Box key={key} sx={{ width: collapsed ? 44 : "100%", flexShrink: 0 }}>
                 {collapsed ? (
                   <Tooltip title={t(key)} placement="right">
                     {parentButton}
@@ -414,14 +415,16 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                               borderRadius: `${radius.xl}px`,
                               mb: 0.5,
                               minHeight: 40,
+                              height: 40,
+                              flexGrow: 0,
+                              flexShrink: 0,
                               pl: 9,
                               pr: 4,
-
-                              color: childIsActive ? palette.primary[40] : palette.primary[40],
-                              bgcolor: childIsActive ? palette.hover[10] : palette.white50,
+                              color: childIsActive ? palette.white : palette.black30,
+                              bgcolor: childIsActive ? (collapsed ? "#EBF3FC" : palette.primary[40]) : "transparent",
                               "&:hover": {
-                                bgcolor: palette.hover[10],
-                                color: palette.primary[40],
+                                bgcolor: childIsActive ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.primary[40],
+                                color: childIsActive ? palette.white : palette.white ,
                               },
                             }}
                           >
@@ -454,27 +457,32 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
               component={Link}
               href={href}
               sx={{
-                borderRadius: `${radius.xl}px`,
-                mb: 0.5,
+                borderRadius: collapsed ? "12px" : `${radius.xl}px`,
+                mb: collapsed ? 1 : 0.5,
                 minHeight: 44,
-
+                height: 44,
+                flexGrow: 0,
+                flexShrink: 0,
+                width: collapsed ? 44 : "100%",
                 justifyContent: collapsed ? "center" : "flex-start",
-                px: collapsed ? 1.5 : 2,
-                color: active ? palette.primary[40] : palette.black30,
-                pr: 4,
-                pl: 4,
-                bgcolor: active ? palette.hover[10] : palette.white50,
+                alignItems: "center",
+                p: collapsed ? 0 : undefined,
+                px: collapsed ? 0 : 2,
+                mx: collapsed ? "auto" : undefined,
+                color: active ? palette.white : palette.black30,
+                bgcolor: active ? (collapsed ? palette.primary[40] : palette.primary[40]) : "transparent",
                 "&:hover": {
-                  bgcolor: palette.hover[10],
-                  color: palette.primary[40],
+                  bgcolor: active ? (collapsed ? palette.primary[40]: palette.primary[40]) : palette.primary[40],
+                  color: active ? palette.white : palette.white,
                 },
               }}
             >
               <ListItemIcon
                 sx={{
                   minWidth: 0,
-                  mr: collapsed ? 1 : 1.5,
+                  mr: collapsed ? 0 : 1.5,
                   justifyContent: "center",
+                  alignItems: "center",
                   color: "inherit",
                 }}
               >
