@@ -334,7 +334,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 href={collapsed ? children[0].href : undefined}
                 onClick={collapsed ? undefined : () => (childActive ? setClosedActiveKey((prev) => (prev === key ? null : key)) : setExpandedKey((prev) => (prev === key ? null : key)))}
                 sx={{
-                  borderRadius: collapsed ? "12px" : `${radius.xl}px`,
+                  borderRadius: collapsed ? "12px" : `${radius.pill}px`,
                   mb: collapsed ? 1 : 0.5,
                   minHeight: 44,
                   height: 44,
@@ -344,14 +344,14 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                   justifyContent: collapsed ? "center" : "flex-start",
                   alignItems: "center",
                   p: collapsed ? 0 : undefined,
-                  px: collapsed ? 0 : 2,
+                  px: collapsed ? 0 : 4,
                   mx: collapsed ? "auto" : undefined,
                   cursor: "pointer",
                   color: childActive ? palette.primary[40] : palette.black30,
                   bgcolor: childActive ? (collapsed ? "#EBF3FC" : palette.hover[10]) : "transparent",
                   "&:hover": {
                     bgcolor: childActive ? (collapsed ? "#E2EDF9" : palette.hover[10]) : palette.hover[10],
-                    color: palette.primary[40],
+                    color: palette.black30,
                   },
                   // color: childActive ? palette.white : palette.black30,
                   //             bgcolor: childActive ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.white,
@@ -412,19 +412,19 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                             component={Link}
                             href={child.href}
                             sx={{
-                              borderRadius: `${radius.xl}px`,
+                              borderRadius: `${radius.pill}px`,
                               mb: 0.5,
                               minHeight: 40,
                               height: 40,
                               flexGrow: 0,
                               flexShrink: 0,
-                              pl: 9,
+                              pl: 8,
                               pr: 4,
                               color: childIsActive ? palette.white : palette.black30,
                               bgcolor: childIsActive ? (collapsed ? "#EBF3FC" : palette.primary[40]) : "transparent",
                               "&:hover": {
-                                bgcolor: childIsActive ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.primary[40],
-                                color: childIsActive ? palette.white : palette.white ,
+                                bgcolor: childIsActive ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.hover[10],
+                                color: childIsActive ? palette.white : palette.black30 ,
                               },
                             }}
                           >
@@ -456,7 +456,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
               component={Link}
               href={href}
               sx={{
-                borderRadius: collapsed ? "12px" : `${radius.xl}px`,
+                borderRadius: collapsed ? "12px" : `${radius.pill}px`,
                 mb: collapsed ? 1 : 0.5,
                 minHeight: 44,
                 height: 44,
@@ -465,14 +465,14 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 width: collapsed ? 44 : "100%",
                 justifyContent: collapsed ? "center" : "flex-start",
                 alignItems: "center",
-                p: collapsed ? 0 : undefined,
-                px: collapsed ? 0 : 2,
+                p: collapsed ? 0: undefined,
+                px: collapsed ? 0 : 4,
                 mx: collapsed ? "auto" : undefined,
                 color: active ? palette.white : palette.black30,
                 bgcolor: active ? (collapsed ? palette.primary[40] : palette.primary[40]) : "transparent",
                 "&:hover": {
-                  bgcolor: active ? (collapsed ? palette.primary[40]: palette.primary[40]) : palette.primary[40],
-                  color: active ? palette.white : palette.white,
+                  bgcolor: active ? (collapsed ? palette.primary[40]: palette.primary[40]) : palette.hover[10],
+                  color: active ? palette.white : palette.black30,
                 },
               }}
             >

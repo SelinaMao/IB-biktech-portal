@@ -38,8 +38,9 @@ const AppRecharts = styled('div')(({ theme }) => ({
       textAnchor: theme.direction === 'rtl' ? 'end' : undefined
     },
   '& .recharts-active-dot .recharts-dot': {
-    fill: 'var(--mui-palette-secondary-main)'
-  },
+    // fill: 'var(--mui-palette-secondary-main)'
+      fill: '#7c3aed'
+    },
   '& .recharts-tooltip-item': {
     fontSize: font.size.md,
     color: 'var(--mui-palette-text-primary) !important'

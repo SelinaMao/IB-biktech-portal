@@ -35,6 +35,7 @@ export interface TransactionItem {
   title: string;
   ref: string;
   date: string;
+  time: string;
   account: string;
   amount: number;
   direction: TxnDirection;
@@ -56,6 +57,7 @@ const defaultTransactions: TransactionItem[] = [
     ref: "2819700093P2429",
     date: "11 Jun 2026",
     account: "Savings - 000 067 898",
+    time: "3:48 PM",
     amount: -25.0,
     direction: "out",
     status: "processed",
@@ -66,6 +68,7 @@ const defaultTransactions: TransactionItem[] = [
     ref: "2819700093P2429",
     date: "11 Jun 2026",
     account: "Savings - 000 067 898",
+    time: "3:48 PM",
     amount: 25.0,
     direction: "in",
     status: "processed",
@@ -76,6 +79,7 @@ const defaultTransactions: TransactionItem[] = [
     ref: "2819700093P2429",
     date: "11 Jun 2026",
     account: "Savings - 000 067 898",
+    time: "3:48 PM",
     amount: -25.0,
     direction: "out",
     status: "pending",
@@ -86,6 +90,7 @@ const defaultTransactions: TransactionItem[] = [
     ref: "2819700093P2429",
     date: "11 Jun 2026",
     account: "Savings - 000 067 898",
+    time: "3:48 PM",
     amount: -25.0,
     direction: "out",
     status: "processed",
@@ -96,6 +101,7 @@ const defaultTransactions: TransactionItem[] = [
     ref: "2819700093P2429",
     date: "11 Jun 2026",
     account: "Savings - 000 067 898",
+    time: "3:48 PM",
     amount: 25.0,
     direction: "in",
     status: "pending",
@@ -189,6 +195,9 @@ export default function TransactionsCard({
             date: entry.transactionDate
               ? dayjs(entry.transactionDate).format("DD MMM YYYY")
               : "11 Jun 2026",
+            time: entry.transactionDate
+              ? dayjs(entry.transactionDate).format("h:mm A")        // 3:48 PM
+              : "3:48 PM",
             account: `Savings - ${accountNumber ?? "000 067 898"}`,
             amount: entry.transactionAmount,
             direction: entry.transactionAmount >= 0 ? "in" : "out",
@@ -328,43 +337,7 @@ export default function TransactionsCard({
             }}
           />
 
-          {/* Processed / Pending Pill Toggle */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              bgcolor: palette.slate[100],
-              borderRadius: "9999px",
-              px: 0.1,
-              py: 0.2,
-            }}
-          >
-            {(Object.keys(STATUS_TABS) as StatusTab[]).map((tab) => {
-              const isActive = statusTab === tab;
-              return (
-                <Box
-                  key={tab}
-                  onClick={() => {
-                    setStatusTab(tab);
-                    setPage(0);
-                  }}
-                  sx={{
-                    px: 2.5,
-                    py: 1.5,
-                    borderRadius: "9999px",
-                    bgcolor: isActive ? "#1E659E" : "transparent",
-                    color: isActive ? "#FFFFFF" : palette.slate[700],
-                    fontSize: 13,
-                    fontWeight: isActive ? 400 : 400,
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  {tab}
-                </Box>
-              );
-            })}
-          </Box>
+
         </Box>
       </Box>
 
@@ -491,15 +464,29 @@ export default function TransactionsCard({
                   </Box>
 
                   {/* Transaction Date */}
-                  <Typography
-                    sx={{
-                      fontSize: 14,
-                      fontWeight: 500,
-                      color: palette.slate[900],
-                    }}
-                  >
-                    {t.date}
-                  </Typography>
+                  {/* Transaction Date: date over time */}
+                  <Box>
+                    <Typography
+                      sx={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: palette.slate[900],
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {t.date}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: 12,
+                        color: palette.slate[450],
+                        lineHeight: 1.25,
+                        mt: 0.5,
+                      }}
+                    >
+                      {t.time}
+                    </Typography>
+                  </Box>
 
                   {/* Account — product name over the masked number */}
                   <Box>

@@ -230,8 +230,7 @@ export default function CashFlowChartPanel({
                     stroke={s.color}
                     strokeWidth={2.4}
                     fill="none"
-                    dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0, fill: s.color }}
+                    dot={false}                   
                   />
                 ))}
               </AreaChart>
