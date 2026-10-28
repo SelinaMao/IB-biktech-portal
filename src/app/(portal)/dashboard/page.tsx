@@ -82,11 +82,16 @@ export default function ClientDashboardPage() {
       <Stack spacing={2.5}>
         {/* Full-width Top Card: Available Balance */}
 
-        {/* Two-Column Grid: Left (Cash Flow, Transactions) & Right (Pending Request, Schedule, Exchange rate) */}
+        {/* Two-Column Grid: Left (Available Balance, Cash Flow, Transactions) & Right (Pending Request, Schedule, Exchange rate) */}
         <Grid container spacing={2.5}>
           {/* Left Column (8 cols) */}
           <Grid size={{ xs: 12, lg: 8 }}>
             <Stack spacing={2.5}>
+              {/* Top Card: Available Balance */}
+              {kpiCards.map((c) => (
+                <StatCard key={c.label} {...c} />
+              ))}
+
               <CashFlowChart
                 data={SAMPLE_CASH_FLOW}
                 height={200}
@@ -105,10 +110,6 @@ export default function ClientDashboardPage() {
           {/* Right Column (4 cols) */}
           <Grid size={{ xs: 12, lg: 4 }}>
             <Stack spacing={2.5}>
-              {kpiCards.map((c) => (
-                <StatCard key={c.label} {...c} />
-              ))}
-
               <PendingRequestsCard />
               <ScheduleCard />
               <ExchangeRatesCard

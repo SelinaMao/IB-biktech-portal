@@ -106,6 +106,7 @@ export const palette = {
 
   // Neutrals — cool-grey scaffolding for surfaces, borders and muted text.
   slate: {
+    20:"#8896B8",
     25: "#ADADAD",
     50: "#F8FAFC",
     100: "#F1F5F9", // app background

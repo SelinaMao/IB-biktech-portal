@@ -6,8 +6,8 @@ import {
   Typography,
   Stack,
 } from "@mui/material";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import BaseCard from "@core/components/BaseCard";
-import BaseSwitch from "@core/form/BaseSwitch";
 
 import { cashFlow } from "../dashboard.data";
 import { palette } from "@/theme/palette";
@@ -30,7 +30,37 @@ const formatCompactNumber = (v: number) =>
     ? "0K"
     : Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(v);
 
-/** Build a smooth-ish polyline path from a numeric series scaled to the viewBox. */
+/** Build a smooth cubic bezier path from a numeric series scaled to the viewBox. */
+function toSmoothPath(series: number[], max: number) {
+  const stepX = (W - PAD * 2) / (series.length - 1);
+  const pts = series.map((v, i) => {
+    const x = PAD + i * stepX;
+    const y = H - PAD - (v / max) * (H - PAD * 2);
+    return [x, y] as const;
+  });
+
+  if (pts.length === 0) return { line: "", area: "" };
+  let line = `M ${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i === 0 ? i : i - 1];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+
+    line += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+
+  const area = `${line} L${pts[pts.length - 1][0].toFixed(1)},${H - PAD} L${pts[0][0].toFixed(1)},${H - PAD} Z`;
+  return { line, area };
+}
+
+/** Build a linear polyline path from a numeric series scaled to the viewBox. */
 function toPath(series: number[], max: number) {
   const stepX = (W - PAD * 2) / (series.length - 1);
   const pts = series.map((v, i) => {
@@ -45,59 +75,211 @@ function toPath(series: number[], max: number) {
   return { line, area };
 }
 
-function Legend({ color, label }: { color: string; label: string }) {
-  return (
-    <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+function renderAmount(val: string, color: string) {
+  const dotIndex = val.lastIndexOf(".");
+  if (dotIndex !== -1) {
+    const main = val.slice(0, dotIndex);
+    const decimals = val.slice(dotIndex);
+    return (
       <Box
-        sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: color }}
-      />
-      <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{label}</Typography>
-    </Stack>
+        component="span"
+        sx={{ display: "inline-flex", alignItems: "flex-start", color }}
+      >
+        <Typography
+          component="span"
+          sx={{ fontSize: 20, fontWeight: 600, color: "inherit", lineHeight: 1 }}
+        >
+          {main}
+        </Typography>
+        <Typography
+          component="span"
+          sx={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "inherit",
+            lineHeight: 1,
+            ml: 0.2,
+            mt: "-2px",
+          }}
+        >
+          {decimals}
+        </Typography>
+      </Box>
+    );
+  }
+  return (
+    <Typography component="span" sx={{ fontSize: 20, fontWeight: 600, color, lineHeight: 1 }}>
+      {val}
+    </Typography>
   );
 }
 
 export default function CashFlowCard() {
   const [ccy, setCcy] = useState<"USD" | "KHR">("USD");
   const max = Math.max(...cashFlow.cashIn, ...cashFlow.cashOut) * 1.1;
-  const inPath = toPath(cashFlow.cashIn, max);
-  const outPath = toPath(cashFlow.cashOut, max);
+  const inPath = toSmoothPath(cashFlow.cashIn, max);
+  const outPath = toSmoothPath(cashFlow.cashOut, max);
   const gridYs = [0, 0.25, 0.5, 0.75, 1];
-  const currencies = ["USD", "KHR"];
+  const currencies: ("USD" | "KHR")[] = ["USD", "KHR"];
+
+  const displayExpense =
+    ccy === "USD" ? "-$23,000.90" : "-93,000,000.00 KHR";
+  const displayIncome =
+    ccy === "USD" ? "$3,000.90" : "12,293,000.00 KHR";
+
   return (
-    <BaseCard sx={{ p: 3, height: "100%" }}>
+    <BaseCard
+      sx={{
+        p: { xs: 2.5, sm: "20px 24px" },
+        borderRadius: "20px",
+        border: `1px solid ${palette.slate[200]}`,
+        bgcolor: "#FFFFFF",
+        width: "100%",
+      }}
+    >
+      {/* Header: Title on left, Segmented Currency Pill on right */}
       <Stack
         direction="row"
         sx={{
-          alignItems: "flex-start",
+          alignItems: "center",
           justifyContent: "space-between",
-          mb: 0.5,
+          mb: 2.5,
         }}
       >
-        <Box>
-          <Typography variant="h4">Cash Flow</Typography>
-          <Typography variant="body2" sx={{ mt: 0.5 }}>
-            Last 30 days · Jun 2026
-          </Typography>
+        <Typography
+          sx={{
+            color: palette.slate[900],
+            fontSize: { xs: 18, sm: 20 },
+            fontWeight: 700,
+            lineHeight: 1.2,
+          }}
+        >
+          Cash Flow
+        </Typography>
+
+        {/* Currency Pill Toggle: triggers setCcy */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            bgcolor: "#EDF0F4",
+            borderRadius: "999px",
+            p: "3px",
+          }}
+        >
+          {currencies.map((item) => {
+            const isActive = ccy === item;
+            return (
+              <Box
+                key={item}
+                component="button"
+                type="button"
+                onClick={() => setCcy(item)}
+                sx={{
+                  px: 1.75,
+                  py: 0.5,
+                  borderRadius: "999px",
+                  border: "none",
+                  bgcolor: isActive ? "#1E659E" : "transparent",
+                  color: isActive ? "#FFFFFF" : "#64748B",
+                  fontSize: "12px",
+                  fontWeight: isActive ? 600 : 500,
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {item}
+              </Box>
+            );
+          })}
         </Box>
-        <BaseSwitch
-          value={ccy}
-          onChange={(v) => setCcy(v)}
-         options={currencies.map((ccy) => ({ value: ccy, label: ccy }))}
-        />
       </Stack>
 
-      <Stack direction="row" spacing={2.5} sx={{ mt: 2, mb: 1 }}>
-        <Legend color={palette.primary[600]} label="Cash-In" />
-        <Legend color={palette.danger.main} label="Cash-Out" />
-      </Stack>
+      {/* Top Summary Stats (Expense & Income) */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: { xs: 4, sm: 8 },
+          mb: 3,
+        }}
+      >
+        {/* Expense Stat */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              bgcolor: "#FEE8E8",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#E11D48",
+              flexShrink: 0,
+            }}
+          >
+            <ArrowUpRight size={18} strokeWidth={2} />
+          </Box>
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 13,
+                color: palette.slate[700],
+                fontWeight: 500,
+                lineHeight: 1,
+              }}
+            >
+              Expense
+            </Typography>
+            <Box sx={{ mt: 0.75 }}>
+              {renderAmount(displayExpense, "#E11D48")}
+            </Box>
+          </Box>
+        </Box>
 
-      {/* Chart */}
+        {/* Income Stat */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: "50%",
+              bgcolor: "#E6F4EA",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#10B981",
+              flexShrink: 0,
+            }}
+          >
+            <ArrowDownRight size={18} strokeWidth={2} />
+          </Box>
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 13,
+                color: palette.slate[700],
+                fontWeight: 500,
+                lineHeight: 1,
+              }}
+            >
+              Income
+            </Typography>
+            <Box sx={{ mt: 0.75 }}>
+              {renderAmount(displayIncome, "#10B981")}
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Chart: Scaled SVG with dashed grids and smooth curves */}
       <Stack direction="row" sx={{ alignItems: "stretch" }}>
         <Stack
           sx={{
             justifyContent: "space-between",
             alignItems: "flex-end",
-            pr: 1,
+            pr: 1.5,
             height: H,
           }}
         >
@@ -105,7 +287,7 @@ export default function CashFlowCard() {
             <Typography
               key={g}
               variant="caption"
-              sx={{ color: palette.slate[400], lineHeight: 1 }}
+              sx={{ color: palette.slate[400], fontSize: 11, fontWeight: 500, lineHeight: 1 }}
             >
               {formatCompactNumber(g * max)}
             </Typography>
@@ -123,24 +305,24 @@ export default function CashFlowCard() {
               <linearGradient id="cfIn" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="0%"
-                  stopColor={palette.primary[600]}
-                  stopOpacity="0.18"
+                  stopColor="#10B981"
+                  stopOpacity="0.12"
                 />
                 <stop
                   offset="100%"
-                  stopColor={palette.primary[600]}
+                  stopColor="#10B981"
                   stopOpacity="0"
                 />
               </linearGradient>
               <linearGradient id="cfOut" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="0%"
-                  stopColor={palette.danger.main}
-                  stopOpacity="0.14"
+                  stopColor="#E11D48"
+                  stopOpacity="0.10"
                 />
                 <stop
                   offset="100%"
-                  stopColor={palette.danger.main}
+                  stopColor="#E11D48"
                   stopOpacity="0"
                 />
               </linearGradient>
@@ -162,7 +344,7 @@ export default function CashFlowCard() {
             <path
               d={outPath.line}
               fill="none"
-              stroke={palette.danger.main}
+              stroke="#E11D48"
               strokeWidth="2.5"
               strokeLinejoin="round"
               strokeLinecap="round"
@@ -170,7 +352,7 @@ export default function CashFlowCard() {
             <path
               d={inPath.line}
               fill="none"
-              stroke={palette.primary[600]}
+              stroke="#10B981"
               strokeWidth="2.5"
               strokeLinejoin="round"
               strokeLinecap="round"
@@ -178,51 +360,16 @@ export default function CashFlowCard() {
           </svg>
           <Stack
             direction="row"
-            sx={{ justifyContent: "space-between", mt: 0.5 }}
+            sx={{ justifyContent: "space-between", mt: 1 }}
           >
-            {cashFlow.labels
-              .filter((l) => l)
-              .map((l) => (
-                <Typography key={l} variant="caption">
-                  {l}
-                </Typography>
-              ))}
+            {cashFlow.labels.map((l, i) => (
+              <Typography key={i} variant="caption" sx={{ color: palette.slate[500], fontSize: 11, fontWeight: 500 }}>
+                {l}
+              </Typography>
+            ))}
           </Stack>
-        </Box>
-      </Stack>
-
-      {/* Averages */}
-      <Stack
-        direction="row"
-
-        sx={{ mt: 2, borderTop: `1px solid ${palette.slate[100]}`, pt: 2 }}
-      >
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="body2">Average income</Typography>
-          <Typography variant="h4" sx={{ color: "text.primary" }}>
-            {cashFlow.avgIncome ?? " "}{" "}
-            <Typography component="span" variant="body2">
-              {ccy === "KHR" ? "៛" : ccy}
-            </Typography>
-          </Typography>
-        </Box>
-        <Box
-          sx={{ flex: 1, borderLeft: `1px solid ${palette.slate[100]}`, pl: 2 }}
-        >
-          <Typography variant="body2">Average spending</Typography>
-          <Typography variant="h4" sx={{ color: palette.danger.main }}>
-            {cashFlow.avgSpending}{" "}
-            <Typography
-              component="span"
-              variant="body2"
-              sx={{ color: palette.danger.main }}
-            >
-              {ccy === "KHR" ? "៛" : ccy}
-            </Typography>
-          </Typography>
         </Box>
       </Stack>
     </BaseCard>
   );
 }
-
