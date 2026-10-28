@@ -105,6 +105,12 @@ const defaultTransactions: TransactionItem[] = [
 const FETCH_LIMIT = 20;
 const ROWS_PER_PAGE = 5;
 
+/** Header and body rows must share both of these, or the columns drift apart.
+ *  To/From takes the slack — Account is sized to its content so it sits near
+ *  the amount instead of leaving a gap between them. */
+const TABLE_COLUMNS = "3.2fr 1.6fr 1.2fr 1fr";
+const TABLE_PX = 1.75;
+
 /** This card offers All plus short rolling windows — not BaseFilter's full month list. */
 const DATE_FILTER_OPTIONS: BaseFilterTypeOption[] = [
   { value: "all", label: "All" },
@@ -230,13 +236,15 @@ export default function TransactionsCard({
         bgcolor: "#FFFFFF",
       }}
     >
-      {/* ---------- Header Row ---------- */}
+      {/* ---------- Header Row: title + status pills + search + date filter ---------- */}
       <Box
         sx={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          mb: 2.5,
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 4,
         }}
       >
         <Typography
@@ -250,105 +258,62 @@ export default function TransactionsCard({
           Transactions
         </Typography>
 
-        {/* Processed / Pending Pill Toggle */}
+        {/* Every control shares the title's line, grouped to the right.
+            Each is 40px tall so they line up with each other. */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            bgcolor: palette.slate[100],
-            borderRadius: "9999px",
-            px: 0.1,
-            py: 0.2,
+            gap: 1.5,
+            flexWrap: "wrap",
           }}
         >
-          {(Object.keys(STATUS_TABS) as StatusTab[]).map((tab) => {
-            const isActive = statusTab === tab;
-            return (
-              <Box
-                key={tab}
-                onClick={() => {
-                  setStatusTab(tab);
-                  setPage(0);
-                }}
-                sx={{
-                  px: 2.5,
-                  py: 1.5,
-                  borderRadius: "9999px",
-                  bgcolor: isActive ? "#1E659E" : "transparent",
-                  color: isActive ? "#FFFFFF" : palette.slate[700],
-                  fontSize: 13,
-                  fontWeight: isActive ? 400 : 400,
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                {tab}
-              </Box>
-            );
-          })}
-        </Box>
-      </Box>
-
-      {/* ---------- Filter Row: Search & Date Buttons ---------- */}
-      <Box
-        sx={{
-          marginTop: 6,
-          paddingTop: 6,
-          borderTop: "1px solid ",
-          borderTopColor: palette.secondary[100],
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 2,
-          mb: 4,
-        }}
-      >
-        {/* Search Input */}
-        <Box
-
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            px: 1.5,
-            py: 1.8,
-
-            borderRadius: `${radius.md}px`,
-            border: `1px solid ${palette.slate[200]}`,
-            bgcolor: "#FFFFFF",
-            width: { xs: "100%", sm: 260 },
-          }}
-        >
-          <Search size={18} color={palette.slate[400]} />
+          {/* Search Input */}
           <Box
-            component="input"
-            type="text"
-            placeholder="Search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
             sx={{
-              border: "none",
-              outline: "none",
-              fontSize: 14,
-              color: palette.slate[900],
-              bgcolor: "transparent",
-              width: "100%",
-              "&::placeholder": {
-                color: palette.slate[400],
-              },
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              px: 1.5,
+              height: 40,
+              borderRadius: `${radius.md}px`,
+              border: `1px solid ${palette.slate[200]}`,
+              bgcolor: "#FFFFFF",
+              width: { xs: "100%", sm: 220 },
             }}
-          />
-        </Box>
+          >
+            <Search size={18} color={palette.slate[400]} />
+            <Box
+              component="input"
+              type="text"
+              placeholder="Search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              sx={{
+                border: "none",
+                outline: "none",
+                fontSize: 14,
+                color: palette.slate[900],
+                bgcolor: "transparent",
+                width: "100%",
+                "&::placeholder": {
+                  color: palette.slate[400],
+                },
+              }}
+            />
+          </Box>
 
-        {/* Date Filter Buttons */}
-        <>
+          {/* Date Filter */}
           <Button
             variant="outlined"
-            size="small"
             endIcon={<KeyboardArrowDownRoundedIcon />}
             onClick={(e) => setRangeAnchor(e.currentTarget)}
-            sx={{ color: "text.primary", borderColor: palette.slate[200] }}
+            sx={{
+              height: 40,
+              borderRadius: `${radius.md}px`,
+              color: "text.primary",
+              borderColor: palette.slate[200],
+            }}
           >
             {BASE_FILTER_TYPE_LABELS[dateFilter.type]}
           </Button>
@@ -362,42 +327,45 @@ export default function TransactionsCard({
               setRangeAnchor(null);
             }}
           />
-        </>
-        {/* <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1.25,
-            flexWrap: "wrap",
-          }}
-        >
-          {["Last 7days", "Last 30days", "Custom date"].map((f) => {
-            const isSelected = dateFilter === f;
-            return (
-              <Box
-                key={f}
-                onClick={() => setDateFilter(f)}
-                sx={{
-                  px: 3,
-                  py: 1.75,
-                  borderRadius: `${radius.md}px`,
-                  border: `1px solid ${palette.slate[200]}`,
-                  bgcolor: isSelected ? palette.slate[100] : "#FFFFFF",
-                  color: palette.slate[700],
-                  fontSize: 13,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  "&:hover": {
-                    bgcolor: palette.slate[50],
-                  },
-                }}
-              >
-                {f}
-              </Box>
-            );
-          })}
-        </Box> */}
+
+          {/* Processed / Pending Pill Toggle */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              bgcolor: palette.slate[100],
+              borderRadius: "9999px",
+              px: 0.1,
+              py: 0.2,
+            }}
+          >
+            {(Object.keys(STATUS_TABS) as StatusTab[]).map((tab) => {
+              const isActive = statusTab === tab;
+              return (
+                <Box
+                  key={tab}
+                  onClick={() => {
+                    setStatusTab(tab);
+                    setPage(0);
+                  }}
+                  sx={{
+                    px: 2.5,
+                    py: 1.5,
+                    borderRadius: "9999px",
+                    bgcolor: isActive ? "#1E659E" : "transparent",
+                    color: isActive ? "#FFFFFF" : palette.slate[700],
+                    fontSize: 13,
+                    fontWeight: isActive ? 400 : 400,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {tab}
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
       </Box>
 
       {/* ---------- Table Content ---------- */}
@@ -407,11 +375,11 @@ export default function TransactionsCard({
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "2.4fr 1.6fr 2fr 1fr",
+              gridTemplateColumns: TABLE_COLUMNS,
               alignItems: "center",
               pb: 2,
               borderBottom: `1px solid ${palette.slate[200]}`,
-              px: 1,
+              px: TABLE_PX,
             }}
           >
             <Typography
@@ -442,7 +410,9 @@ export default function TransactionsCard({
           </Box>
 
           {/* Table Rows */}
-          <Box sx={{ display: "flex", flexDirection: "column", padding: 1 }}>
+          {/* Vertical padding only — horizontal padding lives on the rows
+              themselves (TABLE_PX), so they stay flush with the header. */}
+          <Box sx={{ display: "flex", flexDirection: "column", py: 1 }}>
             {pageItems.length === 0 && (
               <Typography
                 sx={{
@@ -463,10 +433,10 @@ export default function TransactionsCard({
                   key={t.id ?? `${t.ref}-${idx}`}
                   sx={{
                     display: "grid",
-                    gridTemplateColumns: "2.4fr 1.6fr 2fr 1fr",
+                    gridTemplateColumns: TABLE_COLUMNS,
                     alignItems: "center",
                     py: 2.75,
-                    px: 1.75,
+                    px: TABLE_PX,
                     borderBottom: `1px solid ${palette.slate[50]}`,
                     "&:hover": {
                       bgcolor: palette.slate[50],
