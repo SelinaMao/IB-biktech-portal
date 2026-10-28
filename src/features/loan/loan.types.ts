@@ -2,8 +2,8 @@ export type LoanStatus = "active" | "overdue" | "closed";
 
 export type TxnDirection = "in" | "out";
 
-export type TxnStatus = "processed" | "pending";
 
+export type TxnStatus = "processed" | "pending" | "paid" | "overdue" | "due" | "upcoming";
 export interface LoanAccountListItem {
   id: string;
   name: string;
@@ -27,11 +27,20 @@ export interface LoanStat {
   currency?: string;
 }
 
+
+
 export interface LoanTransaction {
+  no?: number | string;
+
   title: string;
   ref: string;
+  principal: string;
   date: string;
+  dueDate?: string;
   amount: string;
+  interest: string;
+  total: string;
+  balance: string;
   direction: TxnDirection;
   status: TxnStatus;
 }

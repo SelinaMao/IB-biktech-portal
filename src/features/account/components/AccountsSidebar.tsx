@@ -42,12 +42,12 @@ export default function AccountsSidebar({
 
   return (
     <Stack spacing={2.5}>
-      <Box>
-        {/* <Typography sx={{ fontSize: 24, fontWeight: 400, color: "text.primary", mb: 1.5 }}>
+      {/* <Box>
+        <Typography sx={{ fontSize: 24, fontWeight: 400, color: "text.primary", mb: 1.5 }}>
           Summary
-        </Typography> */}
+        </Typography>
         <SummaryCard {...availableBalanceCard} />
-      </Box>
+      </Box> */}
 
       <Box sx={{
         border:"0px solid",

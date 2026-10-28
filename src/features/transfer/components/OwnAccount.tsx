@@ -92,7 +92,15 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
     });
   };
 
-  const submit = (idempotencyKey: string) =>
+  // const submit = () =>
+  //   submitTransfer({
+  //     fromAccountNumber: fromAccount?.number ?? "",
+  //     toAccountNumber: toAccount?.number ?? "",
+  //     amount,
+  //     currency: values.currency,
+  //     remark: values.remark.trim() || undefined,
+  //   }).unwrap();
+  const submit = (idempotencyKey?: string) =>
     submitTransfer({
       body: {
         fromAccountNumber: fromAccount?.number ?? "",
@@ -101,9 +109,8 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
         currency: values.currency,
         remark: values.remark.trim() || undefined,
       },
-      idempotencyKey,
+      idempotencyKey: idempotencyKey || crypto.randomUUID(),
     }).unwrap();
-
   const previewFields: TransferPreviewField[] = [
     { label: "From Account", value: fromAccount ? accountOptionLabel(fromAccount) : "-" },
     { label: "To Account", value: toAccount ? accountOptionLabel(toAccount) : "-" },
@@ -113,9 +120,9 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
     },
     ...(values.scheduleTransfer
       ? [
-          { label: "Frequency", value: values.frequency === "one-time" ? "One-time" : "Recurring" },
-          { label: "Date", value: values.scheduleDate || "-" },
-        ]
+        { label: "Frequency", value: values.frequency === "one-time" ? "One-time" : "Recurring" },
+        { label: "Date", value: values.scheduleDate || "-" },
+      ]
       : []),
     ...(values.remark.trim() ? [{ label: "Remark", value: values.remark.trim() }] : []),
   ];
@@ -126,21 +133,21 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
 
   const accountFieldProps = loadingAccounts
     ? {
-        disabled: true,
-        placeholder: "Loading accounts…",
-        slotProps: {
-          input: {
-            startAdornment: (
-              <CircularProgress
-                size={16}
-                thickness={5}
-                disableShrink
-                sx={{ mr: 3, flexShrink: 0, color: palette.navy[800] }}
-              />
-            ),
-          },
+      disabled: true,
+      placeholder: "Loading accounts…",
+      slotProps: {
+        input: {
+          startAdornment: (
+            <CircularProgress
+              size={16}
+              thickness={5}
+              disableShrink
+              sx={{ mr: 3, flexShrink: 0, color: palette.navy[800] }}
+            />
+          ),
         },
-      }
+      },
+    }
     : {};
 
   return (
@@ -187,7 +194,7 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
           </Typography>
           <BaseSelect
             value={toAccountId}
-            
+
             onChange={(e) => set("toAccountId", e.target.value as string)}
             options={toOptions}
             error={onlyOneAccount}

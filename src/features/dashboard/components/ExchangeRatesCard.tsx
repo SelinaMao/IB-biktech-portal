@@ -3,11 +3,12 @@
 import React, { useState } from "react";
 import dayjs from "dayjs";
 import { Box, Menu, MenuItem, Typography } from "@mui/material";
-import { ChevronDown, GripVertical, RotateCcw } from "lucide-react";
+import { ChevronDown, GripHorizontal, GripVertical, RotateCcw, RotateCw } from "lucide-react";
 
 import { palette, radius, padding } from "@/theme/palette";
 import BaseCard from "@core/components/BaseCard";
 import type { ExchangeRatesResponse } from "@/features/meta";
+import BaseButton from "@/@core/components/BaseButton";
 
 function FlagIcon({ code }: { code: string }) {
   switch (code) {
@@ -235,6 +236,7 @@ export default function ExchangeRatesCard({
             alignItems: "center",
             justifyContent: "center",
             color: palette.slate[900],
+            backgroundColor:palette.slate[100],
             cursor: "pointer",
             transition: "all 0.15s ease",
             "&:hover": {
@@ -242,7 +244,7 @@ export default function ExchangeRatesCard({
             },
           }}
         >
-          <RotateCcw size={18} />
+          <RotateCw size={18} />
         </Box>
       </Box>
 
@@ -284,7 +286,7 @@ export default function ExchangeRatesCard({
             border: "none",
             bgcolor: "transparent",
             cursor: "pointer",
-            p: 0,
+            p: 2,
             borderRadius: `${radius.sm}px`,
             transition: "opacity 0.15s ease",
             "&:hover": {
@@ -358,7 +360,7 @@ export default function ExchangeRatesCard({
             border: `1px solid ${palette.slate[200]}`,
             boxShadow: "0 8px 24px rgba(15, 23, 42, 0.08)",
             minWidth: 220,
-            py: 0.5,
+            p: 0,
           },
         }}
       >
@@ -373,7 +375,7 @@ export default function ExchangeRatesCard({
                 display: "flex",
                 alignItems: "center",
                 gap: 1.5,
-                py: 1,
+                py: 2,
                 px: 2,
                 fontSize: 14,
                 fontWeight: isSelected ? 600 : 400,
@@ -450,8 +452,8 @@ export default function ExchangeRatesCard({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  py: 1.5,
-                  px: 2,
+                  py: 2.5,
+                  px: 2.5,
                 }}
               >
                 <Box>
@@ -499,39 +501,35 @@ export default function ExchangeRatesCard({
                   color: palette.slate[400],
                 }}
               >
-                <GripVertical size={18} />
+               
+                <GripHorizontal size={18} />
               </Box>
             </Box>
           );
         })}
       </Box>
 
-      {/* ---------- Footer: View All Button ---------- */}
-      <Box
+      {/* Footer View All Button */}
+      <BaseButton
         component="button"
-        type="button"
+        href={viewAllHref}
+        title="View all"
+        fullWidth
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "100%",
+
           py: 1.4,
-          borderRadius: `${radius.pill}px`,
+          borderRadius: "9999px",
           bgcolor: palette.slate[100],
           color: palette.slate[900],
           fontSize: 15,
           fontWeight: 500,
-          border: "none",
-          mt: 2.5,
-          cursor: "pointer",
-          transition: "background-color 0.15s ease",
+          textDecoration: "none",
+          mt: 4,
           "&:hover": {
             bgcolor: palette.slate[200],
           },
         }}
-      >
-        View all
-      </Box>
+      />
     </BaseCard>
   );
 }

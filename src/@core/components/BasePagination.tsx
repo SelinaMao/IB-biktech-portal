@@ -60,10 +60,10 @@ export default function BasePagination({
         direction="row"
         sx={{
           alignItems: "center",
-          justifyContent: "flex-end",
+          justifyContent: { xs: "center", md: "flex-end" },
           flexWrap: "wrap",
-          gap: 2,
-          py: 1,
+          gap: { xs: 2.25, sm: 1.75, md: 2.5 },
+          py: { xs: 0.2, md: 0.8 },
         }}
       >
         {/* Total Count Label */}
@@ -81,11 +81,11 @@ export default function BasePagination({
         {/* "Page:" Pill */}
         <Box
           sx={{
+            display: { xs: "none", sm: "inline-flex" },
             bgcolor: "#ECEFF5",
             borderRadius: "9999px",
-            px: 2.25,
-            height: 38,
-            display: "inline-flex",
+            px: { sm: 1.7, md: 2 },
+            height: { sm: 28, md: 28 },
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -108,9 +108,9 @@ export default function BasePagination({
           disabled={page === 0}
           onClick={() => onPageChange(page - 1)}
           sx={{
-            width: 38,
-            height: 38,
-            minWidth: 38,
+            width: 30,
+            height: 30,
+            minWidth: 30,
             p: 0,
             borderRadius: "50%",
             bgcolor: "#ECEFF5",
@@ -151,9 +151,9 @@ export default function BasePagination({
                 variant="text"
                 onClick={() => onPageChange(item - 1)}
                 sx={{
-                  width: 38,
-                  height: 38,
-                  minWidth: 38,
+                  width: 30,
+                  height: 30,
+                  minWidth: 30,
                   p: 0,
                   borderRadius: "50%",
                   fontSize: 15,
@@ -177,9 +177,9 @@ export default function BasePagination({
           disabled={page >= pageCount - 1}
           onClick={() => onPageChange(page + 1)}
           sx={{
-            width: 38,
-            height: 38,
-            minWidth: 38,
+             width: 30,
+                  height: 30,
+                  minWidth: 30,
             p: 0,
             borderRadius: "50%",
             bgcolor: "#ECEFF5",

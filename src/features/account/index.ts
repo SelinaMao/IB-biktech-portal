@@ -43,6 +43,7 @@ export { default as AccountOverviewCardSkeleton } from "./components/AccountOver
 export { default as TDAccountOverviewCard } from "./components/TDAccountOverviewCard";
 export { default as TransactionsList } from "./components/TransactionsList";
 export { default as AvailableBalanceCard } from "./components/AvailableBalanceCard";
+export { default as AccountDetailCard } from "./components/AccountDetailCard";
 export { default as AccountDetails } from "./components/AccountDetails";
 export { default as TransactionDetailsPanel } from "./components/TransactionDetails";
 export { default as NewAccountDialog } from "./components/NewAccountDialog";

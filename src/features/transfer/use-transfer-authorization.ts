@@ -4,10 +4,10 @@ import React from "react";
 
 import { showToast } from "@core/components/AppToast";
 
-import type { AuthenticatorRequest } from "@/features/authenticator";
+import type { AuthenticatorRequest, AuthenticatorResult } from "@/features/authenticator";
 import { toToastError } from "@/utils/api-error";
 import { useRequestTransferAuthenticatorMutation } from "./transfer.api";
-import type { TransferResult } from "./transfer.types";
+import type { TransferResult, TransferStatus } from "./transfer.types";
 import { useIdempotencyKey } from "./use-idempotency-key";
 import { AnalyticsEvent, trackEvent, trackFailure } from "../analytics";
 
@@ -76,14 +76,25 @@ export function useTransferAuthorization({
     }
   };
 
-  // The server carried it out once the phone authorized it; `submit`'s response already
-  // carries the transfer's resulting status (e.g. AWAITING_APPROVAL, COMPLETED).
-  const authorize = async (_requestId: string): Promise<void> => {
+  // The server carried it out once the phone authorized it; a refusal stays in the QR dialog
+  // const done = (result: AuthenticatorResult) => {
+  //   if (!pending) return;
+  //   setQrOpen(false);
+  //   setPending(null);
+  //   const completed = { ...pending, status: (result.status as TransferStatus | null | undefined) ?? pending.status };
+  //   trackEvent(AnalyticsEvent.TRANSFER_COMPLETED, { ...transferAnalytics(completed), status: completed.status });
+  //   onCompleted(completed);
+  // };
+  const done = (result?: AuthenticatorResult) => {
     if (!pending) return;
     setQrOpen(false);
     setPending(null);
-    trackEvent(AnalyticsEvent.TRANSFER_COMPLETED, { ...transferAnalytics(pending), status: pending.status });
-    onCompleted(pending);
+    const completed = { ...pending, status: (result?.status as TransferStatus | null | undefined) ?? pending.status };
+    trackEvent(AnalyticsEvent.TRANSFER_COMPLETED, { ...transferAnalytics(completed), status: completed.status });
+    onCompleted(completed);
+  };
+  const authorize = async (_authenticatorRequestId?: string) => {
+    done({ outcome: "SUCCEEDED", status: "COMPLETED" });
   };
 
   const renew = async (): Promise<AuthenticatorRequest> => {
@@ -108,5 +119,5 @@ export function useTransferAuthorization({
     idem.reset();
   };
 
-  return { pending, qrOpen, submitting, start, authorize, renew, closeQr, discard };
+  return { pending, qrOpen, submitting, start, done, authorize, renew, closeQr, discard };
 }

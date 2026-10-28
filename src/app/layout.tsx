@@ -9,7 +9,7 @@ import type { Locale } from "@/i18n/config";
 import "./globals.css";
 import { ToastContainer } from "react-toastify";
 import { AppErrorDialogHost } from "@core/components/AppErrorDialog";
-
+import { Poppins } from "next/font/google";
 // The app's single typeface — Noto Sans Khmer covers both Khmer and Latin,
 // so every locale renders in the same font.
 const notoSansKhmer = localFont({
@@ -33,7 +33,12 @@ const notoSansKhmer = localFont({
     },
   ],
 });
-
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-poppins",
+});
 export const metadata: Metadata = {
   title: "IB-biktech-portal",
   description: "Bank admin console for corporate banking channel configuration",
@@ -50,7 +55,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${notoSansKhmer.variable} h-full antialiased`}
+      className={`${poppins.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider locale={locale} messages={messages}>

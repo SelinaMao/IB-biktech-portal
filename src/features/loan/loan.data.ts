@@ -1,4 +1,5 @@
 import type { CashFlowPoint } from "@core/components/CashFlowChartPanel";
+import { LOAN_TRANSACTIONS } from "./components/LoanTransactionsCard";
 import type {
   BorrowerProfile,
   LoanAccountListItem,
@@ -67,11 +68,7 @@ export const loanDetailsById: Record<string, LoanDetails> = {
       { date: "12", inflow: 0, outflow: 0 },
       { date: "17", inflow: 0, outflow: 0 },
     ],
-    transactions: [
-      { title: "Loan disbursement", ref: "LN-2026-00087", date: "05 Jun 2026", amount: "+250,000,000.00 ៛", direction: "in", status: "processed" },
-      { title: "Installment repayment", ref: "LN-RPY-2026-00087", date: "05 Jul 2026", amount: "-8,500,000.00 ៛", direction: "out", status: "processed" },
-      { title: "Installment repayment", ref: "LN-RPY-2026-00088", date: "05 Aug 2026", amount: "-8,500,000.00 ៛", direction: "out", status: "pending" },
-    ],
+    transactions: LOAN_TRANSACTIONS,
     schedule: {
       approvedLimit: 300_000_000,
       outstandingPrincipal: 250_000_000,
@@ -108,8 +105,34 @@ export const loanDetailsById: Record<string, LoanDetails> = {
       { date: "17", inflow: 0, outflow: 0 },
     ],
     transactions: [
-      { title: "Overdraft drawdown", ref: "OD-2026-00014", date: "03 Jun 2026", amount: "-12,000,000.00 ៛", direction: "out", status: "processed" },
-      { title: "Overdraft repayment", ref: "OD-RPY-2026-00014", date: "10 Jun 2026", amount: "+5,000,000.00 ៛", direction: "in", status: "processed" },
+      {
+        no: 1,
+        title: "Overdraft drawdown",
+        ref: "OD-2026-00014",
+        date: "2026-06-03",
+        dueDate: "03 Jun 2026",
+        principal: "$12,000.00",
+        interest: "$90.00",
+        total: "$12,090.00",
+        balance: "$33,000.00",
+        amount: "-$12,000.00",
+        direction: "out",
+        status: "paid",
+      },
+      {
+        no: 2,
+        title: "Overdraft repayment",
+        ref: "OD-RPY-2026-00014",
+        date: "2026-06-10",
+        dueDate: "10 Jun 2026",
+        principal: "$5,000.00",
+        interest: "$0.00",
+        total: "$5,000.00",
+        balance: "$38,000.00",
+        amount: "+$5,000.00",
+        direction: "in",
+        status: "paid",
+      },
     ],
     schedule: {
       approvedLimit: 100_000_000,

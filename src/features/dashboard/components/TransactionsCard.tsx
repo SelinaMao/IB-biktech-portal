@@ -21,6 +21,7 @@ import {
 } from "@/features/account";
 import type { TxnDirection } from "../dashboard.types";
 import BasePagination from "@/@core/components/BasePagination";
+import BaseFilterByDay from "@/@core/components/BaseFilterByDay";
 
 export interface TransactionItem {
   id?: string;
@@ -200,7 +201,8 @@ export default function TransactionsCard({
             alignItems: "center",
             bgcolor: palette.slate[100],
             borderRadius: "9999px",
-            p: "3px",
+            px: 0.1,
+            py: 0.2,
           }}
         >
           {(["Processed", "Pending"] as const).map((tab) => {
@@ -210,13 +212,13 @@ export default function TransactionsCard({
                 key={tab}
                 onClick={() => setStatusTab(tab)}
                 sx={{
-                  px: 2,
-                  py: 0.5,
+                  px: 2.5,
+                  py: 1.5,
                   borderRadius: "9999px",
                   bgcolor: isActive ? "#1E659E" : "transparent",
                   color: isActive ? "#FFFFFF" : palette.slate[700],
                   fontSize: 13,
-                  fontWeight: isActive ? 600 : 500,
+                  fontWeight: isActive ? 400 : 400,
                   cursor: "pointer",
                   transition: "all 0.15s ease",
                 }}
@@ -231,24 +233,28 @@ export default function TransactionsCard({
       {/* ---------- Filter Row: Search & Date Buttons ---------- */}
       <Box
         sx={{
+          marginTop:6,
+          paddingTop:6,
+          borderTop:"1px solid ",
+          borderTopColor:palette.secondary[100],
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           flexWrap: "wrap",
           gap: 2,
-          mb: 2.5,
+          mb: 4,
         }}
       >
         {/* Search Input */}
         <Box
-          
+
           sx={{
             display: "flex",
             alignItems: "center",
             gap: 1,
             px: 1.5,
             py: 1.8,
-            mb: 4,
+        
             borderRadius: `${radius.md}px`,
             border: `1px solid ${palette.slate[200]}`,
             bgcolor: "#FFFFFF",
@@ -277,7 +283,8 @@ export default function TransactionsCard({
         </Box>
 
         {/* Date Filter Buttons */}
-        <Box
+        <BaseFilterByDay />
+        {/* <Box
           sx={{
             display: "flex",
             alignItems: "center",
@@ -311,7 +318,7 @@ export default function TransactionsCard({
               </Box>
             );
           })}
-        </Box>
+        </Box> */}
       </Box>
 
       {/* ---------- Table Content ---------- */}
@@ -366,7 +373,7 @@ export default function TransactionsCard({
                     display: "grid",
                     gridTemplateColumns: "2.4fr 1.6fr 2fr 1fr",
                     alignItems: "center",
-                    py: 1.75,
+                    py: 2.75,
                     px: 1.75,
                     borderBottom: `1px solid ${palette.slate[50]}`,
                     "&:hover": {

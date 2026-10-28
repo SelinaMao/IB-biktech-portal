@@ -173,9 +173,11 @@ export default function BaseAuthLayout({
         direction="row"
         spacing={{ xs: 1.5, sm: 3 }}
         sx={{
-          justifyContent: "center",
+          width:"100%",
+          justifyContent: { xs: "center", sm: "flex-end" },
           alignItems: "center",
           flexWrap: "wrap",
+          gap:"10px",
           rowGap: 1,
           pt: 3,
           pb: 1,
@@ -188,6 +190,7 @@ export default function BaseAuthLayout({
             href="#"
             underline="none"
             sx={{
+              p:2,
               fontSize: "12px",
               color: "rgba(255, 255, 255, 0.45)",
               transition: "color 0.15s ease",

@@ -112,18 +112,19 @@ export default function LoanDetailCard({
       {/* Header Row: Loan Name, Badge, Account Number & 3-dots */}
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
         <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-            <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0F172A" }}>
+          <Stack direction="row" spacing={3.5} sx={{ alignItems: "center" }}>
+            <Typography sx={{ fontSize: 18, fontWeight: 400, color: "#0F172A" }}>
               {name}
             </Typography>
             <Box
               sx={{
-                px: 1.5,
-                py: 0.25,
+                px: 1.75,
+                py: 1,
                 borderRadius: "20px",
                 bgcolor: "#E6EEF8",
                 color: "#257DCF",
                 fontSize: "13px",
+                marginLeft:"10px",
                 fontWeight: 600,
               }}
             >
@@ -151,21 +152,21 @@ export default function LoanDetailCard({
       </Stack>
 
       {/* Outstanding Amount */}
-      <Box sx={{ mt: 3 }}>
+      {/* <Box sx={{ mt: 3 }}>
         <Typography sx={{ fontSize: 13, color: "#64748B", mb: 0.5 }}>
           Outstanding amount
         </Typography>
         <Typography sx={{ fontSize: { xs: 24, sm: 28 }, fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
           <BaseBlurText>{formatCCY(outstanding, ccy)}</BaseBlurText>
         </Typography>
-      </Box>
+      </Box> */}
 
       {/* Next Payment Due Banner */}
       <Box
         sx={{
           bgcolor: "#FFF6ED",
-          borderRadius: "16px",
-          p: { xs: 2, sm: 2.5 },
+          borderRadius: "10px",
+          p: { xs: 3, sm: 3.5 },
           mt: 2.5,
           display: "flex",
           justifyContent: "space-between",
@@ -193,7 +194,7 @@ export default function LoanDetailCard({
             bgcolor: "#2764A5",
             color: "#FFFFFF",
             fontSize: 14,
-            fontWeight: 600,
+            fontWeight: 300,
             px: 3,
             py: 1,
             textTransform: "none",
@@ -207,8 +208,8 @@ export default function LoanDetailCard({
       <Box
         sx={{
           bgcolor: "#F8FAFC",
-          borderRadius: "16px",
-          p: { xs: 2.5, sm: 3 },
+          borderRadius: "10px",
+          p: { xs: 3.5, sm: 3 },
           mt: 2.5,
         }}
       >
@@ -242,7 +243,9 @@ export default function LoanDetailCard({
       </Box>
 
       {/* Bottom Action Pill Buttons */}
-      <Stack direction="row" spacing={1.75} sx={{ mt: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.75}
+        sx={{ mt: 3 }}>
         <BaseButton
           sx={{
             padding: "8px 20px",

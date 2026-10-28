@@ -11,6 +11,7 @@ import Typography from "@mui/material/Typography";
 import { ArrowRight, Check, ChevronLeft, Info, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
+import { useTopBarBreadcrumb } from "@core/layout";
 
 import BaseButton from "@core/components/BaseButton";
 import BaseCard from "@core/components/BaseCard";
@@ -28,6 +29,7 @@ import type { TransferResult } from "../transfer.types";
 import { useTransferAuthorization } from "../use-transfer-authorization";
 import { formatAccountNumber } from "@/utils/format-account-number";
 import { parseTransferAmount } from "../transfer.utils";
+import router from "next/router";
 
 const STEPS = ["New", "Review", "Transfer"];
 
@@ -78,7 +80,8 @@ export type PreviewTransferProps = {
      * Submits the transfer for real. When given, Review's Next submits it and the linked phone
      * authorizes it by QR; without it the mocked QR step is shown.
      */
-    submit?: (idempotencyKey: string) => Promise<TransferResult>;
+    // submit?: () => Promise<TransferResult>;
+    submit?: (idempotencyKey?: string) => Promise<TransferResult>;
 };
 
 export type PreviewTransferDialogProps = PreviewTransferProps;
@@ -133,9 +136,6 @@ export default function PreviewTransfer({
             setStep(2);
         },
     });
-
-    const router = useRouter();
-
     const fromField = previewFields.find((f) => /^from/i.test(f.label));
     const toField = previewFields.find((f) => /^(to|beneficiary|recipient)/i.test(f.label));
     const scheduleField = previewFields.find((f) => /schedule|frequency|date/i.test(f.label));
@@ -203,9 +203,9 @@ export default function PreviewTransfer({
         setChooseVerifyOpen(false);
         if (submit) {
             const started = await authorization.start();
-            if (started) {
-                return;
-            }
+
+            return;
+
         }
         // ChooseVerifyDialog -> opens ApproveTransfer
         setApproveTransferOpen(true);
@@ -237,7 +237,15 @@ export default function PreviewTransfer({
         setResult(null);
         onReset();
     };
-
+    useTopBarBreadcrumb(
+        open
+            ? {
+                prefix: "Transfer",
+                subPrefix: title,
+                onBack: step === 2 ? handleBackToDashboard : handleClose,
+            }
+            : null
+    );
     const displayFromName = result?.fromAccountName || resolvedFromAccount.name || "Shiiping co., ltd.";
     const displayFromNumber = result?.fromAccountNumber || resolvedFromAccount.accountNumber || "0068";
     const displayToName = result?.toAccountName || resolvedToAccount.name || "Sarah Jenkins";
@@ -382,11 +390,11 @@ export default function PreviewTransfer({
                 mb: 4,
                 px: 6,
                 py: 4,
-                bgcolor: "background.paper",
-                borderBottom: 0.1,
-                borderColor: "divider",
+                // bgcolor: "background.paper",
+                // borderBottom: 0.1,
+                // borderColor: "divider",
             }}>
-                <Box
+                {/* <Box
                     component="button"
                     type="button"
                     onClick={step === 2 ? handleBackToDashboard : handleClose}
@@ -424,7 +432,7 @@ export default function PreviewTransfer({
                     >
                         {step === 2 ? "Back to Dashboard" : "Transfer"}
                     </Typography>
-                </Box>
+                </Box> */}
 
                 <Typography
                     sx={{
@@ -933,7 +941,7 @@ export default function PreviewTransfer({
                     onNotReceived={handleNotReceived}
                     onApprove={handleConfirmed}
                 />
-                
+
                 <QrConfirmationDialog
                     open={confirmOpen}
                     onClose={() => setConfirmOpen(false)}

@@ -190,7 +190,7 @@ export default function BaseFilterByDay({
     <>
       <Stack
         direction="row"
-        spacing={1}
+        spacing={2}
         sx={{
           alignItems: "center",
           flexWrap: "wrap",
@@ -242,14 +242,14 @@ export default function BaseFilterByDay({
                 },
               }}
             >
-              {opt.value === "custom" && (
+              {/* {opt.value === "custom" && (
                 <CalendarTodayRoundedIcon
                   sx={{
                     fontSize: 14,
                     color: isActive && activeVariant === "primary" ? "#FFFFFF" : palette.slate[400],
                   }}
                 />
-              )}
+              )} */}
               <span>{displayLabel}</span>
             </Box>
           );
@@ -277,7 +277,7 @@ export default function BaseFilterByDay({
         }}
       >
         <Stack spacing={2}>
-          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" ,padding:2}}>
             <Typography sx={{ fontSize: 14, fontWeight: 600, color: palette.slate[900] }}>
               Select Date Range
             </Typography>
@@ -286,7 +286,7 @@ export default function BaseFilterByDay({
             </IconButton>
           </Stack>
 
-          <Stack spacing={1.5}>
+          <Stack spacing={3.5}>
             <TextField
               label="From"
               type="date"

@@ -20,7 +20,7 @@ export default function SummaryCard({
       sx={{
         width: "100%",
         borderRadius: "20px",
-        background: "linear-gradient(135deg, #257DCF 0%, #1660A9 100%)",
+        background: "linear-gradient(to bottom, #257DCF 0%, #1660A9 100%)",
         color: "#FFFFFF",
         p: { xs: 3, sm: 5 },
         display: "flex",

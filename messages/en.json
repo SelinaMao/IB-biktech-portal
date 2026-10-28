@@ -3,12 +3,12 @@
     "dashboard": "Dashboard",
     "components": "Components",
     "client-dashboard": "Client Dashboard",
-    "Account": "Account",
-    "Limits": "Limits",
+    "Account": "Accounts",
     "Loan": "Loan",
-    "Transfers": "Transfers",
+    "Transfers": "Fund Transfers",
     "Payments": "Payments",
     "Schedule": "Schedule",
+    "Other Services":"Other Services",
     "Payroll": "Payroll",
     "Merchant": "Merchant",
     "Administrator": "Administrator",
@@ -18,9 +18,11 @@
     "settings": "Settings",
     "help": "Help & Support",
     "logout": "Logout",
-    "approvalRequests": "Request approvals",
+    "approvalRequests": "Approvals",
     "approvalSetup": "Approval Matrix",
+      "Limits": "Limits",
     "approvalApprovers": "Approver"
+    
   },
   "topbar": {
     "logout": "Logout",
@@ -48,7 +50,7 @@
     }
   },
   "login": {
-    "welcome": "Login to SME Bank Biz",
+    "welcome": "Login to BiKTECH",
     "subtitle": "Sign in to your account to continue",
     "userId": "User ID",
     "userIdPlaceholder": "Enter User ID",
@@ -62,7 +64,7 @@
     "signUp": "Sign Up",
     "supportPrompt": "Need help? Call",
     "loginSuccessTitle": "Login Successful",
-    "loginSuccessMessage": "Welcome to SME Bank Biz!",
+    "loginSuccessMessage": "Welcome to BiKTECH!",
     "error": {
       "userIdRequired": "User ID is required",
       "userIdMin": "User ID must be at least 6 characters",
