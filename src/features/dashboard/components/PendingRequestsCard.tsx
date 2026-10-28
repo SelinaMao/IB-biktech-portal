@@ -94,7 +94,7 @@ export default function PendingRequestsCard({
           <Typography
             sx={{
               fontSize: { xs: 18, sm: 20 },
-              fontWeight: 700,
+              fontWeight: font.weight.medium,
               color: palette.slate[900],
               lineHeight: 1.2,
             }}
@@ -132,7 +132,7 @@ export default function PendingRequestsCard({
             justifyContent: "center",
             color: palette.slate[900],
             p: 1,
-            backgroundColor:palette.slate[100],
+            backgroundColor: palette.slate[100],
             borderRadius: "50%",
             transition: "opacity 0.15s ease",
             "&:hover": {
@@ -189,9 +189,8 @@ export default function PendingRequestsCard({
                 <Box>
                   <Typography
                     sx={{
-                      fontFamily:"",
-                      fontSize: 15,
-                      fontWeight: 400,
+                      fontSize: font.size.base,
+                      fontWeight: font.weight.regular,
                       color: palette.slate[900],
                       lineHeight: 1.25,
                     }}
