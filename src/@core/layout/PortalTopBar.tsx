@@ -20,7 +20,7 @@ import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Bell, ChevronLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Bell, ChevronLeft, ChevronsLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import { useTopBar } from "./TopBarContext";
 import { useAuth } from "@/features/auth";
@@ -234,7 +234,7 @@ export default function PortalTopBar({
                 width={50}
                 height={50}
                 style={{
-                  marginLeft:"10px",
+                  marginLeft: "10px",
                   height: "50px",
                   width: "50px",
                   objectFit: "contain",
@@ -268,12 +268,34 @@ export default function PortalTopBar({
               borderRadius: "8px",
               flexShrink: 0,
               transition: "background-color 0.15s ease",
-              "&:hover": {
-                bgcolor: palette.slate[100],
-              },
+              // "&:hover": {
+              //   bgcolor: palette.slate[100],
+              // },
             }}
           >
-            {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+            {collapsed ? <Image
+              src="/assets/icons/double_arrow_left.svg"
+              alt="double_right"
+              width={140}
+              height={28}
+              style={{
+                height: "22px",
+                width: "auto",
+                objectFit: "contain",
+              }}
+              priority
+            /> : <Image
+              src="/assets/icons/double_arrow_right.svg"
+              alt="double_right"
+              width={140}
+              height={28}
+              style={{
+                height: "28px",
+                width: "auto",
+                objectFit: "contain",
+              }}
+              priority
+            />}
           </IconButton>
         </Box>
 
@@ -349,7 +371,7 @@ export default function PortalTopBar({
           </Stack>
         ) : pageTitle ? (
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ pl: 2.5 }}>
-             {/* <IconButton
+            {/* <IconButton
               size="small"
               aria-label="Back"
               sx={{
@@ -372,8 +394,9 @@ export default function PortalTopBar({
             </IconButton> */}
             <Typography
               sx={{
+                padding: "10px",
                 fontSize: "17px",
-                fontWeight: 600,
+                fontWeight: 700,
                 color: "#0F172A",
                 lineHeight: 1.2,
                 whiteSpace: "nowrap",
