@@ -283,7 +283,7 @@ export default function LoanDetailCard({
             boxShadow: "none",
             "&:hover": { bgcolor: "#DCE5F0" },
           }}
-          onClick={onOpenAccountInfo || onOpenDetails}
+          // onClick={onOpenAccountInfo || onOpenDetails}
           startIcon={<Info size={16} />}
           title="Account Information"
         />

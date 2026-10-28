@@ -83,10 +83,10 @@ const NOTIFICATIONS: NotificationItem[] = [
 const ROUTE_TITLES: { prefix: string; title: string }[] = [
   { prefix: "/dashboard", title: "Dashboard" },
   { prefix: "/transfer", title: "Transfer" },
-  { prefix: "/approval-workflow/requests", title: "Approval" },
+  { prefix: "/approval", title: "Approvals" },
+  { prefix: "/approval-workflow/requests", title: "Approvals" },
   { prefix: "/approval-workflow/approvers", title: "Approver" },
   { prefix: "/approval-workflow", title: "Approval Matrix" },
-  { prefix: "/approval", title: "Approval" },
   { prefix: "/account", title: "Accounts" },
   { prefix: "/loan", title: "Loan" },
   { prefix: "/limits", title: "Limits" },

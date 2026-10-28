@@ -334,7 +334,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 href={collapsed ? children[0].href : undefined}
                 onClick={collapsed ? undefined : () => (childActive ? setClosedActiveKey((prev) => (prev === key ? null : key)) : setExpandedKey((prev) => (prev === key ? null : key)))}
                 sx={{
-                  borderRadius: collapsed ? "12px" : `${radius.pill}px`,
+                  borderRadius: collapsed ? "12px" : `${radius.sm}px`,
                   mb: collapsed ? 1 : 0.5,
                   minHeight: 44,
                   height: 44,
@@ -412,7 +412,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                             component={Link}
                             href={child.href}
                             sx={{
-                              borderRadius: `${radius.pill}px`,
+                              borderRadius: `${radius.sm}px`,
                               mb: 0.5,
                               minHeight: 40,
                               height: 40,
@@ -456,7 +456,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
               component={Link}
               href={href}
               sx={{
-                borderRadius: collapsed ? "12px" : `${radius.pill}px`,
+                borderRadius: collapsed ? "8px" : `${radius.sm}px`,
                 mb: collapsed ? 1 : 0.5,
                 minHeight: 44,
                 height: 44,
@@ -521,8 +521,6 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         sx={{
           flexShrink: 0,
           borderTop: `1px solid ${palette.slate[200]}`,
-
-
           px: collapsed ? 1.5 : 2,
           py: 2,
           mt: "auto",
@@ -534,7 +532,6 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
               <Box
                 onClick={() => setMobileActivateOpen(true)}
                 sx={{
-
                   width: 44,
                   height: 44,
                   display: "flex",
@@ -560,7 +557,6 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 />
               </Box>
             </Tooltip>
-
             <Tooltip title={t("help")} placement="right">
               <ListItemButton
                 component={Link}

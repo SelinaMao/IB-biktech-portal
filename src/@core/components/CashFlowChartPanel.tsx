@@ -228,7 +228,7 @@ export default function CashFlowChartPanel({
                     type="natural"
                     dataKey={s.key}
                     stroke={s.color}
-                    strokeWidth={2.4}
+                    strokeWidth={2}
                     fill="none"
                     dot={false}                   
                   />

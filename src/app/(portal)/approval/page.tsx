@@ -89,6 +89,7 @@ export default function ApprovalPage() {
 
   return (
     <Box sx={{ width: "100%" }}>
+
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <StatCard
@@ -108,7 +109,7 @@ export default function ApprovalPage() {
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 12, lg: 4 }}>
-          <ApprovalTypeBreakdownCard items={approvalSummary.typeBreakdown} />
+          <ApprovalTypeBreakdownCard title="Pending by type" items={approvalSummary.typeBreakdown} />
         </Grid>
       </Grid>
 
