@@ -116,6 +116,7 @@ export default function AccountPage() {
   const selectedAccount = bankAccounts.find((account) => account.accountNumber === accountNumber);
   const accounType = selectedAccount?.accountType ?? "";
   const isFixedDeposit = accounType === "TD";
+  const isSaving = accounType === "SA";
   const selectedDetailsKey = TYPE_ACCT_TO_DETAILS_KEY[accounType] ?? DEFAULT_ACCOUNT_ID;
 
   const [getAccountDetail] = useGetAccountDetailMutation();
@@ -297,8 +298,10 @@ export default function AccountPage() {
                   info={accountInfoDetail}
                   stats={accountInfoDetail}
                   isFixedDeposit={isFixedDeposit}
+                  isSaving={isSaving}
                   fixedDeposit={fixedDepositDetail}
                   onOpenAccountInfo={() => setaccountInformationDetail(true)}
+                  onExportStatements={handleDownloadStatement}
                   onDownloadCertificate={handleDownloadCertificate}
                 />
               )}
