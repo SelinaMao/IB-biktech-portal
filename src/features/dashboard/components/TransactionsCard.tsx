@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
-import { Box, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
+import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -22,6 +23,11 @@ import {
 import type { TxnDirection } from "../dashboard.types";
 import BasePagination from "@/@core/components/BasePagination";
 import BaseFilterByDay from "@/@core/components/BaseFilterByDay";
+import BaseFilter, {
+  BASE_FILTER_TYPE_LABELS,
+  type BaseFilterTypeOption,
+  type BaseFilterValue,
+} from "@/@core/components/BaseFilter";
 
 export interface TransactionItem {
   id?: string;
@@ -38,7 +44,7 @@ const defaultTransactions: TransactionItem[] = [
     id: "1",
     title: "Bakong Payment",
     ref: "2819700093P2429",
-    date: "11 June 2026",
+    date: "11 Jun 2026",
     account: "Savings - 000 067 898",
     amount: -25.0,
     direction: "out",
@@ -47,7 +53,7 @@ const defaultTransactions: TransactionItem[] = [
     id: "2",
     title: "Bakong Payment",
     ref: "2819700093P2429",
-    date: "11 June 2026",
+    date: "11 Jun 2026",
     account: "Savings - 000 067 898",
     amount: 25.0,
     direction: "in",
@@ -56,7 +62,7 @@ const defaultTransactions: TransactionItem[] = [
     id: "3",
     title: "Bakong Payment",
     ref: "2819700093P2429",
-    date: "11 June 2026",
+    date: "11 Jun 2026",
     account: "Savings - 000 067 898",
     amount: -25.0,
     direction: "out",
@@ -65,7 +71,7 @@ const defaultTransactions: TransactionItem[] = [
     id: "4",
     title: "Bakong Payment",
     ref: "2819700093P2429",
-    date: "11 June 2026",
+    date: "11 Jun 2026",
     account: "Savings - 000 067 898",
     amount: -25.0,
     direction: "out",
@@ -74,7 +80,7 @@ const defaultTransactions: TransactionItem[] = [
     id: "5",
     title: "Bakong Payment",
     ref: "2819700093P2429",
-    date: "11 June 2026",
+    date: "11 Jun 2026",
     account: "Savings - 000 067 898",
     amount: 25.0,
     direction: "in",
@@ -84,6 +90,14 @@ const defaultTransactions: TransactionItem[] = [
 const FETCH_LIMIT = 20;
 const ROWS_PER_PAGE = 5;
 
+/** This card offers All plus short rolling windows — not BaseFilter's full month list. */
+const DATE_FILTER_OPTIONS: BaseFilterTypeOption[] = [
+  { value: "all", label: "All" },
+  { value: "last7Days", label: "Last 7 days" },
+  { value: "last30Days", label: "Last 30 days" },
+  { value: "customDate", label: "Custom Date" },
+];
+
 const formatTxnAmount = (amount: number) => {
   const sign = amount < 0 ? "-" : "";
   const formatted = Math.abs(amount).toLocaleString("en-US", {
@@ -91,6 +105,21 @@ const formatTxnAmount = (amount: number) => {
     maximumFractionDigits: 2,
   });
   return `${sign}$${formatted}`;
+};
+
+/**
+ * Splits "Savings - 000 067 898" into the two lines the Account column shows:
+ * the product name on top, the masked number below. Only the first and last
+ * three digits stay readable — everything between them becomes asterisks.
+ */
+const splitAccount = (account: string) => {
+  const [label, ...rest] = account.split(" - ");
+  const digits = rest.join(" - ").replace(/\D/g, "");
+  const masked =
+    digits.length > 6
+      ? `${digits.slice(0, 3)}${"*".repeat(digits.length - 6)}${digits.slice(-3)}`
+      : digits;
+  return { label, masked };
 };
 
 export interface TransactionsCardProps {
@@ -103,7 +132,12 @@ export default function TransactionsCard({
   type,
 }: TransactionsCardProps) {
   const [statusTab, setStatusTab] = useState<"Processed" | "Pending">("Pending");
-  const [dateFilter, setDateFilter] = useState("Last 7days");
+  const [dateFilter, setDateFilter] = useState<BaseFilterValue>({
+    type: "last7Days",
+    from: null,
+    to: null,
+  });
+  const [rangeAnchor, setRangeAnchor] = useState<HTMLElement | null>(null);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
 
@@ -132,8 +166,8 @@ export default function TransactionsCard({
             title: entry.transactionDescription || entry.transactionCode || "Bakong Payment",
             ref: entry.transactionId || "2819700093P2429",
             date: entry.transactionDate
-              ? dayjs(entry.transactionDate).format("DD MMMM YYYY")
-              : "11 June 2026",
+              ? dayjs(entry.transactionDate).format("DD MMM YYYY")
+              : "11 Jun 2026",
             account: `Savings - ${accountNumber ?? "000 067 898"}`,
             amount: entry.transactionAmount,
             direction: entry.transactionAmount >= 0 ? "in" : "out",
@@ -233,10 +267,10 @@ export default function TransactionsCard({
       {/* ---------- Filter Row: Search & Date Buttons ---------- */}
       <Box
         sx={{
-          marginTop:6,
-          paddingTop:6,
-          borderTop:"1px solid ",
-          borderTopColor:palette.secondary[100],
+          marginTop: 6,
+          paddingTop: 6,
+          borderTop: "1px solid ",
+          borderTopColor: palette.secondary[100],
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -254,7 +288,7 @@ export default function TransactionsCard({
             gap: 1,
             px: 1.5,
             py: 1.8,
-        
+
             borderRadius: `${radius.md}px`,
             border: `1px solid ${palette.slate[200]}`,
             bgcolor: "#FFFFFF",
@@ -283,7 +317,27 @@ export default function TransactionsCard({
         </Box>
 
         {/* Date Filter Buttons */}
-        <BaseFilterByDay />
+        <>
+          <Button
+            variant="outlined"
+            size="small"
+            endIcon={<KeyboardArrowDownRoundedIcon />}
+            onClick={(e) => setRangeAnchor(e.currentTarget)}
+            sx={{ color: "text.primary", borderColor: palette.slate[200] }}
+          >
+            {BASE_FILTER_TYPE_LABELS[dateFilter.type]}
+          </Button>
+          <BaseFilter
+            anchorEl={rangeAnchor}
+            onClose={() => setRangeAnchor(null)}
+            defaultValue={dateFilter}
+            typeOptions={DATE_FILTER_OPTIONS}
+            onApply={(value) => {
+              setDateFilter(value);
+              setRangeAnchor(null);
+            }}
+          />
+        </>
         {/* <Box
           sx={{
             display: "flex",
@@ -366,6 +420,7 @@ export default function TransactionsCard({
           <Box sx={{ display: "flex", flexDirection: "column", padding: 1 }}>
             {pageItems.map((t, idx) => {
               const isNegative = t.direction === "out" || t.amount < 0;
+              const account = splitAccount(t.account);
               return (
                 <Box
                   key={t.id ?? `${t.ref}-${idx}`}
@@ -419,8 +474,8 @@ export default function TransactionsCard({
                         sx={{
                           fontSize: 12,
                           color: palette.slate[450],
-                          lineHeight: 1.25,
-                          mt: 0.25,
+                          lineHeight: 1.50,
+                          mt: 0.50,
                         }}
                       >
                         Ref: {t.ref}
@@ -439,16 +494,29 @@ export default function TransactionsCard({
                     {t.date}
                   </Typography>
 
-                  {/* Account */}
-                  <Typography
-                    sx={{
-                      fontSize: 14,
-                      fontWeight: 500,
-                      color: palette.slate[500],
-                    }}
-                  >
-                    {t.account}
-                  </Typography>
+                  {/* Account — product name over the masked number */}
+                  <Box>
+                    <Typography
+                      sx={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: palette.slate[900],
+                        lineHeight: 1.50,
+                      }}
+                    >
+                      {account.label}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: 12,
+                        color: palette.slate[450],
+                        lineHeight: 1.25,
+                        mt: 0.50,
+                      }}
+                    >
+                      {account.masked}
+                    </Typography>
+                  </Box>
 
                   {/* Amount */}
                   <Typography

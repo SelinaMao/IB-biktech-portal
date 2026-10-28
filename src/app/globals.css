@@ -16,7 +16,7 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-poppins), var(--font-noto-khmer), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-noto-khmer), sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 

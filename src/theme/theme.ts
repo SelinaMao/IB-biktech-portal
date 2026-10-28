@@ -3,8 +3,7 @@ import React from "react";
 import { font, palette, radius } from "./palette";
 import { CheckboxIcon, CheckboxCheckedIcon, CheckboxIndeterminateIcon } from "./CheckboxIcons";
 
-// const fontFamily = "var(--font-poppins), var(--font-noto-khmer), sans-serif";
-const fontFamily = "var(--font-poppins)";
+const fontFamily = "var(--font-noto-khmer), sans-serif";
 /**
  * Single source of truth for component styling.
  *

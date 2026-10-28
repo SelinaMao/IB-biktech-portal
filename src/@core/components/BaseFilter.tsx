@@ -19,6 +19,8 @@ import BaseInput from "@core/form/BaseInput";
 
 export type BaseFilterType =
   | "all"
+  | "last7Days"
+  | "last30Days"
   | "thisMonth"
   | "last1Month"
   | "last2Months"
@@ -61,6 +63,8 @@ const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
  *  current selection outside the panel (e.g. on its trigger button). */
 export const BASE_FILTER_TYPE_LABELS: Record<BaseFilterType, string> = {
   all: "All",
+  last7Days: "Last 7 days",
+  last30Days: "Last 30 days",
   thisMonth: "This Month",
   last1Month: "Last 1 month",
   last2Months: "Last 2 months",
@@ -79,6 +83,20 @@ export function resolveBaseFilterRange(
   const now = dayjs();
 
   switch (value.type) {
+    // Rolling day windows, inclusive of today — "last 7 days" is today plus
+    // the 6 before it, not the 7 days preceding today.
+    case "last7Days":
+      return {
+        start: now.subtract(6, "day").startOf("day"),
+        end: now.endOf("day"),
+      };
+
+    case "last30Days":
+      return {
+        start: now.subtract(29, "day").startOf("day"),
+        end: now.endOf("day"),
+      };
+
     case "thisMonth":
       return {
         start: now.startOf("month"),
@@ -486,7 +504,11 @@ export default function BaseFilter({
         )}
 
         <Box sx={{ display: "flex", justifyContent: "flex-end", pt: showRange ? 3 : 5 }}>
-          <BaseButton title="Apply Now" onClick={handleApply} />
+          <BaseButton
+            title="Apply Now"
+            onClick={handleApply}
+            sx={{ borderRadius: `${radius.md}px` }}
+          />
         </Box>
       </Box>
     </Popover>

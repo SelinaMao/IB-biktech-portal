@@ -107,7 +107,7 @@ export default function Transfer() {
           // borderColor: "divider",
         }}
       >
-        <BaseTitle fontSize={24} fontWeight={"bold"} fontFamily={"Inter"}>
+        <BaseTitle fontSize={24} fontWeight={"bold"} fontFamily={"var(--font-noto-khmer), sans-serif"}>
           Choose Type Of Transfer
         </BaseTitle>
       </Box>
