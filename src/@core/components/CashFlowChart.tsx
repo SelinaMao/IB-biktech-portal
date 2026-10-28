@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { ArrowDownLeft, ArrowUpRight, CirclePlus, MoreVertical, MoveDownRight, MoveUpLeft } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, MoveDownRight, MoveUpLeft, MoveUpRight } from "lucide-react";
 
 import { formatCCY } from "@/utils/format-ccy";
 import { font, palette, radius, padding } from "@/theme/palette";
@@ -122,7 +122,7 @@ export default function CashFlowChart({
           sx={{
             alignItems: "center",
             justifyContent: "space-between",
-            mb: 2,
+            mb: 2.5,
           }}
         >
           <Typography
@@ -136,70 +136,133 @@ export default function CashFlowChart({
             {title}
           </Typography>
 
-          <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-            {/* Currency Pill Toggle */}
+          {/* Currency Pill Toggle */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              bgcolor: "#EDF0F4",
+              borderRadius: "999px",
+              p: "1px",
+            }}
+          >
+            {currencies.map((ccy) => {
+              const isActive = currency === ccy;
+              return (
+                <Box
+                  key={ccy}
+                  component="button"
+                  type="button"
+                  onClick={() => {
+                    setInternalCcy(ccy);
+                    onCurrencyChange?.(ccy);
+                  }}
+                  sx={{
+                   px: 2.5,
+                  py: 1.4,
+                    borderRadius: "999px",
+                    border: "none",
+                    bgcolor: isActive ? "#1E659E" : "transparent",
+                    color: isActive ? "#FFFFFF" : "#64748B",
+                    fontSize: "12px",
+                    fontWeight: font.weight.regular,
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  {ccy}
+                </Box>
+              );
+            })}
+          </Box>
+        </Stack>
+      )}
+
+      {/* ---------- Top Summary Stats (Expense & Income) ---------- */}
+      {showStats && (
+        <Box
+          sx={{
+            mt:6,
+            display: "flex",
+            alignItems: "center",
+            gap: { xs: 15, sm: 20, md: 50 },
+            mb: 10,
+          }}
+        >
+          {/* Expense Stat */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Box
               sx={{
+                 marginRight:"5px",
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                bgcolor: "#FEE8E8",
                 display: "flex",
                 alignItems: "center",
-                bgcolor: palette.slate[100],
-                borderRadius: "999px",
-                  px: 0.1,
-                      py: 0.2,
+                justifyContent: "center",
+                color: "#E11D48",
+                flexShrink: 0,
               }}
             >
-              {currencies.map((ccy) => {
-                const isActive = currency === ccy;
-                return (
-                  <Box
-                    key={ccy}
-                    onClick={() => {
-                      setInternalCcy(ccy);
-                      onCurrencyChange?.(ccy);
-                    }}
-                    sx={{
-                      px: 2.5,
-                      py: 1.5,
-                      borderRadius: "999px",
-                      bgcolor: isActive ? "#1E659E" : "transparent",
-                      color: isActive ? "#FFFFFF" : palette.slate[500],
-                      fontSize: "12px",
-                      fontWeight: isActive ? 400 : 400,
-                      cursor: "pointer",
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    {ccy}
-                  </Box>
-                );
-              })}
+              <MoveUpLeft size={18} strokeWidth={2} />
             </Box>
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  color: palette.slate[700],
+                  fontWeight: 500,
+                  lineHeight: 1,
+                }}
+              >
+                Expense
+              </Typography>
+              <Box sx={{ mt: 1.75 }}>
+                <BaseBlurText>
+                  {hideAmount ? "••••••" : renderAmount(displayExpense, "#E11D48")}
+                </BaseBlurText>
+              </Box>
+            </Box>
+          </Box>
 
-            {/* Plus in circle icon */}
-            <IconButton
-              size="small"
+          {/* Income Stat */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Box
               sx={{
-                p: 0.5,
-                color: palette.slate[900],
-                "&:hover": { bgcolor: palette.slate[100] },
+                marginRight:"5px",
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                bgcolor: "#E6F4EA",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#10B981",
+                flexShrink: 0,
               }}
             >
-              <CirclePlus size={20} />
-            </IconButton>
-
-            {/* More options 3 dots icon */}
-            <IconButton
-              size="small"
-              sx={{
-                p: 0.5,
-                color: palette.slate[900],
-                "&:hover": { bgcolor: palette.slate[100] },
-              }}
-            >
-              <MoreVertical size={20} />
-            </IconButton>
-          </Stack>
-        </Stack>
+              <MoveDownRight size={18} strokeWidth={2} />
+            </Box>
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  color: palette.slate[700],
+                  fontWeight: 500,
+                  lineHeight: 1,
+                }}
+              >
+                Income
+              </Typography>
+              <Box sx={{ mt: 1.75 }}>
+                <BaseBlurText>
+                  {hideAmount ? "••••••" : renderAmount(displayIncome, "#36A17E")}
+                </BaseBlurText>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
       )}
 
       {/* ---------- Full-width Chart Panel ---------- */}
@@ -213,93 +276,9 @@ export default function CashFlowChart({
           isLoading={isLoading}
           hideAmount={hideAmount}
           legendStartAdornment={legendStartAdornment}
+          showLegend={false}
         />
       </Box>
-
-      {/* ---------- Bottom Summary Stats ---------- */}
-      {showStats && (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-            gap: 3,
-            mt: 6,
-            pb: 0.5,
-          }}
-        >
-          {/* Expense Stat */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                bgcolor: "#FEE8E8",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#E11D48",
-                flexShrink: 0,
-              }}
-            >
-              <MoveUpLeft size={18} strokeWidth={1.8} />
-            </Box>
-            <Box>
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  color: palette.slate[700],
-                  fontWeight: 500,
-                  lineHeight: 1,
-                }}
-              >
-                Expense
-              </Typography>
-              <Box sx={{ mt: 1 }}>
-                <BaseBlurText>
-                  {hideAmount ? "••••••" : renderAmount(displayExpense, "#E11D48")}
-                </BaseBlurText>
-              </Box>
-            </Box>
-          </Box>
-
-          {/* Income Stat */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                bgcolor: "#E6F4EA",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#16A34A",
-                flexShrink: 0,
-              }}
-            >
-              <MoveDownRight size={18} strokeWidth={1.8} />
-            </Box>
-            <Box>
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  color: palette.slate[700],
-                  fontWeight: 500,
-                  lineHeight: 1,
-                }}
-              >
-                Income
-              </Typography>
-              <Box sx={{ mt: 1 }}>
-                <BaseBlurText>
-                  {hideAmount ? "••••••" : renderAmount(displayIncome, "#2A7BE4")}
-                </BaseBlurText>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      )}
     </Box>
   );
 
@@ -308,8 +287,8 @@ export default function CashFlowChart({
   return (
     <BaseCard
       sx={{
-        p: `${padding.xxl}px`,
-        borderRadius: `${radius.xl}px`,
+        p: { xs: 2.5, sm: "20px 24px" },
+        borderRadius: "20px",
         border: `1px solid ${palette.slate[200]}`,
         bgcolor: "#FFFFFF",
       }}

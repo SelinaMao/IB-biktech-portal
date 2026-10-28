@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Box, Typography } from "@mui/material";
-import { ArrowUpRight, Eye, EyeOff, HandCoins, ListCollapse, Wallet } from "lucide-react";
+import { ArrowUpRight, DollarSign, Eye, EyeOff, HandCoins, ListCollapse, Wallet } from "lucide-react";
 import { HandCoinsIcon } from "lucide-react";
 import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
@@ -34,19 +34,27 @@ export default function StatCard({
   const hideAmount = useAppSelector((state) => state.global.hideAmount);
 
   if (label === "Available Balance") {
+    const khrAmount = sub?.includes("KHR")
+      ? sub
+      : value?.includes("KHR")
+      ? value
+      : "120,293,000.00 KHR";
+
+    const usdAmount = value?.includes("USD")
+      ? value
+      : sub?.includes("USD")
+      ? sub
+      : "293,000.00 USD";
+
     return (
       <BaseCard
         sx={{
-          background: 'linear-gradient(to right, #2764A5, #21558C, #1B4674, #143457, #0F263F)',
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          p: `${padding.xxl}px`,
-          borderRadius: `${radius.xl}px`,
-          color:"white",
+          bgcolor: "#FFFFFF",
+          borderRadius: "20px",
+          p: { xs: 2.5, sm: "20px 24px" },
           border: `1px solid ${palette.slate[200]}`,
-          bgcolor: palette.white,
+          boxShadow: "none",
+          width: "100%",
         }}
       >
         {/* Top Header Row */}
@@ -55,20 +63,20 @@ export default function StatCard({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            mb: 1.5,
+            mb: 2.5,
           }}
         >
           <Typography
             sx={{
-              fontSize: 16,
-              fontWeight: 500,
-              color: palette.white,
+              fontSize: { xs: 16, sm: 18 },
+              fontWeight: font.weight.regular,
+              color: "#0F172A",
             }}
           >
             {label}
           </Typography>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
             {/* Hide / Show Toggle Pill */}
             <Box
               component="button"
@@ -78,19 +86,20 @@ export default function StatCard({
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 0.75,
-                px: 2.5,
-                py: 1.55,
+                px: 2,
+                py: 1.5,
                 borderRadius: "9999px",
-                bgcolor: palette.slate[100],
+                bgcolor: "#EDF0F4",
                 border: "none",
                 cursor: "pointer",
-                color: palette.slate[900],
+                color: "#0F172A",
                 fontSize: 13,
                 fontWeight: 500,
                 transition: "background-color 0.15s ease",
                 "&:hover": {
-                  bgcolor: palette.slate[200],
+                  bgcolor: "#E2E8F0",
                 },
+                marginRight:"8px"
               }}
             >
               {hideAmount ? <Eye size={15} /> : <EyeOff size={15} />}
@@ -106,111 +115,122 @@ export default function StatCard({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding:"none",
-                marginLeft:"10px",
                 borderRadius: "50%",
-                width:"34px",
-                height:"34px",
-                bgcolor: palette.slate[100],
+                width: "34px",
+                height: "34px",
+                bgcolor: "#EDF0F4",
                 border: "none",
                 cursor: "pointer",
                 transition: "background-color 0.15s ease",
                 "&:hover": {
-                  bgcolor: palette.slate[200],
+                  bgcolor: "#E2E8F0",
                 },
               }}
             >
               <Image
                 src="/branding/khqr-small.png"
                 alt="KHQR"
-                width={24}
-                height={24}
-                style={{ objectFit: "contain" ,}}
+                width={20}
+                height={20}
+                style={{ objectFit: "contain" }}
               />
             </Box>
           </Box>
         </Box>
 
-        {/* Balance Values */}
-        <Box sx={{ my: 0.5 }}>
-          {sub && (
-            <Typography
-              component="div"
-              sx={{
-                fontSize: { xs: 22, sm: 26 },
-                fontWeight: 700,
-                color: palette.white,
-                letterSpacing: "-0.02em",
-                lineHeight: 1.25,
-              }}
-            >
-              <BaseBlurText>{sub}</BaseBlurText>
-            </Typography>
-          )}
-
-          <Typography
-            component="div"
-            sx={{
-              fontSize: { xs: 16, sm: 19 },
-              fontWeight: 700,
-              color: palette.white ,
-              lineHeight: 1.25,
-              mt: 2.75,
-            }}
-          >
-            <BaseBlurText>{value}</BaseBlurText>
-          </Typography>
-        </Box>
-
-        {/* Action Buttons Row */}
+        {/* Currency Balances Row (KHR and USD side by side) */}
         <Box
           sx={{
+            
             display: "flex",
             alignItems: "center",
             flexWrap: "wrap",
-            gap: 4,
-            mt: 2.5,
+            gap: { xs: 15, sm: 20, md: 40 },
+            mt: 6,
           }}
         >
-          {/* Send money */}
-          <BaseButton
-            startIcon={<ArrowUpRight size={15}/>}
-            title="Send money"
-            sx={{
-              px: 4,
-              py: 1.5,
-              borderRadius: "999px",
-              textTransform: "none",
-              fontSize: 15,
-              fontWeight: 400,
-              color: "#FFFFFF",
-              border: "0px",
-              backgroundImage: "linear-gradient(180deg, #3584C0 0%, #1F5E94 100%)",
-              boxShadow: "none",
-              "&:hover": {
-                backgroundImage: "linear-gradient(180deg, #2D76AF 0%, #194F80 100%)",
-                boxShadow: "none",
-              },
-            }}
-          />
-          <BaseButton
-            startIcon={<HandCoinsIcon size={15}/>}
-            title="Pay Bill"
-            sx={{
-              fontSize: 15,
-              fontWeight: 400,
-               px: 4,
-              py: 1.5,
-              bgcolor: "#EDF0F4",
-              border: "0px",
-              color: "#000000",
-              "&:hover": {
-                backgroundColor: "#d4d4d4",
-              },
-            }}
-          />
+          {/* KHR Item */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "12px",
+                bgcolor: "#FFF4E8",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Image
+                src="/assets/images/riel.png"
+                alt="KHR"
+                width={5}
+                height={14}
+                style={{ objectFit: "contain" }}
+              />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 15, color: "#64748B", fontWeight: 300, lineHeight: 1.2 }}>
+                KHR
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: { xs: 18, sm: 20, md: 22 },
+                  fontWeight: 700,
+                  color: "#0F172A",
+                  mt: 0.5,
+                  lineHeight: 1.2,
+                }}
+              >
+                <BaseBlurText>{khrAmount}</BaseBlurText>
+              </Typography>
+            </Box>
+          </Box>
 
-
+          {/* USD Item */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "12px",
+                bgcolor: "#EAF6EE",
+                color: "#16A34A",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+               <Image
+                src="/assets/images/dollar.png"
+                alt="USD"
+                width={10}
+                height={13}
+                style={{ objectFit: "contain" }}
+              />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 15, color: "#64748B", fontWeight: 300, lineHeight: 1.2 }}>
+                USD
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: { xs: 18, sm: 20, md: 22 },
+                  fontWeight: 700,
+                  color: "#0F172A",
+                  mt: 0.5,
+                  lineHeight: 1.2,
+                }}
+              >
+                <BaseBlurText>{usdAmount}</BaseBlurText>
+              </Typography>
+            </Box>
+          </Box>
         </Box>
       </BaseCard>
     );

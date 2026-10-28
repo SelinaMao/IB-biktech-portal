@@ -33,7 +33,7 @@ export type CashFlowPoint = {
  * palette.danger[600]). Gradient fades 25% → 0.
  */
 export const CASH_FLOW_SERIES = [
-  { key: "inflow", color: "#2A7BE4" },
+  { key: "inflow", color: "#10B981" },
   { key: "outflow", color: "#BE123C" },
 ] as const;
 
@@ -60,7 +60,7 @@ function CashFlowYAxisTick({ y, payload }: { y?: number; payload?: { value: numb
       y={y}
       dy={4}
       textAnchor="start"
-      fill={palette.slate[500]}
+      fill={palette.slate[20]}
       fontSize={12}
       fontWeight={600}
     >
@@ -135,6 +135,7 @@ export type CashFlowChartPanelProps = {
   isLoading?: boolean;
   hideAmount?: boolean;
   legendStartAdornment?: React.ReactNode;
+  showLegend?: boolean;
 };
 
 export default function CashFlowChartPanel({
@@ -146,6 +147,7 @@ export default function CashFlowChartPanel({
   isLoading = false,
   hideAmount = false,
   legendStartAdornment,
+  showLegend = false,
 }: CashFlowChartPanelProps) {
   const labels = { inflow: inflowLabel, outflow: outflowLabel } as const;
 
@@ -168,30 +170,32 @@ export default function CashFlowChartPanel({
       ) : (
         <>
           {/* Legend */}
-          <Stack direction="row" sx={{ alignItems: "center", gap: 3, px: 0.5, mb: 2.5 }}>
-            {legendStartAdornment}
-            {CASH_FLOW_SERIES.map((s) => (
-              <Stack key={s.key} direction="row" sx={{ alignItems: "center", gap: 1.25 }}>
-                <Box
-                  sx={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: "50%",
-                    bgcolor: s.color,
-                  }}
-                />
-                <Typography
-                  sx={{
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    color: palette.slate[900],
-                  }}
-                >
-                  {s.key === "inflow" ? "Income" : "Expense"}
-                </Typography>
-              </Stack>
-            ))}
-          </Stack>
+          {(showLegend || legendStartAdornment) && (
+            <Stack direction="row" sx={{ alignItems: "center", gap: 3, px: 0.5, mb: 2.5 }}>
+              {legendStartAdornment}
+              {CASH_FLOW_SERIES.map((s) => (
+                <Stack key={s.key} direction="row" sx={{ alignItems: "center", gap: 1.25 }}>
+                  <Box
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      bgcolor: s.color,
+                    }}
+                  />
+                  <Typography
+                    sx={{
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      color: palette.slate[900],
+                    }}
+                  >
+                    {s.key === "inflow" ? "Income" : "Expense"}
+                  </Typography>
+                </Stack>
+              ))}
+            </Stack>
+          )}
 
           {/* Chart */}
           <AppRecharts sx={{ mx: 0, my: 0 }}>
@@ -203,7 +207,7 @@ export default function CashFlowChartPanel({
                   tickLine={false}
                   axisLine={false}
                   tickMargin={14}
-                  tick={{ fill: palette.slate[500], fontSize: 12, fontWeight: 500 }}
+                  tick={{ fill: palette.slate[20], fontSize: 12, fontWeight: 500 }}
                 />
                 <YAxis
                   tickLine={false}
