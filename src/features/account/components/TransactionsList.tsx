@@ -228,7 +228,7 @@ export default function TransactionsList({
             padding: "10px"
           }}
         >
-          <Box sx={{ fontFamily: "Poppins, sans-serif", width: "100%" }}>
+          <Box sx={{ fontFamily: "Poppins", width: "100%" }}>
             <Box
               sx={{
                 display: "flex",

@@ -74,7 +74,7 @@ export default function LoansSidebar({
         <Typography
           sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", mb: 1.5 }}
         >
-          Accounts
+         Loan Accounts
         </Typography>
 
         <Stack spacing={2}>

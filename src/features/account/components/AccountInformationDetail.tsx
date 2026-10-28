@@ -85,10 +85,12 @@ export default function AccountInformationDetail({
   const isTD = info.accountType === "TD" || fixedDeposit?.accountType === "TD";
   const currency = fixedDeposit?.currencyCode || info.ccy || info.currencyCode || "USD";
 
-  // Dedicated View for Term Deposit (TD) matching design
   if (isTD) {
     const accountHolder = info.accountName || "Shiiping co., ltd.";
-    const accountType = fixedDeposit?.productDesc || info.productDesc || "Fixed Term Deposit";
+    const accountType =
+      (info.accountType === "TD" || fixedDeposit?.accountType === "TD")
+        ? "Fixed Term Deposit"
+        : (fixedDeposit?.productDesc || info.productDesc || "Fixed Term Deposit");
     const fdAccountNumber = info.accountNumber || fixedDeposit?.accountNumber || "FD-2024-001892";
     const linkedAccount =
       fixedDeposit?.accountSettlementNumber ||

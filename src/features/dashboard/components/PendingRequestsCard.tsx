@@ -189,8 +189,9 @@ export default function PendingRequestsCard({
                 <Box>
                   <Typography
                     sx={{
+                      fontFamily:"",
                       fontSize: 15,
-                      fontWeight: 500,
+                      fontWeight: 400,
                       color: palette.slate[900],
                       lineHeight: 1.25,
                     }}

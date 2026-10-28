@@ -449,7 +449,6 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
               </Box>
             );
           }
-
           const active = isPathActive(href);
           const item = (
             <ListItemButton

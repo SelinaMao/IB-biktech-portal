@@ -1,13 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Box, Divider, IconButton, Stack, Typography } from "@mui/material";
-import { EllipsisVertical, Info, ReceiptText } from "lucide-react";
+import { Box, Typography } from "@mui/material";
+import { Info, ReceiptText } from "lucide-react";
 
-import { font, palette } from "@/theme/palette";
 import { formatAccountNumber } from "@/utils/format-account-number";
-import { formatCCY } from "@/utils";
-import BaseBlurText from "@core/components/BaseBlurText";
 import BaseButton from "@core/components/BaseButton";
 import BaseDownloadPanel, { type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import type { BorrowerProfile, LoanScheduleDetails } from "../loan.types";
@@ -34,6 +31,16 @@ export interface LoanDetailCardProps {
   onOpenAccountInfo?: () => void;
   onOpenStatements?: (e: React.MouseEvent<HTMLElement>) => void;
   onExportStatements?: (value: BaseDownloadValue) => void;
+}
+
+/** Formats as "6,700,000.00 USD" (suffix currency code) */
+function formatAmountSuffix(amount: number | string | undefined | null, ccy: string = "USD"): string {
+  const num = Number(amount ?? 0);
+  const formatted = (isNaN(num) ? 0 : num).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${formatted} ${ccy}`;
 }
 
 export default function LoanDetailCard({
@@ -68,35 +75,39 @@ export default function LoanDetailCard({
   const type = loanType || schedule?.accountType || "Car Loan";
   const outstanding = outstandingAmount ?? schedule?.outstandingPrincipal ?? 6_700_000;
   const ccy = currency || schedule?.currency || "USD";
-  const nextPayment = nextPaymentAmount ?? schedule?.nextInstallmentAmount ?? 560.86;
-  const nextDate = nextPaymentDate || schedule?.nextInstallmentDate || "1 October 2026";
-  const rate = interestRatePct ?? schedule?.interestRatePct ?? 5.0;
+  const rate = interestRatePct ?? schedule?.interestRatePct ?? 5.25;
   const frequency = repaymentFrequency || schedule?.repaymentMethod || "Monthly";
   const matDate = maturityDate || schedule?.maturityDate || "08 Sep 2030";
   const limit = approvedLimit ?? schedule?.approvedLimit ?? 100_000;
   const disbDate = disbursementDate || schedule?.disbursementDate || "08 Sep 2024";
-  const overdue = overdueCount ?? schedule?.overdueCount ?? 3;
 
   const detailRows = [
     { label: name, value: ref },
     { label: "Loan Type", value: type },
-    {
-      label: "Interest Rate",
-      value: `${rate.toFixed(2)}% p.a.`,
-      color: "#166D35",
-    },
     { label: "Repayment Frequency", value: frequency },
-    { label: "Maturity Date", value: matDate },
     {
       label: "Approved Limit",
-      value: formatCCY(limit, ccy),
-      color: "#2589BD",
+      value: formatAmountSuffix(limit, ccy),
+      color: "#0F5196",
     },
     { label: "Disbursement Date", value: disbDate },
+  ];
+
+  const statCards = [
     {
-      label: "No. of Overdue",
-      value: overdue.toString(),
-      color: overdue > 0 ? "#E11D48" : "#0F172A",
+      label: "Outstanding amount",
+      value: formatAmountSuffix(outstanding, ccy),
+      color: "#0F5196",
+    },
+    {
+      label: "Maturity Date",
+      value: matDate,
+      color: "#0F172A",
+    },
+    {
+      label: "Interest Rate",
+      value: `${typeof rate === "number" ? rate.toFixed(2) : rate}% p.a.`,
+      color: "#166D35",
     },
   ];
 
@@ -105,183 +116,197 @@ export default function LoanDetailCard({
       sx={{
         bgcolor: "#FFFFFF",
         borderRadius: "20px",
-        p: { xs: 2.5, sm: 3.5 },
-        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+        width: "100%",
+        boxSizing: "border-box",
+        p: { xs: "16px", sm: "20px", md: "20px 24px" },
+        display: "grid",
+        gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+        gridTemplateAreas: {
+          xs: `"header" "detail" "cards" "buttons"`,
+          md: `"header cards" "detail cards" "buttons buttons"`,
+        },
+        gridTemplateRows: { md: "auto auto 1fr" },
+        columnGap: { md: "26px" },
+        rowGap: "20px",
       }}
     >
-      {/* Header Row: Loan Name, Badge, Account Number & 3-dots */}
-      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-        <Box>
-          <Stack direction="row" spacing={3.5} sx={{ alignItems: "center" }}>
-            <Typography sx={{ fontSize: 18, fontWeight: 400, color: "#0F172A" }}>
-              {name}
-            </Typography>
-            <Box
-              sx={{
-                px: 1.75,
-                py: 1,
-                borderRadius: "20px",
-                bgcolor: "#E6EEF8",
-                color: "#257DCF",
-                fontSize: "13px",
-                marginLeft:"10px",
-                fontWeight: 600,
-              }}
-            >
-              Loan
-            </Box>
-          </Stack>
-          <Typography sx={{ fontSize: 14, color: "#64748B", mt: 0.5 }}>
-            {formatAccountNumber(accNum)}
+      {/* ───────── Header (left, top) ───────── */}
+      <Box sx={{ gridArea: "header" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <Typography
+            sx={{
+              fontSize: { xs: "16px", md: "18px" },
+              fontWeight: 600,
+              color: "#0F172A",
+              lineHeight: 1.3,
+              m: 0,
+            }}
+          >
+            {name}
           </Typography>
+          <Box
+            sx={{
+              px: "10px",
+              py: "2px",
+              borderRadius: "20px",
+              bgcolor: "#E0EEFF",
+              color: "#0F5196",
+              fontSize: "12px",
+              fontWeight: 600,
+              lineHeight: 1.4,
+            }}
+          >
+            Loan
+          </Box>
         </Box>
-
-        <IconButton
-          onClick={onOpenDetails}
-          aria-label="More options"
+        <Typography
           sx={{
-            width: 36,
-            height: 36,
-            bgcolor: "#F1F5F9",
-            color: "#0F172A",
-            "&:hover": { bgcolor: "#E2E8F0" },
+            color: "#475569",
+            fontSize: "13px",
+            lineHeight: 1.4,
+            mt: "6px",
           }}
         >
-          <EllipsisVertical size={18} />
-        </IconButton>
-      </Stack>
-
-      {/* Outstanding Amount */}
-      {/* <Box sx={{ mt: 3 }}>
-        <Typography sx={{ fontSize: 13, color: "#64748B", mb: 0.5 }}>
-          Outstanding amount
+          {formatAccountNumber(accNum) || "000 067 898"}
         </Typography>
-        <Typography sx={{ fontSize: { xs: 24, sm: 28 }, fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
-          <BaseBlurText>{formatCCY(outstanding, ccy)}</BaseBlurText>
-        </Typography>
-      </Box> */}
-
-      {/* Next Payment Due Banner */}
-      <Box
-        sx={{
-          bgcolor: "#FFF6ED",
-          borderRadius: "10px",
-          p: { xs: 3, sm: 3.5 },
-          mt: 2.5,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Box>
-          <Typography sx={{ fontSize: 13, color: "#64748B", mb: 0.25 }}>
-            Next Payment due
-          </Typography>
-          <Typography sx={{ fontSize: { xs: 20, sm: 24 }, fontWeight: 800, color: "#0F172A" }}>
-            <BaseBlurText>{formatCCY(nextPayment, ccy)}</BaseBlurText>
-          </Typography>
-          <Typography sx={{ fontSize: 13, color: "#64748B", mt: 0.25 }}>
-            {nextDate}
-          </Typography>
-        </Box>
-
-        <BaseButton
-          title="Pay now"
-          variant="contained"
-          onClick={onPayNow}
-          sx={{
-            borderRadius: "999px",
-            bgcolor: "#2764A5",
-            color: "#FFFFFF",
-            fontSize: 14,
-            fontWeight: 300,
-            px: 3,
-            py: 1,
-            textTransform: "none",
-            boxShadow: "none",
-            "&:hover": { bgcolor: "#1E5289" },
-          }}
-        />
       </Box>
 
-      {/* Account Details Box */}
-      <Box
-        sx={{
-          bgcolor: "#F8FAFC",
-          borderRadius: "10px",
-          p: { xs: 3.5, sm: 3 },
-          mt: 2.5,
-        }}
-      >
-        <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#0F172A", mb: 1 }}>
+      {/* ───────── Account Details (left column) ───────── */}
+      <Box sx={{ gridArea: "detail" }}>
+        <Typography
+          sx={{
+            fontSize: "16px",
+            fontWeight: 700,
+            color: "#0F172A",
+            m: 0,
+            mb: "8px",
+            lineHeight: 1.4,
+          }}
+        >
           Account Details
         </Typography>
 
-        <Stack divider={<Divider flexItem sx={{ borderColor: "#F1F5F9" }} />} spacing={0}>
+        <Box>
           {detailRows.map((row) => (
-            <Stack
+            <Box
               key={row.label}
-              direction="row"
-              sx={{ justifyContent: "space-between", alignItems: "center", py: 1.5 }}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto",
+                alignItems: "center",
+                columnGap: "12px",
+                py: "14px",
+                borderBottom: "1px solid #E5E9F0",
+                "&:last-of-type": { borderBottom: "none" },
+              }}
             >
-              <Typography sx={{ fontSize: 14, color: "#64748B" }}>
+              <Typography sx={{ fontSize: "13px", color: "#64748B" }}>
                 {row.label}
               </Typography>
               <Typography
                 sx={{
-                  fontSize: 14,
-                  fontWeight: 600,
+                  fontSize: "13px",
+                  fontWeight: 500,
                   color: row.color || "#0F172A",
                   textAlign: "right",
                 }}
               >
                 {row.value}
               </Typography>
-            </Stack>
+            </Box>
           ))}
-        </Stack>
+        </Box>
       </Box>
 
-      {/* Bottom Action Pill Buttons */}
-      <Stack direction={{ xs: 'column', sm: 'row' }}
-        spacing={1.75}
-        sx={{ mt: 3 }}>
+      {/* ───────── Stat cards (right column) ───────── */}
+      <Box
+        sx={{
+          gridArea: "cards",
+          display: "grid",
+          gridAutoRows: "min-content",
+          rowGap: "9px",
+          width: "100%",
+          minWidth: 0,
+          alignContent: "start",
+          alignSelf: "start",
+        }}
+      >
+        {statCards.map((card) => (
+          <Box
+            key={card.label}
+            sx={{
+              bgcolor: "#F4F7FB",
+              borderRadius: "10px",
+              p: "12px 14px",
+              display: "grid",
+              rowGap: "6px",
+              minWidth: 0,
+            }}
+          >
+            <Typography sx={{ fontSize: "11px", color: "#64748B", lineHeight: 1.4 }}>
+              {card.label}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: "15px",
+                fontWeight: 600,
+                color: card.color,
+                lineHeight: 1.3,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {card.value}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
+      {/* ───────── Buttons (bottom-left) ───────── */}
+      <Box
+        sx={{
+          gridArea: "buttons",
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(2, max-content)" },
+          justifyContent: "start",
+          gap: "12px",
+        }}
+      >
         <BaseButton
           sx={{
-            padding: "8px 20px",
-            bgcolor: "#EBF3FC",
+            p: "8px 16px",
+            bgcolor: "#E8EEF5",
             borderRadius: "999px",
-            fontSize: "14px",
+            fontSize: "13px",
             fontWeight: 500,
             textTransform: "none",
-            color: "#1E293B",
+            color: "#0F172A",
             boxShadow: "none",
-            "&:hover": { bgcolor: "#E2EDF9" },
+            "&:hover": { bgcolor: "#DCE5F0" },
           }}
-          onClick={onOpenAccountInfo}
-          startIcon={<Info size={17} />}
+          onClick={onOpenAccountInfo || onOpenDetails}
+          startIcon={<Info size={16} />}
           title="Account Information"
         />
         <BaseButton
           sx={{
-            padding: "8px 20px",
-            bgcolor: "#EBF3FC",
+            p: "8px 16px",
+            bgcolor: "#E8EEF5",
             borderRadius: "999px",
-            fontSize: "14px",
+            fontSize: "13px",
             fontWeight: 500,
             textTransform: "none",
-            color: "#1E293B",
+            color: "#0F172A",
             boxShadow: "none",
-            "&:hover": { bgcolor: "#E2EDF9" },
+            "&:hover": { bgcolor: "#DCE5F0" },
           }}
           onClick={(e) => {
             setDownloadAnchor(e.currentTarget);
             onOpenStatements?.(e);
           }}
-          startIcon={<ReceiptText size={17} />}
+          startIcon={<ReceiptText size={16} />}
           title="Statements"
         />
-      </Stack>
+      </Box>
 
       <BaseDownloadPanel
         anchorEl={downloadAnchor}
