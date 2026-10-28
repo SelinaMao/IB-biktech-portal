@@ -19,6 +19,7 @@ import BaseCard from "@core/components/BaseCard";
 import {
   selectTransactionsResponse,
   useListTransactionsMutation,
+  type TxnStatus,
 } from "@/features/account";
 import type { TxnDirection } from "../dashboard.types";
 import BasePagination from "@/@core/components/BasePagination";
@@ -37,7 +38,16 @@ export interface TransactionItem {
   account: string;
   amount: number;
   direction: TxnDirection;
+  status: TxnStatus;
 }
+
+/** Pill label → the `status` value it filters the list down to. */
+const STATUS_TABS = {
+  Processed: "processed",
+  Pending: "pending",
+} as const satisfies Record<string, TxnStatus>;
+
+type StatusTab = keyof typeof STATUS_TABS;
 
 const defaultTransactions: TransactionItem[] = [
   {
@@ -48,6 +58,7 @@ const defaultTransactions: TransactionItem[] = [
     account: "Savings - 000 067 898",
     amount: -25.0,
     direction: "out",
+    status: "processed",
   },
   {
     id: "2",
@@ -57,6 +68,7 @@ const defaultTransactions: TransactionItem[] = [
     account: "Savings - 000 067 898",
     amount: 25.0,
     direction: "in",
+    status: "processed",
   },
   {
     id: "3",
@@ -66,6 +78,7 @@ const defaultTransactions: TransactionItem[] = [
     account: "Savings - 000 067 898",
     amount: -25.0,
     direction: "out",
+    status: "pending",
   },
   {
     id: "4",
@@ -75,6 +88,7 @@ const defaultTransactions: TransactionItem[] = [
     account: "Savings - 000 067 898",
     amount: -25.0,
     direction: "out",
+    status: "processed",
   },
   {
     id: "5",
@@ -84,6 +98,7 @@ const defaultTransactions: TransactionItem[] = [
     account: "Savings - 000 067 898",
     amount: 25.0,
     direction: "in",
+    status: "pending",
   },
 ];
 
@@ -131,7 +146,7 @@ export default function TransactionsCard({
   accountNumber,
   type,
 }: TransactionsCardProps) {
-  const [statusTab, setStatusTab] = useState<"Processed" | "Pending">("Pending");
+  const [statusTab, setStatusTab] = useState<StatusTab>("Processed");
   const [dateFilter, setDateFilter] = useState<BaseFilterValue>({
     type: "last7Days",
     from: null,
@@ -171,6 +186,10 @@ export default function TransactionsCard({
             account: `Savings - ${accountNumber ?? "000 067 898"}`,
             amount: entry.transactionAmount,
             direction: entry.transactionAmount >= 0 ? "in" : "out",
+            // `CoreTransactionEntry` carries no status — the statement endpoint
+            // only returns posted rows, so everything it sends is processed.
+            // Swap this for the real field once the core exposes one.
+            status: "processed",
           }),
         )
         : undefined,
@@ -182,15 +201,18 @@ export default function TransactionsCard({
     : defaultTransactions;
 
   const filteredRows = useMemo(() => {
-    if (!search.trim()) return allRows;
+    const wantedStatus = STATUS_TABS[statusTab];
     const q = search.trim().toLowerCase();
-    return allRows.filter(
-      (r) =>
+    return allRows.filter((r) => {
+      if (r.status !== wantedStatus) return false;
+      if (!q) return true;
+      return (
         r.title.toLowerCase().includes(q) ||
         r.ref.toLowerCase().includes(q) ||
-        r.account.toLowerCase().includes(q),
-    );
-  }, [allRows, search]);
+        r.account.toLowerCase().includes(q)
+      );
+    });
+  }, [allRows, search, statusTab]);
 
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / ROWS_PER_PAGE));
   const currentPage = Math.min(page, pageCount - 1);
@@ -239,12 +261,15 @@ export default function TransactionsCard({
             py: 0.2,
           }}
         >
-          {(["Processed", "Pending"] as const).map((tab) => {
+          {(Object.keys(STATUS_TABS) as StatusTab[]).map((tab) => {
             const isActive = statusTab === tab;
             return (
               <Box
                 key={tab}
-                onClick={() => setStatusTab(tab)}
+                onClick={() => {
+                  setStatusTab(tab);
+                  setPage(0);
+                }}
                 sx={{
                   px: 2.5,
                   py: 1.5,
@@ -418,6 +443,18 @@ export default function TransactionsCard({
 
           {/* Table Rows */}
           <Box sx={{ display: "flex", flexDirection: "column", padding: 1 }}>
+            {pageItems.length === 0 && (
+              <Typography
+                sx={{
+                  py: 6,
+                  textAlign: "center",
+                  fontSize: 14,
+                  color: palette.slate[400],
+                }}
+              >
+                No {statusTab.toLowerCase()} transactions
+              </Typography>
+            )}
             {pageItems.map((t, idx) => {
               const isNegative = t.direction === "out" || t.amount < 0;
               const account = splitAccount(t.account);
