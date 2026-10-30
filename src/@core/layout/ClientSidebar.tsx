@@ -65,7 +65,7 @@ const NAV_ITEMS = [
   },
   {
     key: "Payments",
-    href: "/client-dashboard",
+    href: "/payment",
     Icon: ReceiptText,
     // Not in CLIENT_PERMISSIONS — confirmed codes are payment.payment.{create,approve},
     // no payment.view code exists yet; not substituting since create/approve is a
@@ -102,12 +102,7 @@ const NAV_ITEMS = [
     // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
     permissions: Object.values(CLIENT_PERMISSIONS.MERCHANT),
   },
-  {
-    key: "Limits",
-    href: "/limits",
-    Icon: CreditCard,
-    permissions: Object.values(CLIENT_PERMISSIONS.TRANSACTION_LIMIT),
-  },
+
   {
     key: "Administrator",
     href: "/client-dashboard",
@@ -120,6 +115,12 @@ const NAV_ITEMS = [
         key: "users",
         href: "/users",
         permissions: Object.values(CLIENT_PERMISSIONS.USER),
+      },
+      {
+        key: "Limits",
+        href: "/limits",
+        Icon: CreditCard,
+        permissions: Object.values(CLIENT_PERMISSIONS.TRANSACTION_LIMIT),
       },
       { key: "rbac", href: "/rbac", permissions: [CLIENT_PERMISSIONS.ROLE.VIEW] },
       {
@@ -334,7 +335,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 href={collapsed ? children[0].href : undefined}
                 onClick={collapsed ? undefined : () => (childActive ? setClosedActiveKey((prev) => (prev === key ? null : key)) : setExpandedKey((prev) => (prev === key ? null : key)))}
                 sx={{
-                  borderRadius: collapsed ? "12px" : `${radius.pill}px`,
+                  borderRadius: collapsed ? "12px" : `${radius.sm}px`,
                   mb: collapsed ? 1 : 0.5,
                   minHeight: 44,
                   height: 44,
@@ -412,7 +413,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                             component={Link}
                             href={child.href}
                             sx={{
-                              borderRadius: `${radius.pill}px`,
+                              borderRadius: `${radius.sm}px`,
                               mb: 0.5,
                               minHeight: 40,
                               height: 40,
@@ -424,7 +425,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                               bgcolor: childIsActive ? (collapsed ? "#EBF3FC" : palette.primary[40]) : "transparent",
                               "&:hover": {
                                 bgcolor: childIsActive ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.hover[10],
-                                color: childIsActive ? palette.white : palette.black30 ,
+                                color: childIsActive ? palette.white : palette.black30,
                               },
                             }}
                           >
@@ -456,7 +457,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
               component={Link}
               href={href}
               sx={{
-                borderRadius: collapsed ? "12px" : `${radius.pill}px`,
+                borderRadius: collapsed ? "8px" : `${radius.sm}px`,
                 mb: collapsed ? 1 : 0.5,
                 minHeight: 44,
                 height: 44,
@@ -465,13 +466,13 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 width: collapsed ? 44 : "100%",
                 justifyContent: collapsed ? "center" : "flex-start",
                 alignItems: "center",
-                p: collapsed ? 0: undefined,
+                p: collapsed ? 0 : undefined,
                 px: collapsed ? 0 : 4,
                 mx: collapsed ? "auto" : undefined,
                 color: active ? palette.white : palette.black30,
                 bgcolor: active ? (collapsed ? palette.primary[40] : palette.primary[40]) : "transparent",
                 "&:hover": {
-                  bgcolor: active ? (collapsed ? palette.primary[40]: palette.primary[40]) : palette.hover[10],
+                  bgcolor: active ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.hover[10],
                   color: active ? palette.white : palette.black30,
                 },
               }}
@@ -521,8 +522,6 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         sx={{
           flexShrink: 0,
           borderTop: `1px solid ${palette.slate[200]}`,
-
-
           px: collapsed ? 1.5 : 2,
           py: 2,
           mt: "auto",
@@ -534,7 +533,6 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
               <Box
                 onClick={() => setMobileActivateOpen(true)}
                 sx={{
-
                   width: 44,
                   height: 44,
                   display: "flex",
@@ -560,8 +558,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 />
               </Box>
             </Tooltip>
-
-            <Tooltip title={t("help")} placement="right">
+            {/* <Tooltip title={t("help")} placement="right">
               <ListItemButton
                 component={Link}
                 href="/help"
@@ -583,7 +580,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
               >
                 <ListCollapse size={20} strokeWidth={2} />
               </ListItemButton>
-            </Tooltip>
+            </Tooltip> */}
           </Box>
         ) : (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -649,7 +646,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
             </Box>
 
             {/* Help & Support Link */}
-            <ListItemButton
+            {/* <ListItemButton
               component={Link}
               href="/help"
               sx={{
@@ -692,7 +689,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                   },
                 }}
               />
-            </ListItemButton>
+            </ListItemButton> */}
           </Box>
         )}
       </Box>
