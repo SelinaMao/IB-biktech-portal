@@ -4,15 +4,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { Box, Button, Typography } from "@mui/material";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  ChevronFirst,
-  ChevronLast,
-  Search,
-} from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Search } from "lucide-react";
 
-import { palette, radius, padding } from "@/theme/palette";
+import { font, palette, radius, padding } from "@/theme/palette";
 import { useAppSelector } from "@/store/hooks";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
@@ -22,7 +16,7 @@ import {
   type TxnStatus,
 } from "@/features/account";
 import type { TxnDirection } from "../dashboard.types";
-import BasePagination from "@/@core/components/BasePagination";
+import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import BaseFilterByDay from "@/@core/components/BaseFilterByDay";
 import BaseFilter, {
   BASE_FILTER_TYPE_LABELS,
@@ -111,11 +105,22 @@ const defaultTransactions: TransactionItem[] = [
 const FETCH_LIMIT = 20;
 const ROWS_PER_PAGE = 5;
 
-/** Header and body rows must share both of these, or the columns drift apart.
- *  To/From takes the slack — Account is sized to its content so it sits near
- *  the amount instead of leaving a gap between them. */
-const TABLE_COLUMNS = "3.2fr 1.6fr 1.2fr 1fr";
+/** Column widths, as the share of the table each one takes. To/From takes the
+ *  slack — Account stays narrow so it sits near the amount instead of leaving a
+ *  gap between them. */
+const COLUMN_WIDTHS = ["46%", "23%", "17%", "14%"] as const;
+
+/** The card's inner gutter. Columns butt up against each other, so only the
+ *  outer edges carry horizontal padding — the rest sit flush. */
 const TABLE_PX = 1.75;
+
+const HEAD_CELL_SX = {
+  pt: 0,
+  pb: 2,
+  fontSize: 15,
+  fontWeight: font.weight.regular,
+} as const;
+const BODY_CELL_SX = { py: 2.75 } as const;
 
 /** This card offers All plus short rolling windows — not BaseFilter's full month list. */
 const DATE_FILTER_OPTIONS: BaseFilterTypeOption[] = [
@@ -231,10 +236,150 @@ export default function TransactionsCard({
 
   const pageCount = Math.max(1, Math.ceil(filteredRows.length / ROWS_PER_PAGE));
   const currentPage = Math.min(page, pageCount - 1);
-  const pageItems = filteredRows.slice(
-    currentPage * ROWS_PER_PAGE,
-    currentPage * ROWS_PER_PAGE + ROWS_PER_PAGE,
-  );
+
+  const columns: BaseTableColumn<TransactionItem>[] = [
+    {
+      key: "toFrom",
+      header: "To/From",
+      width: COLUMN_WIDTHS[0],
+      headSx: { ...HEAD_CELL_SX, pl: TABLE_PX, pr: 0 },
+      cellSx: { ...BODY_CELL_SX, pl: TABLE_PX, pr: 0 },
+      render: (t) => {
+        const isNegative = t.direction === "out" || t.amount < 0;
+        return (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
+            {/* Circular arrow icon — out is debit-red, in is credit-green. */}
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                bgcolor: isNegative ? "#FEE8E8" : "#E6F4EA",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: isNegative ? "#E11D48" : "#16A34A",
+                flexShrink: 0,
+              }}
+            >
+              {isNegative ? (
+                <ArrowUpRight size={18} strokeWidth={1.8} />
+              ) : (
+                <ArrowDownLeft size={18} strokeWidth={1.8} />
+              )}
+            </Box>
+
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: 15,
+                  color: palette.slate[900],
+                  lineHeight: 1.25,
+                }}
+              >
+                {t.title}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: 12,
+                  color: palette.slate[450],
+                  lineHeight: 1.5,
+                  mt: 0.5,
+                }}
+              >
+                Ref: {t.ref}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      },
+    },
+    {
+      key: "date",
+      header: "Transaction Date",
+      width: COLUMN_WIDTHS[1],
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
+      // Date over time.
+      render: (t) => (
+        <Box>
+          <Typography
+            sx={{
+              fontSize: 14,
+              color: palette.slate[900],
+              lineHeight: 1.5,
+            }}
+          >
+            {t.date}
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: 12,
+              color: palette.slate[450],
+              lineHeight: 1.25,
+              mt: 0.5,
+            }}
+          >
+            {t.time}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      key: "account",
+      header: "Account",
+      width: COLUMN_WIDTHS[2],
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
+      // Product name over the masked number.
+      render: (t) => {
+        const account = splitAccount(t.account);
+        return (
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 14,
+                fontWeight: 500,
+                color: palette.slate[900],
+                lineHeight: 1.5,
+              }}
+            >
+              {account.label}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: 12,
+                color: palette.slate[450],
+                lineHeight: 1.25,
+                mt: 0.5,
+              }}
+            >
+              {account.masked}
+            </Typography>
+          </Box>
+        );
+      },
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      width: COLUMN_WIDTHS[3],
+      headSx: { ...HEAD_CELL_SX, fontWeight: font.weight.medium, pl: 0, pr: TABLE_PX },
+      cellSx: { ...BODY_CELL_SX, pl: 0, pr: TABLE_PX },
+      render: (t) => (
+        <Typography
+          sx={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: palette.slate[900],
+          }}
+        >
+          <BaseBlurText>{formatTxnAmount(t.amount)}</BaseBlurText>
+        </Typography>
+      ),
+    },
+  ];
 
   return (
     <BaseCard
@@ -341,207 +486,36 @@ export default function TransactionsCard({
         </Box>
       </Box>
 
-      {/* ---------- Table Content ---------- */}
-      <Box sx={{ width: "100%", overflowX: "auto" }}>
-        <Box sx={{ minWidth: 640 }}>
-          {/* Table Header */}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: TABLE_COLUMNS,
-              alignItems: "center",
-              pb: 2,
-              borderBottom: `1px solid ${palette.slate[200]}`,
-              px: TABLE_PX,
-            }}
-          >
-            <Typography
-              sx={{ fontSize: 15, color: palette.slate[500] }}
-            >
-              To/From
-            </Typography>
-            <Typography
-              sx={{ fontSize: 15, color: palette.slate[500] }}
-            >
-              Transaction Date
-            </Typography>
-            <Typography
-              sx={{ fontSize: 15, color: palette.slate[500] }}
-            >
-              Account
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: 15,
-                fontWeight: 500,
-                color: palette.slate[500],
-                textAlign: "right",
-              }}
-            >
-              Amount
-            </Typography>
-          </Box>
-
-          {/* Table Rows */}
-          {/* Vertical padding only — horizontal padding lives on the rows
-              themselves (TABLE_PX), so they stay flush with the header. */}
-          <Box sx={{ display: "flex", flexDirection: "column", py: 1 }}>
-            {pageItems.length === 0 && (
-              <Typography
-                sx={{
-                  py: 6,
-                  textAlign: "center",
-                  fontSize: 14,
-                  color: palette.slate[400],
-                }}
-              >
-                No {statusTab.toLowerCase()} transactions
-              </Typography>
-            )}
-            {pageItems.map((t, idx) => {
-              const isNegative = t.direction === "out" || t.amount < 0;
-              const account = splitAccount(t.account);
-              return (
-                <Box
-                  key={t.id ?? `${t.ref}-${idx}`}
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: TABLE_COLUMNS,
-                    alignItems: "center",
-                    py: 2.75,
-                    px: TABLE_PX,
-                    borderBottom: `1px solid ${palette.slate[50]}`,
-                    "&:hover": {
-                      bgcolor: palette.slate[50],
-                      borderRadius: `${radius.md}px`,
-                    },
-                  }}
-                >
-                  {/* To/From with circular arrow icon */}
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
-                    <Box
-                      sx={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: "50%",
-                        bgcolor: isNegative ? "#FEE8E8" : "#E6F4EA",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: isNegative ? "#E11D48" : "#16A34A",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {isNegative ? (
-                        <ArrowUpRight size={18} strokeWidth={1.8} />
-                      ) : (
-                        <ArrowDownLeft size={18} strokeWidth={1.8} />
-                      )}
-                    </Box>
-
-                    <Box>
-                      <Typography
-                        sx={{
-                          fontSize: 15,
-                          fontWeight: 600,
-                          color: palette.slate[900],
-                          lineHeight: 1.25,
-                        }}
-                      >
-                        {t.title}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          fontSize: 12,
-                          color: palette.slate[450],
-                          lineHeight: 1.50,
-                          mt: 0.50,
-                        }}
-                      >
-                        Ref: {t.ref}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {/* Transaction Date */}
-                  {/* Transaction Date: date over time */}
-                  <Box>
-                    <Typography
-                      sx={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: palette.slate[900],
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {t.date}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontSize: 12,
-                        color: palette.slate[450],
-                        lineHeight: 1.25,
-                        mt: 0.5,
-                      }}
-                    >
-                      {t.time}
-                    </Typography>
-                  </Box>
-
-                  {/* Account — product name over the masked number */}
-                  <Box>
-                    <Typography
-                      sx={{
-                        fontSize: 14,
-                        fontWeight: 500,
-                        color: palette.slate[900],
-                        lineHeight: 1.50,
-                      }}
-                    >
-                      {account.label}
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontSize: 12,
-                        color: palette.slate[450],
-                        lineHeight: 1.25,
-                        mt: 0.50,
-                      }}
-                    >
-                      {account.masked}
-                    </Typography>
-                  </Box>
-
-                  {/* Amount */}
-                  <Typography
-                    sx={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: palette.slate[900],
-                      textAlign: "right",
-                    }}
-                  >
-                    <BaseBlurText>
-                      {formatTxnAmount(t.amount)}
-                    </BaseBlurText>
-                  </Typography>
-                </Box>
-              );
-            })}
-          </Box>
-        </Box>
-      </Box>
-
-      {/* ---------- Pagination Row ---------- */}
-      <Box sx={{ mt: 2 }}>
-        <BasePagination
-          count={filteredRows.length}
-          page={currentPage}
-          rowsPerPage={ROWS_PER_PAGE}
-          onPageChange={setPage}
-          variant="compact"
-        />
-      </Box>
+      {/* ---------- Table + Pagination ---------- */}
+      {/* BaseTable slices `filteredRows` itself from the pagination props. */}
+      <BaseTable
+        columns={columns}
+        rows={filteredRows}
+        getRowKey={(t) => t.id ?? t.ref}
+        minWidth={640}
+        rounded={false}
+        headerBgColor={palette.white}
+        headerBorderColor={palette.slate[200]}
+        headerTextColor={palette.slate[500]}
+        headerBorderTop={false}
+        emptyTitle={`No ${statusTab.toLowerCase()} transactions`}
+        getRowSx={() => ({
+          "&:hover": {
+            bgcolor: palette.slate[50],
+            borderRadius: `${radius.md}px`,
+          },
+          "& td": { borderBottom: `1px solid ${palette.slate[50]}` },
+        })}
+        pagination={{
+          count: filteredRows.length,
+          page: currentPage,
+          rowsPerPage: ROWS_PER_PAGE,
+          onPageChange: setPage,
+        }}
+        paginationVariant="compact"
+        // BaseTable spaces the pager 40px off the table; this card wants 16px.
+        paginationSx={{ mt: -3 }}
+      />
     </BaseCard>
   );
 }
