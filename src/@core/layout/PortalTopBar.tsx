@@ -80,7 +80,7 @@ const NOTIFICATIONS: NotificationItem[] = [
   },
 ];
 
-const ROUTE_TITLES: { prefix: string; title: string }[] = [
+const ROUTE_TITLES: { prefix: string; title: string; subPrefix?: string }[] = [
   { prefix: "/dashboard", title: "Dashboard" },
   { prefix: "/transfer", title: "Transfer" },
   { prefix: "/approval", title: "Approvals" },
@@ -93,7 +93,7 @@ const ROUTE_TITLES: { prefix: string; title: string }[] = [
   { prefix: "/users", title: "Users" },
   { prefix: "/rbac", title: "Roles & Permissions" },
   { prefix: "/help", title: "Help & Support" },
-  { prefix: "/payments", title: "Payments" },
+  { prefix: "/payment", title: "Payments" },
   { prefix: "/schedule", title: "Schedule" },
   { prefix: "/payroll", title: "Payroll" },
   { prefix: "/merchant", title: "Merchant" },
@@ -213,7 +213,7 @@ export default function PortalTopBar({
             alignItems: "center",
             justifyContent: "space-between",
             height: `${TOPBAR_HEIGHT}px`,
-            px: collapsed ? 1 : { xs: 2, sm: 6.5 },
+            px: collapsed ? 1 : { xs: 2, sm: 1 },
             borderRight: { xs: "none", sm: `1px solid ${palette.slate[200]}` },
             flexShrink: 0,
             transition: "width 200ms ease, min-width 200ms ease, max-width 200ms ease, padding 200ms ease",
@@ -224,6 +224,7 @@ export default function PortalTopBar({
               display: "flex",
               alignItems: "center",
               cursor: "pointer",
+              p:collapsed ? 1 : { xs: 2, sm: 6 },
             }}
             onClick={() => router.push("/dashboard")}
           >
@@ -262,8 +263,8 @@ export default function PortalTopBar({
             aria-label="Toggle sidebar"
             sx={{
               marginTop: "2px",
-              marginLeft: collapsed ? "5px" : "0px",
-              p: collapsed ? 0 : 1.75,
+              marginLeft: collapsed ? "5px" : "10px",
+              p: collapsed ? 0 : 0,
               color: palette.slate[700],
               borderRadius: "8px",
               flexShrink: 0,
@@ -371,27 +372,6 @@ export default function PortalTopBar({
           </Stack>
         ) : pageTitle ? (
           <Stack direction="row" alignItems="center" spacing={1.5} sx={{ pl: 2.5 }}>
-            {/* <IconButton
-              size="small"
-              aria-label="Back"
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                bgcolor: "#EEF2F6",
-                color: "#334155",
-                p: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "background-color 0.15s ease",
-                "&:hover": {
-                  bgcolor: "#E2E8F0",
-                },
-              }}
-            >
-              <ChevronLeft size={18} />
-            </IconButton> */}
             <Typography
               sx={{
                 padding: "10px",

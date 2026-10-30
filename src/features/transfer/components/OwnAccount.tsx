@@ -46,13 +46,39 @@ const INITIAL_VALUES = {
   scheduleDate: "Today, 14 Mar 2026",
   endCondition: "after-transfers" as "after-transfers" | "no-end-date",
 };
+const ONE_ACCOUNT_MESSAGE = "You need a second account to transfer between your own accounts.";
 
+const fieldSx = {
+  "& .MuiOutlinedInput-root": {
+    bgcolor: "#F8FAFC",
+    borderRadius: "16px",
+    "& .MuiOutlinedInput-notchedOutline": {
+      borderColor: "transparent",
+    },
+    "&:hover .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#E2E8F0",
+    },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#CBD5E1",
+      borderWidth: 1.5,
+    },
+  },
+};
 export default function OwnAccount({ open, onClose }: OwnAccountProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
   const { accounts, loading: loadingAccounts } = useTransferAccounts(open);
   const quote = useTransferQuote();
   const [submitTransfer] = useSubmitOwnAccountTransferMutation();
+// Error is hidden on load; shown only when the user clicks the select with one account
+  const [showAccountError, setShowAccountError] = React.useState(false);
+  const [selectOpen, setSelectOpen] = React.useState(false);
 
+  React.useEffect(() => {
+    if (open) {
+      setShowAccountError(false);
+     
+    }
+  }, [open]);
   const { control, watch, setValue, reset } = useForm({
     defaultValues: { fromAccountId: "" },
   });
@@ -130,7 +156,7 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
   const fromOptions = accountSelectOptions(accounts);
   const toOptions = fromOptions.map((option) => ({ ...option, disabled: option.value === fromAccountId }));
   const onlyOneAccount = !loadingAccounts && accounts.length === 1;
-
+  const showOneAccountError = showAccountError && onlyOneAccount;
   const accountFieldProps = loadingAccounts
     ? {
       disabled: true,
@@ -150,29 +176,15 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
     }
     : {};
 
-  return (
+   return (
     <PreviewTransfer
       open={open}
       onClose={onClose}
       title="Own Account Transfer"
       icon={<User size={18} />}
-      fromAccount={
-        fromAccount
-          ? { name: fromAccount.name, accountNumber: fromAccount.number }
-          : undefined
-      }
-      toAccount={
-        toAccount
-          ? { name: toAccount.name, accountNumber: toAccount.number }
-          : undefined
-      }
-      topSection={
-        <BaseFromAccount
-          name="fromAccountId"
-          control={control}
-          accounts={accounts}
-        />
-      }
+      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
+      toAccount={toAccount ? { name: toAccount.name, accountNumber: toAccount.number } : undefined}
+      topSection={<BaseFromAccount name="fromAccountId" control={control} accounts={accounts} />}
       canSubmit={Boolean(fromAccount && toAccount && fromAccountId !== toAccountId && !Number.isNaN(amount))}
       previewFields={previewFields}
       summaryRows={quoteSummaryRows(quote.quote)}
@@ -183,36 +195,37 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
         setValues(INITIAL_VALUES);
         reset({ fromAccountId: accounts[0]?.id ?? "" });
         quote.reset();
+        setShowAccountError(false);
+        
       }}
       onReview={priceTransfer}
       submit={submit}
     >
       <Stack spacing={3}>
         <Box>
-          <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A", mb: 1 }}>
-            To Account
-          </Typography>
+          <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A", mb: 1 }}>To Account</Typography>
           <BaseSelect
             value={toAccountId}
-
-            onChange={(e) => set("toAccountId", e.target.value as string)}
+            onChange={(e) => {
+              set("toAccountId", e.target.value as string);
+              setShowAccountError(false);
+            }}
             options={toOptions}
-            error={onlyOneAccount}
-            helperText={onlyOneAccount ? "You need a second account to transfer between your own accounts." : undefined}
+            error={showOneAccountError}
+            placeholder="Select Your Account"
+            helperText={showOneAccountError ? ONE_ACCOUNT_MESSAGE : undefined}
+            slotProps={{
+    select: {
+      onOpen: () => {
+        if (onlyOneAccount) setShowAccountError(true); // show the message and open the menu
+      },
+    },
+  }}
             sx={{
-              "& .MuiOutlinedInput-root": {
-                bgcolor: "#F8FAFC",
-                borderRadius: "16px",
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "transparent",
-                },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#E2E8F0",
-                },
-                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#CBD5E1",
-                  borderWidth: 1.5,
-                },
+              ...fieldSx,
+              "& .MuiSelect-select": {
+                fontSize: 14,
+                color: toAccountId ? "#0F172A" : "#94A3B8",
               },
             }}
             {...accountFieldProps}
@@ -246,30 +259,13 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
         />
 
         <Box>
-          <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A", mb: 1 }}>
-            Remark
-          </Typography>
+          <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A", mb: 1 }}>Remark</Typography>
           <BaseTextArea
             value={values.remark}
             onChange={(e) => set("remark", e.target.value)}
             placeholder="Pay good service"
             minRows={2}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                bgcolor: "#F8FAFC",
-                borderRadius: "16px",
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "transparent",
-                },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#E2E8F0",
-                },
-                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#CBD5E1",
-                  borderWidth: 1.5,
-                },
-              },
-            }}
+            sx={fieldSx}
           />
           <Typography sx={{ fontSize: 13, color: "#94A3B8", mt: 0.75, px: 0.5 }}>
             Shown on both account statements.
