@@ -13,17 +13,8 @@ import { showToast } from "@core/components/AppToast";
 import BaseOTP from "@core/components/BaseOTP";
 import BaseSuccessSMS from "@core/components/BaseSuccessSMS";
 import { ControlledBaseCheckbox, ControlledBaseInput } from "@core/form";
-import {
-  AuthError,
-  toAuthError,
-  useAuth,
-  useOtpDialog,
-  type VerifyOtpRequest,
-} from "@/features/auth";
-import {
-  getSignUpSchema,
-  signUpDefaultValues,
-} from "@/features/auth/schema/auth.schema";
+import { AuthError, toAuthError, useAuth, useOtpDialog, type VerifyOtpRequest } from "@/features/auth";
+import { getSignUpSchema, signUpDefaultValues } from "@/features/auth/schema/auth.schema";
 import { useSignUpVerifyOtpMutation } from "@/features/auth/auth.api";
 import type { TSignUpForm } from "@core/types/auth";
 import { formatLocalPhoneDisplay, stripSpaces, toIntlPhone } from "@/utils";
@@ -64,6 +55,7 @@ const inputSx = {
 
 export default function ClientSignUpPage() {
   const router = useRouter();
+  const { signUp } = useAuth();
   const t = useTranslations("login");
   const [, setPendingValues] = useState<TSignUpForm | null>(null);
   const [signupUserId, setSignupUserId] = useState<string | undefined>();
@@ -83,21 +75,31 @@ export default function ClientSignUpPage() {
     defaultValues: signUpDefaultValues,
   });
 
-  const [accountNumber, nId, phone, agreedTerms] = watch([
-    "accountNumber",
-    "nId",
-    "phone",
-    "agreedTerms",
-  ]);
+  const [accountNumber, nId, phone, agreedTerms] = watch(["accountNumber", "nId", "phone", "agreedTerms"]);
 
-  const canSubmit =
-    Boolean(accountNumber?.trim()) &&
-    Boolean(nId?.trim()) &&
-    Boolean(phone?.trim()) &&
-    Boolean(agreedTerms);
+  const canSubmit = Boolean(accountNumber?.trim()) && Boolean(nId?.trim()) && Boolean(phone?.trim()) && Boolean(agreedTerms);
 
-  const handleDoneSignUp = () => {
-    router.push("/otp");
+  // const handleDoneSignUp = () => {
+  //   router.push("/otp");
+  // };
+
+  const handleSignUp = async (values: TSignUpForm) => {
+    try {
+      const body: TSignUpForm = {
+        ...values,
+        accountNumber: stripSpaces(values.accountNumber),
+        phone: toIntlPhone(values.phone),
+      };
+
+      const response = await signUp({ body });
+
+      // Save OTP information
+      sessionStorage.setItem("signupOtpId",response?.data?.otpId );
+
+      router.push("/otp");
+    } catch (error) {
+      console.error("Signup failed:", error);
+    }
   };
 
   return (
@@ -129,30 +131,18 @@ export default function ClientSignUpPage() {
         </Typography>
       }
     >
-      <Box component="form" onSubmit={handleSubmit(handleDoneSignUp)} noValidate>
+      <Box component="form" onSubmit={handleSubmit(handleSignUp)} noValidate>
         {/* 1. Account Number Field */}
         <Typography component="label" htmlFor="accountNumber" sx={labelSx}>
           Account Number
         </Typography>
-        <ControlledBaseInput
-          name="accountNumber"
-          control={control}
-          placeholder="123 123 123"
-          disabled={isSubmitting}
-          sx={inputSx}
-        />
+        <ControlledBaseInput name="accountNumber" control={control} placeholder="123 123 123" disabled={isSubmitting} sx={inputSx} />
 
         {/* 2. NID/Passport ID Field */}
         <Typography component="label" htmlFor="nId" sx={labelSx}>
           NID/Passport ID
         </Typography>
-        <ControlledBaseInput
-          name="nId"
-          control={control}
-          placeholder="002338699"
-          disabled={isSubmitting}
-          sx={inputSx}
-        />
+        <ControlledBaseInput name="nId" control={control} placeholder="002338699" disabled={isSubmitting} sx={inputSx} />
 
         {/* 3. Mobile Number Field */}
         <Typography component="label" htmlFor="phone" sx={labelSx}>
@@ -209,8 +199,9 @@ export default function ClientSignUpPage() {
         {/* 5. Sign up Submit Button */}
         <Box
           component="button"
-          type="button"
-          onClick={() => router.push("/otp")}
+          type="submit"
+          disabled={isSubmitting}
+          // onClick={() => router.push("/otp")}
           sx={{
             display: "block",
             width: "100%",

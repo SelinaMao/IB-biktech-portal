@@ -1,25 +1,16 @@
 "use client";
 
 import { useState, useRef, type KeyboardEvent } from "react";
-import {
-  Box,
-  Link,
-  OutlinedInput,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Link, OutlinedInput, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { SwitchLanguageMenu } from "@core/components/SwitchLanguageMenu";
+import { RequestConfirmOTP } from "@/@core/types/auth";
+import { useAuth } from "@/features/auth";
 
-const FOOTER_LINKS = [
-  "FAQs",
-  "User Guide",
-  "Contact Us",
-  "Security",
-  "Privacy Policy",
-];
+const FOOTER_LINKS = ["FAQs", "User Guide", "Contact Us", "Security", "Privacy Policy"];
 
 export default function OtpPage() {
+  const { confirmCodeOtp } = useAuth();
   const router = useRouter();
   const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -44,8 +35,21 @@ export default function OtpPage() {
     }
   };
 
-  const handleVerify = () => {
-    router.push("/success");
+  const handleVerify = async () => {
+
+    try {
+
+      const otp = sessionStorage.getItem("signupOtpId");
+
+      await confirmCodeOtp({otpId:otp,confirmationCode: digits.join("")});
+
+      // OTP verified successfully
+      sessionStorage.removeItem("signupOtpId");
+
+      router.push("/success");
+    } catch (error) {
+      console.error("OTP verification failed:", error);
+    }
   };
 
   return (
@@ -93,16 +97,7 @@ export default function OtpPage() {
             },
           }}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
           Back
@@ -181,9 +176,7 @@ export default function OtpPage() {
                   }}
                   value={digits[index]}
                   onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
-                    handleKeyDown(index, e)
-                  }
+                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => handleKeyDown(index, e)}
                   inputProps={{
                     inputMode: "numeric",
                     maxLength: 1,
@@ -241,9 +234,7 @@ export default function OtpPage() {
                   }}
                   value={digits[index]}
                   onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) =>
-                    handleKeyDown(index, e)
-                  }
+                  onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => handleKeyDown(index, e)}
                   inputProps={{
                     inputMode: "numeric",
                     maxLength: 1,

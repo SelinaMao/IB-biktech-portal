@@ -160,6 +160,7 @@ export default function PreviewTransfer({
     ) ?? [];
 
     if (!open) return null;
+  
 
     const handleClose = () => {
         setStep(0);
@@ -196,7 +197,7 @@ export default function PreviewTransfer({
     const handleSelectQr = () => {
         setChooseVerifyOpen(false);
         // Direct QR selection -> opens QrConfirmationDialog
-        setConfirmOpen(true);
+        setConfirmOpen(false);
     };
 
     const handleSelectMobileApp = async () => {
