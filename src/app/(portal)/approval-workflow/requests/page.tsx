@@ -393,10 +393,11 @@ export default function ApprovalRequestsPage() {
 
   return (
     <Box sx={{ width: "100%" }}>
+     
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <StatCard
-            label="Waiting on You"
+            label="pending"
             value={String(myTasks.length)}
             icon={<ClipboardClock />}
             tone="warning"
@@ -404,14 +405,14 @@ export default function ApprovalRequestsPage() {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
           <StatCard
-            label="Open Requests"
+            label="Pending Amount"
             value={String(openInstances.length)}
             icon={<FileClock />}
             tone="info"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 12, lg: 4 }}>
-          <ApprovalTypeBreakdownCard title="Pending Request Type" items={typeBreakdown} />
+          <ApprovalTypeBreakdownCard title="Pending by type" items={typeBreakdown} />
         </Grid>
       </Grid>
 

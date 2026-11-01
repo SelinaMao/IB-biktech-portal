@@ -51,7 +51,14 @@ const AppRecharts = styled('div')(({ theme }) => ({
   },
   '& .recharts-pie .recharts-sector, & .recharts-layer': {
     outline: 'none !important'
-  }
+  },
+  '& .recharts-area': {
+  animation: 'chartReveal 2s ease-out forwards'
+},
+'@keyframes chartReveal': {
+  from: { clipPath: 'inset(0 100% 0 0)' },
+  to: { clipPath: 'inset(0 0 0 0)' }
+}
 }))
 
 export default AppRecharts

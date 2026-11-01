@@ -441,6 +441,7 @@ export default function PreviewTransfer({
                         fontWeight: 700,
                         color: "#0F172A",
                         lineHeight: 1.25,
+                        textAlign:"center"
                     }}
                 >
                     {title}
@@ -1002,11 +1003,7 @@ function TransferStepper({
                             gap: 0.5,
                         }}
                     >
-                        {i <= activeStep && (
-                            <Box component="span" sx={{ fontSize: "14px", fontWeight: "bold" }}>
-                                ✓
-                            </Box>
-                        )}
+                     
                         {label}
                     </Typography>
                 </Stack>
