@@ -17,6 +17,7 @@ export { default as TransferOptionCard } from "./components/TransferOptionCard";
 export {
   default as PreviewTransfer,
   type TransferReviewRow,
+  type TransferPreviewField,
 } from "./components/PreviewTransfer";
 
 

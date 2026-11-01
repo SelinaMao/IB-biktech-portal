@@ -13,6 +13,10 @@ import { ChevronsUpDown, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 import { font, palette, radius } from "@/theme/palette";
 import BaseButton from "@core/components/BaseButton";
+import BaseSearchByDay, {
+  type BaseFilterByDayValue,
+} from "@core/components/BaseSearchByDay";
+import { isDateWithinFilter } from "@core/components/BaseFilterByDay";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import type { PaymentTemplate } from "../payment.types";
 
@@ -55,19 +59,26 @@ export default function PaymentTemplatesTable({
   onSelectTemplate,
 }: PaymentTemplatesTableProps) {
   const [search, setSearch] = useState("");
+  const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
   const [page, setPage] = useState(0);
 
   const filteredTemplates = useMemo(() => {
-    if (!search.trim()) return templates;
-    const q = search.toLowerCase();
-    return templates.filter(
-      (tpl) =>
-        tpl.name.toLowerCase().includes(q) ||
-        tpl.type.toLowerCase().includes(q) ||
-        tpl.providerName.toLowerCase().includes(q) ||
-        tpl.correspondentId.toLowerCase().includes(q),
-    );
-  }, [templates, search]);
+    let result = templates;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (tpl) =>
+          tpl.name.toLowerCase().includes(q) ||
+          tpl.type.toLowerCase().includes(q) ||
+          tpl.providerName.toLowerCase().includes(q) ||
+          tpl.correspondentId.toLowerCase().includes(q),
+      );
+    }
+    if (dateFilter) {
+      result = result.filter((tpl) => isDateWithinFilter(tpl.createdAt, dateFilter));
+    }
+    return result;
+  }, [templates, search, dateFilter]);
 
   const totalCount = filteredTemplates.length;
 
@@ -294,41 +305,26 @@ export default function PaymentTemplatesTable({
         />
       </Stack>
 
-      {/* Search Input */}
+      {/* Filter Row: BaseSearchByDay */}
       <Box
         sx={{
-          mb: 6,
+          mb: 3,
           mt: 6,
-          borderTop: "1px solid ",
+          borderTop: "1px solid",
           pt: 6,
           borderTopColor: palette.secondary[100],
         }}
       >
-        <TextField
-          size="small"
-          placeholder="Search"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
+        <BaseSearchByDay
+          search={search}
+          onSearchChange={(val) => {
+            setSearch(val);
             setPage(0);
           }}
-          sx={{
-            width: { xs: "100%", sm: 220 },
-            "& .MuiOutlinedInput-root": {
-              height: 40,
-              borderRadius: "10px",
-              borderColor: palette.slate[200],
-              backgroundColor: "#ffffff",
-            },
-          }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={18} color={palette.slate[400]} />
-                </InputAdornment>
-              ),
-            },
+          dateFilter={dateFilter}
+          onDateFilterChange={(filter) => {
+            setDateFilter(filter);
+            setPage(0);
           }}
         />
       </Box>

@@ -1,16 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import { Box, Stack, Typography } from "@mui/material";
-import { ChevronRight, Wallet } from "lucide-react";
+import { WalletCards } from "lucide-react";
 
-import { font, palette } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
-import BaseCard from "@core/components/BaseCard";
 import { formatCCY } from "@/utils/format-ccy";
 import { formatAccountNumber } from "@/utils/format-account-number";
-import SummaryCard from "./SummaryCard";
-import type { CoreAccountEntry, CoreAccountsResponse, SummaryCardProps } from "../account.types";
-import { adjustLightness } from "@/utils/get-color-light";
+import type { CoreAccountEntry, CoreAccountsResponse } from "../account.types";
 
 export interface AccountsSidebarProps {
   summary: CoreAccountsResponse["summary"] | null;
@@ -19,109 +16,231 @@ export interface AccountsSidebarProps {
   onSelect?: (id: string) => void;
 }
 
+const DEFAULT_TYPE_COLORS: Record<string, string> = {
+  CA: "#1C64B4", // Blue
+  TD: "#20A678", // Green
+  SA: "#E88000", // Orange
+  CL: "#8B5CF6", // Purple
+};
+
+/** Formats dynamic amount as "KHR 120,293,000.00" or "USD 293,000.00" */
+function formatSummaryCurrency(
+  amount: number | string | undefined | null,
+  ccy: string,
+): string {
+  const num = Number(amount ?? 0);
+  const formatted = (isNaN(num) ? 0 : num).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${ccy} ${formatted}`;
+}
+
 export default function AccountsSidebar({
   summary,
   accounts,
   selectedId,
   onSelect,
 }: AccountsSidebarProps) {
-  // Prefer the core API's reported totals; fall back to summing the list
-  // client-side (e.g. before the first `listAccounts` response lands).
-  const { totalBalanceKHR, totalBalanceUSD } = summary ?? {
-    totalBalanceKHR: 0,
-    totalBalanceUSD: 0,
-  };
+  // Dynamic balances: prefer core summary totals, fallback to summing accounts list dynamically
+  const { totalBalanceKHR, totalBalanceUSD } = useMemo(() => {
+    const khr =
+      summary?.totalBalanceKHR !== undefined
+        ? summary.totalBalanceKHR
+        : accounts
+            .filter((a) => a.ccy === "KHR")
+            .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
 
-  const availableBalanceCard: SummaryCardProps = {
-    label: "Summary",
-    value: formatCCY(totalBalanceUSD, "USD"),
-    sub: formatCCY(totalBalanceKHR, "KHR"),
-    icon: <Wallet color={palette.success.main} size={20} />,
-    tone: "success",
-  };
+    const usd =
+      summary?.totalBalanceUSD !== undefined
+        ? summary.totalBalanceUSD
+        : accounts
+            .filter((a) => a.ccy === "USD" || !a.ccy)
+            .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
+
+    return { totalBalanceKHR: khr, totalBalanceUSD: usd };
+  }, [summary, accounts]);
 
   return (
-    <Stack spacing={2.5}>
-      {/* <Box>
-        <Typography sx={{ fontSize: 24, fontWeight: 400, color: "text.primary", mb: 1.5 }}>
+    <Box
+      sx={{
+        bgcolor: "#FFFFFF",
+        borderRadius: "28px",
+        p: { xs: 2, sm: 2.5 },
+        boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
+        border: "1px solid #EDF2F7",
+      }}
+    >
+      {/* ───────── Top: Summary Box ───────── */}
+      <Box
+        sx={{
+          bgcolor: "#F4F7FB",
+          borderRadius: "18px",
+          p: "18px 20px",
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: 14,
+            fontWeight: 500,
+            color: "#718096",
+            mb: 1.25,
+            lineHeight: 1.2,
+          }}
+        >
           Summary
         </Typography>
-        <SummaryCard {...availableBalanceCard} />
-      </Box> */}
 
-      <Box sx={{
-        border:"0px solid",
-        bgcolor:"white",
-        borderRadius:"20px",
-        padding:3
-      }}>
-        <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", mb: 1.5 }}>
-          Accounts
-        </Typography>
-        <Stack spacing={2}>
-          {accounts.map((account) => {
-            const active = account.accountNumber === selectedId;
-            return (
-              <BaseCard
-                key={`${account.accountNumber}-${account.ccy}`}
-                role={onSelect ? "button" : undefined}
-                tabIndex={onSelect ? 0 : undefined}
-                onClick={() => onSelect?.(account.accountNumber)}
-                onKeyDown={(e) => {
-                  if (!onSelect) return;
-                  if (e.key === "Enter" || e.key === " ") onSelect(account.accountNumber);
-                }}
-                sx={{
-                  padding:"5px",
-                  cursor: onSelect ? "pointer" : "default",
-                  // border: `0px solid ${active ? `${account.color}` : "0px"}`,
-                  backgroundColor: active ? "#2764A514" : "white",
-                  border:"none"
-                }}
-              >
-                <Stack
-                  direction="row"
-                  sx={{
-                    position: 'relative',
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    mb: 2,
-                    paddingLeft: '10px',
-                    // "&::before": {
-                    //   content: '""',
-                    //   top: '-20px',
-                    //   left: '-20px',
-                    //   position: "absolute",
-                    //   width: "15px",
-                    //   height: "80px",
-                    //   borderTopLeftRadius: active ? "14px" : "16px",
-                    //   borderBottomRightRadius: '12px',
-                    //   backgroundColor: account.color || "#F2C94C"
-                    // }
-                  }}
-                >
-                  <Box>
-                    <Typography sx={{ fontWeight: font.weight.regular, fontSize: font.size.base, color: palette.primary[1000] }}>
-                      {account.accountName}
-                    </Typography>
-                    <Typography sx={{ fontSize: font.size.xs, color: palette.text.secondary, mt: 0.25 }}>
-                      {formatAccountNumber(account.accountNumber)}
-                    </Typography>
-                  </Box>
-                  {/* <ChevronRight
-                    size={18}
-                    color={active ? palette.navy[800] : palette.slate[400]}
-                  /> */}
-                  <Typography sx={{ fontWeight: font.weight.bold, fontSize: font.size.sm, color: palette.text.primary, paddingLeft: '10px',margin:"5px" }}>
-                  <BaseBlurText>{formatCCY(account.availableBalance, account.ccy)}</BaseBlurText>
-                </Typography>
-                </Stack>
-                
-              </BaseCard>
-            );
-          })}
+        <Stack spacing={0.75}>
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: "#0F172A",
+              lineHeight: 1.35,
+            }}
+          >
+            <BaseBlurText>
+              {formatSummaryCurrency(totalBalanceKHR, "KHR")}
+            </BaseBlurText>
+          </Typography>
+
+          <Typography
+            sx={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: "#0F172A",
+              lineHeight: 1.35,
+            }}
+          >
+            <BaseBlurText>
+              {formatSummaryCurrency(totalBalanceUSD, "USD")}
+            </BaseBlurText>
+          </Typography>
         </Stack>
       </Box>
-    </Stack>
+
+      {/* ───────── Middle: Accounts List Header ───────── */}
+      <Stack
+        direction="row"
+        spacing={1.25}
+        sx={{
+          alignItems: "center",
+          mt: 3,
+          mb: 2,
+          px: 0.5,
+        }}
+      >
+        <WalletCards size={20} color="#5A6B82" strokeWidth={2} />
+        <Typography
+          sx={{
+            fontSize: 16,
+            fontWeight: 700,
+            color: "#5A6B82",
+            lineHeight: 1.2,
+          }}
+        >
+          Accounts List
+        </Typography>
+      </Stack>
+
+      {/* ───────── Bottom: Account Cards List ───────── */}
+      <Stack spacing={1.5}>
+        {accounts.map((account, index) => {
+          const active = account.accountNumber === selectedId;
+          const barColor =
+            account.color ||
+            DEFAULT_TYPE_COLORS[account.accountType] ||
+            (index === 0 ? "#1C64B4" : index === 1 ? "#20A678" : "#E88000");
+
+          return (
+            <Box
+              key={`${account.accountNumber}-${account.ccy}`}
+              role={onSelect ? "button" : undefined}
+              tabIndex={onSelect ? 0 : undefined}
+              onClick={() => onSelect?.(account.accountNumber)}
+              onKeyDown={(e) => {
+                if (!onSelect) return;
+                if (e.key === "Enter" || e.key === " ") onSelect(account.accountNumber);
+              }}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                p: "16px 18px",
+                borderRadius: "16px",
+                cursor: onSelect ? "pointer" : "default",
+                bgcolor: active ? "#EDF4FC" : "#FFFFFF",
+                border: active ? "1.5px solid #85B7E8" : "1.5px solid #EDF2F7",
+                transition: "all 0.15s ease-in-out",
+                "&:hover": {
+                  bgcolor: active ? "#EDF4FC" : "#F8FAFC",
+                  borderColor: active ? "#73A8DC" : "#CBD5E1",
+                },
+              }}
+            >
+              {/* Left: Indicator Bar + Account Name & Number */}
+              <Stack
+                direction="row"
+                spacing={1.5}
+                sx={{ alignItems: "center", minWidth: 0, pr: 1 }}
+              >
+                <Box
+                  sx={{
+                    width: "4px",
+                    height: "32px",
+                    borderRadius: "4px",
+                    bgcolor: barColor,
+                    flexShrink: 0,
+                  }}
+                />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography
+                    sx={{
+                      fontSize: 16,
+                      fontWeight: 700,
+                      color: "#0F172A",
+                      lineHeight: 1.25,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {account.accountName}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: 13.5,
+                      fontWeight: 400,
+                      color: "#64748B",
+                      mt: "4px",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {formatAccountNumber(account.accountNumber)}
+                  </Typography>
+                </Box>
+              </Stack>
+
+              {/* Right: Balance */}
+              <Typography
+                sx={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "#0F172A",
+                  textAlign: "right",
+                  flexShrink: 0,
+                  pl: 1,
+                }}
+              >
+                <BaseBlurText>
+                  {formatCCY(account.availableBalance, account.ccy)}
+                </BaseBlurText>
+              </Typography>
+            </Box>
+          );
+        })}
+      </Stack>
+    </Box>
   );
 }

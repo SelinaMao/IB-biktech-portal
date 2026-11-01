@@ -45,6 +45,8 @@ export { default as TransactionsList } from "./components/TransactionsList";
 export { default as AvailableBalanceCard } from "./components/AvailableBalanceCard";
 export { default as AccountDetailCard } from "./components/AccountDetailCard";
 export { default as AccountDetails } from "./components/AccountDetails";
+export { default as AccountInformationDetail } from "./components/AccountInformationDetail";
+export { default as StatementDownloadDialog } from "./components/StatementDownloadDialog";
 export { default as TransactionDetailsPanel } from "./components/TransactionDetails";
 export { default as NewAccountDialog } from "./components/NewAccountDialog";
 export { default as RolloverOptionsPanel } from "./components/RolloverOptionsPanel";

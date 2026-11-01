@@ -131,7 +131,7 @@ export default function CashFlowCard() {
     <BaseCard
       sx={{
         p: { xs: 2.5, sm: "20px 24px" },
-        borderRadius: "20px",
+        borderRadius: "16px",
         border: `1px solid ${palette.slate[200]}`,
         bgcolor: "#FFFFFF",
         width: "100%",

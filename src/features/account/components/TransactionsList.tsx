@@ -1,26 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { Box, Button, CircularProgress, Stack, Typography } from "@mui/material";
-import { NorthEastRounded, SouthWestRounded } from "@mui/icons-material";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
-import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
-import { InputAdornment, TextField } from "@mui/material";
-import { palette } from "@/theme/palette";
-import SearchIcon from "@mui/icons-material/Search";
+import React, { useMemo, useState } from "react";
+import {
+  Box,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { Download, MoveDownLeft, MoveUpRight } from "lucide-react";
+
 import BaseBlurText from "@core/components/BaseBlurText";
-import BaseDownloadPanel, { type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
-import BaseFilter, { BASE_FILTER_TYPE_LABELS, type BaseFilterValue } from "@core/components/BaseFilter";
-import BaseSearchButton from "@core/components/BaseSearchButton";
+import BaseButton from "@core/components/BaseButton";
+import BaseSearchByDay, { type BaseFilterByDayValue } from "@core/components/BaseSearchByDay";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
-import SectionCard from "@/features/dashboard/components/SectionCard";
+import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
+import type { BaseFilterValue } from "@core/components/BaseFilter";
 import { formatTransactionAmount, isIncomingTransaction } from "../account.slice";
 import type { TTransactionDetailResponse } from "../account.types";
-import { Icon, MoveDownRight, MoveUpLeft } from "lucide-react";
-import BaseFilterByDay from "@/@core/components/BaseFilterByDay";
-
-/** Matches BaseCard's padding — bled edge-to-edge so the header tint reaches the card border. */
-const CARD_PADDING_PX = 10;
+import StatementDownloadDialog from "./StatementDownloadDialog";
+import { padding, palette } from "@/theme/palette";
 
 export interface TransactionsListProps {
   transactions: TTransactionDetailResponse[];
@@ -33,22 +30,20 @@ export interface TransactionsListProps {
   dateFilter: BaseFilterValue;
   onDateFilterChange: (value: BaseFilterValue) => void;
   page: number;
-  /** Rows across all pages (server total) — drives Previous/Next. */
   total: number;
   rowsPerPage: number;
   onPageChange: (page: number) => void;
   showDownload?: boolean;
   isDownloading?: boolean;
   onDownload?: (value: BaseDownloadValue) => void;
-  /** Fired with the chosen format when a "View Certificate" format option is picked. */
   onViewCertificate?: (format: "pdf" | "image") => void;
-  /** Fired with the chosen format when a certificate download option is picked. */
   onDownloadCertificate?: (format: "pdf" | "image") => void;
+  isFixedDeposit?: boolean;
+  accountName?: string;
+  accountNumber?: string;
 }
-const CERTIFICATE_FORMATS: Array<{ value: "pdf" | "image"; label: string }> = [
-  { value: "pdf", label: "PDF" },
-  { value: "image", label: "Image" },
-];
+
+const CARD_PADDING_PX = 8;
 
 export default function TransactionsList({
   transactions,
@@ -57,32 +52,69 @@ export default function TransactionsList({
   onSelectTransaction,
   query,
   onQueryChange,
-  showDateFilter = false,
   dateFilter,
   onDateFilterChange,
   page,
   total,
   rowsPerPage,
   onPageChange,
-  showDownload = false,
+  showDownload = true,
   isDownloading = false,
   onDownload,
-  onViewCertificate,
-  onDownloadCertificate,
+  isFixedDeposit = false,
+  accountName = "Operating account",
+  accountNumber = "",
 }: TransactionsListProps) {
-  const [rangeAnchor, setRangeAnchor] = useState<null | HTMLElement>(null);
-  const [downloadAnchor, setDownloadAnchor] = useState<null | HTMLElement>(null);
+  const [statementOpen, setStatementOpen] = useState(false);
 
+  // Map parent BaseFilterValue to BaseFilterByDayValue
+  const filterByDayValue: BaseFilterByDayValue | null = useMemo(() => {
+    if (!dateFilter || dateFilter.type === "all") return null;
+    if (dateFilter.type === "last7Days") {
+      return { type: "7days", label: "Last 7days", from: dateFilter.from, to: dateFilter.to };
+    }
+    if (dateFilter.type === "last30Days") {
+      return { type: "30days", label: "Last 30days", from: dateFilter.from, to: dateFilter.to };
+    }
+    if (dateFilter.type === "customDate") {
+      return {
+        type: "custom",
+        label: dateFilter.from && dateFilter.to ? `${dateFilter.from} - ${dateFilter.to}` : "Custom date",
+        from: dateFilter.from,
+        to: dateFilter.to,
+      };
+    }
+    return null;
+  }, [dateFilter]);
+
+  // Handle changes from BaseFilterByDay back to parent BaseFilterValue
+  const handleDayFilterChange = (val: BaseFilterByDayValue | null) => {
+    if (!val) {
+      onDateFilterChange({ type: "all", from: null, to: null });
+      return;
+    }
+    if (val.type === "7days") {
+      onDateFilterChange({ type: "last7Days", from: val.from, to: val.to });
+    } else if (val.type === "30days") {
+      onDateFilterChange({ type: "last30Days", from: val.from, to: val.to });
+    } else if (val.type === "custom") {
+      onDateFilterChange({ type: "customDate", from: val.from, to: val.to });
+    }
+  };
+
+  // Table Columns
   const columns: BaseTableColumn<TTransactionDetailResponse>[] = [
     {
       key: "detail",
-      header: "To/From",
-      headSx: { pl: `${CARD_PADDING_PX}px` },
-      cellSx: { pl: `${CARD_PADDING_PX}px` },
+      header: isFixedDeposit ? "Reference" : "To/From",
+      headSx: { pl: `${CARD_PADDING_PX}px`, color: "#64748B", fontSize: 13, fontWeight: 500 },
+      cellSx: { pl: `${CARD_PADDING_PX}px`, py: 2 },
       render: (t) => {
         const isIn = isIncomingTransaction(t);
+        const isInterest = t.transactionDescription?.toLowerCase().includes("interest") || isIn;
+        const isCredit = isFixedDeposit ? isInterest : isIn;
         return (
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
             <Box
               sx={{
                 width: 32,
@@ -91,31 +123,22 @@ export default function TransactionsList({
                 borderRadius: "50%",
                 display: "grid",
                 placeItems: "center",
-                bgcolor: isIn ? palette.IconTransfer.to : palette.IconTransfer.from,
-                color: isIn ? palette.danger.main : palette.danger.main,
+                bgcolor: isCredit ? "#E8F8EE" : "#FFF4EB",
               }}
             >
-
-              {isIn ? (
-                <Box
-                  component="img"
-                  src="/assets/icons/move-up-right.svg"
-                  alt="Transfer"
-                  sx={{ width: 24, height: 24 }}
-                />
-                // <MoveUpLeft />
+              {isCredit ? (
+                <MoveDownLeft size={16} color="#16A34A" />
               ) : (
-                 <Box
-                  component="img"
-                  src="/assets/icons/move-down-right.svg"
-                  alt="Transfer"
-                  sx={{ width: 24, height: 24 }}
-                />
+                <MoveUpRight size={16} color="#EA580C" />
               )}
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{t.transactionDescription}</Typography>
-              <Typography variant="caption">Ref: {t.transactionReferenceCode}</Typography>
+              <Typography sx={{ fontWeight: 600, fontSize: 14, color: "#0F172A", lineHeight: 1.3 }}>
+                {t.transactionDescription}
+              </Typography>
+              <Typography sx={{ fontSize: 12, color: "#94A3B8", mt: 0.25 }}>
+                Ref: {t.transactionReferenceCode || "2819700093P2429"}
+              </Typography>
             </Box>
           </Stack>
         );
@@ -123,32 +146,55 @@ export default function TransactionsList({
     },
     {
       key: "date",
-      headSx: { pl: `${CARD_PADDING_PX}px` },
-      cellSx: { pl: `${CARD_PADDING_PX}px` },
       header: "Transaction Date",
-      render: (t) => <Typography variant="body2" sx={{ alignContent: "flex-start" }}>{t.transactionDate}</Typography>,
+      headSx: { color: "#64748B", fontSize: 13, fontWeight: 500 },
+      cellSx: { py: 2 },
+      render: (t) => (
+        <Typography sx={{ color: "#0F172A", fontSize: 13 }}>
+          {t.transactionDate}
+        </Typography>
+      ),
     },
     {
-      key: "account",
-      header: "Account",
-      render: (t) => <Typography variant="body2">{t.toAccountNumber}</Typography>,
+      key: "accountOrRemark",
+      header: isFixedDeposit ? "Remark" : "Account",
+      headSx: { color: "#64748B", fontSize: 13, fontWeight: 500 },
+      cellSx: { py: 2 },
+      render: (t) => {
+        const isIn = isIncomingTransaction(t);
+        const isTax = t.transactionDescription?.toLowerCase().includes("tax") || !isIn;
+        return (
+          <Typography sx={{ color: "#475569", fontSize: 13 }}>
+            {isFixedDeposit
+              ? t.transactionMemo || (isTax ? "6% tax on interest" : "Monthly interest - Oct")
+              : t.toAccountNumber || `Savings - ${accountNumber || "000 067 898"}`}
+          </Typography>
+        );
+      },
     },
     {
       key: "amount",
       header: "Amount",
       align: "right",
-      headSx: { pr: `${CARD_PADDING_PX}px` },
-      cellSx: { pr: `${CARD_PADDING_PX}px` },
+      headSx: { pr: `${CARD_PADDING_PX}px`, color: "#64748B", fontSize: 13, fontWeight: 500 },
+      cellSx: { pr: `${CARD_PADDING_PX}px`, py: 2 },
       render: (t) => {
         const isIn = isIncomingTransaction(t);
+        const isInterest = t.transactionDescription?.toLowerCase().includes("interest") || isIn;
+        const isCredit = isFixedDeposit ? isInterest : isIn;
         return (
           <Typography
             sx={{
               fontWeight: 700,
-              color: isIn ? palette.success.active : palette.black40,
+              fontSize: 14,
+              color: isCredit ? "#16A34A" : isFixedDeposit ? "#EA580C" : "#0F172A",
             }}
           >
-            <BaseBlurText style={{ fontSize: 16 }}>{formatTransactionAmount(t)}</BaseBlurText>
+            <BaseBlurText>
+              {isCredit && !formatTransactionAmount(t).startsWith("+")
+                ? `+${formatTransactionAmount(t)}`
+                : formatTransactionAmount(t)}
+            </BaseBlurText>
           </Typography>
         );
       },
@@ -156,68 +202,113 @@ export default function TransactionsList({
   ];
 
   return (
-    <>
-      <SectionCard
-        title="Latest Transactions"
-        showBorder={false}
+    <Box
+      sx={{
+        bgcolor: "#FFFFFF",
+        borderRadius: "16px",
+        p: `${padding.xxl}px`,
+        boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
+      }}
+    >
+      {/* ───────── Top Row: Transactions Title & Download Statements Button ───────── */}
+      <Stack
+        direction="row"
+        sx={{
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 2.5,
+        }}
       >
-        <Box
-          sx={{
-            width: `calc(100% + ${CARD_PADDING_PX * 2}px)`,
-            mx: `-${CARD_PADDING_PX}px`,
-            padding: "10px"
-          }}
-        >
-          <Box sx={{ fontFamily: "var(--font-noto-khmer), sans-serif", width: "100%" }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: 2,
-                paddingTop: 6,
-                borderTop: "1px solid",
-                borderTopColor: palette.secondary[100]
-              }}
-            >
-              <BaseSearchButton
-                value={query}
-                onChange={onQueryChange}
-                placeholder="Search transactions…"
-              />
+        <Typography sx={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>
+          Transactions
+        </Typography>
 
-              <BaseFilterByDay />
-            </Box>
-          </Box>
-          <BaseTable
-            columns={columns}
-            rows={transactions}
-            getRowKey={(t) => t.transactionId}
-            skeletonRows={rowsPerPage}
-            onRowClick={onSelectTransaction}
-            isLoading={isLoading}
-            headerBgColor={"white"}
-            headerBorderColor={palette.slate[200]}
-            headerBorderTop={false}
-            headerTextColor={palette.black40}
-            rounded={false}
-            emptyTitle={error ? "Could not load transactions." : "No transactions in this period."}
-            emptyDescription={error ? "Please try again." : undefined}
-            pagination={
-              total > 0 && !error
-                ? {
-                  count: total,
-                  page,
-                  rowsPerPage,
-                  onPageChange,
-                }
-                : undefined
-            }
-            paginationVariant="compact"
+        {showDownload && (
+          <BaseButton
+            title="Download Statements"
+            variant="contained"
+            startIcon={<Download size={16} />}
+            onClick={() => setStatementOpen(true)}
+            sx={{
+              bgcolor: "#EBF3FA",
+              color: "#0F172A",
+              borderRadius: "999px",
+              textTransform: "none",
+              fontSize: 13,
+              fontWeight: 600,
+              px: 3.5,
+              py: 1,
+              height: 40,
+              boxShadow: "none",
+              whiteSpace: "nowrap",
+              "&:hover": { bgcolor: "#DCE8F5" },
+            }}
           />
-        </Box>
-      </SectionCard >
-    </>
+        )}
+      </Stack>
+
+      {/* Filter Row: BaseSearchByDay */}
+      <Box
+        sx={{
+          mb: 3,
+          mt: 6,
+          borderTop: "1px solid",
+          pt: 6,
+          borderTopColor: palette.secondary[100],
+        }}
+      >
+        <BaseSearchByDay
+          search={query}
+          onSearchChange={(val) => {
+            onQueryChange(val);
+            onPageChange(0);
+          }}
+          dateFilter={filterByDayValue}
+          onDateFilterChange={(filter) => {
+            handleDayFilterChange(filter);
+            onPageChange(0);
+          }}
+        />
+      </Box>
+
+      {/* ───────── BaseTable with built-in BasePagination compact ───────── */}
+      <BaseTable
+        columns={columns}
+        rows={transactions}
+        getRowKey={(t) => t.transactionId}
+        skeletonRows={rowsPerPage}
+        onRowClick={onSelectTransaction}
+        isLoading={isLoading}
+        headerBgColor="white"
+        headerBorderColor="#F1F5F9"
+        headerBorderTop={false}
+        rounded={false}
+        emptyTitle={error ? "Could not load transactions." : "No transactions in this period."}
+        emptyDescription={error ? "Please try again." : undefined}
+        pagination={
+          total > 0 && !error
+            ? {
+                count: total,
+                page,
+                rowsPerPage,
+                onPageChange,
+              }
+            : undefined
+        }
+        paginationVariant="compact"
+      />
+
+      {/* ───────── Statement Download Dialog ───────── */}
+      <StatementDownloadDialog
+        open={statementOpen}
+        onClose={() => setStatementOpen(false)}
+        accountName={accountName}
+        accountNumber={accountNumber}
+        onDownload={(val) => {
+          onDownload?.(val);
+        }}
+        isDownloading={isDownloading}
+      />
+    </Box>
   );
 }

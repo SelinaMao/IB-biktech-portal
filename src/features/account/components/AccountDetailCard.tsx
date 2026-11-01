@@ -1,19 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import { Box, Divider, IconButton, Stack, Tooltip, Typography } from "@mui/material";
-import { Check, Copy, Info, ReceiptText } from "lucide-react";
-import dayjs from "dayjs";
+import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Check, Copy, Info } from "lucide-react";
 
 import { formatAccountNumber } from "@/utils/format-account-number";
+import BaseBlurText from "@core/components/BaseBlurText";
 import BaseButton from "@core/components/BaseButton";
-import BaseDownloadPanel, { type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
+import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import type { CoreAccountEntry, IAccountDetailResponses } from "../account.types";
 import AccountDetails from "./AccountDetails";
 
 export interface AccountDetailsProps {
   open?: boolean;
   accounts?: CoreAccountEntry[];
+  selectedAccount?: CoreAccountEntry;
   stats?: IAccountDetailResponses;
   onClose?: () => void;
   info?: IAccountDetailResponses;
@@ -26,8 +27,11 @@ export interface AccountDetailsProps {
   onDownloadCertificate?: () => void | Promise<void>;
 }
 
-/** Formats as "USD 6,700,000.00" (prefix currency code) */
-function formatAmountPrefix(amount: number | string | undefined | null, ccy: string = "USD"): string {
+/** Formats dynamic amount as "USD 6,700,000.00" */
+function formatAmountPrefix(
+  amount: number | string | undefined | null,
+  ccy: string = "USD",
+): string {
   const num = Number(amount ?? 0);
   const formatted = (isNaN(num) ? 0 : num).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -36,643 +40,30 @@ function formatAmountPrefix(amount: number | string | undefined | null, ccy: str
   return `${ccy} ${formatted}`;
 }
 
-/** Formats as "6,700,000.00 USD" (suffix currency code) */
-function formatAmountSuffix(amount: number | string | undefined | null, ccy: string = "USD"): string {
-  const num = Number(amount ?? 0);
-  const formatted = (isNaN(num) ? 0 : num).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return `${formatted} ${ccy}`;
-}
-
-export default function AccountDetailsCard({
+export default function AccountDetailCard({
   open = false,
   onClose,
+  selectedAccount,
   stats,
   info,
   fixedDeposit,
   isFixedDeposit = false,
-  isSaving = false,
   onOpenAccountInfo,
-  onOpenStatements,
-  onExportStatements,
   onDownloadCertificate,
 }: AccountDetailsProps) {
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [downloadAnchor, setDownloadAnchor] = useState<null | HTMLElement>(null);
   const [copied, setCopied] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const ccy = fixedDeposit?.ccy ?? fixedDeposit?.currencyCode ?? info?.ccy ?? info?.currencyCode ?? "USD";
-  const isTD = isFixedDeposit || info?.accountType === "TD" || fixedDeposit?.accountType === "TD";
-  const rawType = (info?.accountType || stats?.accountType || "").toUpperCase();
-  const desc = (info?.productDesc || stats?.productDesc || "").toLowerCase();
-  const isSA = Boolean(
-    isSaving ||
-    rawType === "SA" ||
-    rawType === "SAVING" ||
-    rawType === "SAVINGS" ||
-    desc.includes("saving")
-  );
+  const target = fixedDeposit || info;
+  const ccy = target?.currencyCode ?? target?.ccy ?? info?.ccy ?? selectedAccount?.ccy ?? "USD";
+  const rawType = (target?.accountType || stats?.accountType || info?.accountType || selectedAccount?.accountType || "").toUpperCase();
+  const desc = (target?.productDesc || stats?.productDesc || info?.productDesc || "").toLowerCase();
 
-  // ==========================================
-  // Fixed Term Deposit UI
-  // ==========================================
-  if (isTD) {
-    const principalAmount =
-      fixedDeposit?.placementAmt ?? info?.placementAmt ?? info?.availableBalance ?? 6700000;
-    const maturityAmount =
-      fixedDeposit?.totalAmountToReceive ?? info?.totalAmountToReceive ?? 7051500;
-    const interestEarned =
-      fixedDeposit?.interestAmount ?? info?.interestAmount;
-    const interestRateVal =
-      fixedDeposit?.interestRate ?? info?.interestRate ?? 3.5;
-    const tenureMonths =
-      fixedDeposit?.tenorMonths ?? info?.tenorMonths ?? 12;
-    const maturityDateVal =
-      fixedDeposit?.maturityDate ?? info?.maturityDate;
-    const formattedMaturityDate = maturityDateVal
-      ? dayjs(maturityDateVal).format("DD MMM YYYY")
-      : "08 Sep 2027";
-    const depositType =
-      rawType === "TD"
-        ? "Fixed Term Deposit"
-        : (fixedDeposit?.productDesc || info?.productDesc || "Fixed Term Deposit");
-    const fdAccountNumber =
-      info?.accountNumber || fixedDeposit?.accountNumber || "FD-2024-001892";
-    const linkedAccountNumber =
-      fixedDeposit?.accountSettlementNumber ||
-      info?.accountSettlementNumber ||
-      "000 190 068";
+  const isTD = isFixedDeposit || rawType === "TD" || desc.includes("fixed") || desc.includes("deposit");
+  const isCL = rawType === "CL" || desc.includes("loan");
 
-    const card3Label =
-      interestEarned !== undefined && interestEarned !== maturityAmount && interestEarned > 0
-        ? "Interest Earned"
-        : "Maturity Amount";
-    const card3Value =
-      interestEarned !== undefined && interestEarned !== maturityAmount && interestEarned > 0
-        ? formatAmountSuffix(interestEarned, ccy)
-        : formatAmountSuffix(maturityAmount, ccy);
-
-    const fdStatCards = [
-      {
-        label: "Principal Deposit Amount",
-        value: formatAmountSuffix(principalAmount, ccy),
-        color: "#0F5196",
-      },
-      {
-        label: "Maturity Amount",
-        value: formatAmountSuffix(maturityAmount, ccy),
-        color: "#0F172A",
-      },
-      {
-        label: card3Label,
-        value: card3Value,
-        color: "#0F172A",
-      },
-    ];
-
-    const fdDetailRows = [
-      { label: "FD Account Number", value: fdAccountNumber },
-      { label: "Deposit Type", value: depositType },
-      { label: "Tenure", value: `${tenureMonths} Months` },
-      { label: "Interest Rate", value: `${interestRateVal}% p.a.`, color: "#166D35" },
-      { label: "Maturity Date", value: formattedMaturityDate },
-    ];
-
-    return (
-      <Box
-        sx={{
-          bgcolor: "#FFFFFF",
-          borderRadius: "20px",
-          width: "100%",
-          boxSizing: "border-box",
-          p: { xs: "16px", sm: "20px", md: "20px 24px" },
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-          gridTemplateAreas: {
-            xs: `"header" "detail" "cards" "buttons"`,
-            md: `"header cards" "detail cards" "buttons buttons"`,
-          },
-          gridTemplateRows: { md: "auto auto 1fr" },
-          columnGap: { md: "26px" },
-          rowGap: "20px",
-        }}
-      >
-        {/* ───────── Header (left, top) ───────── */}
-        <Box sx={{ gridArea: "header" }}>
-          <Typography
-            sx={{
-              fontSize: { xs: "16px", md: "18px" },
-              fontWeight: 600,
-              color: "#0F172A",
-              lineHeight: 1.3,
-              m: 0,
-            }}
-          >
-            {info?.accountName || "Shiiping co., ltd."}
-          </Typography>
-          <Typography
-            sx={{
-              color: "#475569",
-              fontSize: "13px",
-              lineHeight: 1.4,
-              mt: "6px",
-            }}
-          >
-            {formatAccountNumber(linkedAccountNumber) || "000 190 068"}
-          </Typography>
-        </Box>
-
-        {/* ───────── Account Details (left column) ───────── */}
-        <Box sx={{ gridArea: "detail" }}>
-          <Typography
-            sx={{
-              fontSize: "16px",
-              fontWeight: 700,
-              color: "#0F172A",
-              m: 0,
-              mb: "8px",
-              lineHeight: 1.4,
-            }}
-          >
-            Account Details
-          </Typography>
-
-          <Box>
-            {fdDetailRows.map((row) => (
-              <Box
-                key={row.label}
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr auto",
-                  alignItems: "center",
-                  columnGap: "12px",
-                  py: "14px",
-                  borderBottom: "1px solid #E5E9F0",
-                  "&:last-of-type": { borderBottom: "none" },
-                }}
-              >
-                <Typography sx={{ fontSize: "13px", color: "#64748B" }}>
-                  {row.label}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    color: row.color || "#0F172A",
-                    textAlign: "right",
-                  }}
-                >
-                  {row.value}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-
-        {/* ───────── Stat cards (right column) ───────── */}
-        <Box
-          sx={{
-            gridArea: "cards",
-            display: "grid",
-            gridAutoRows: "min-content",
-            rowGap: "9px",
-            width: "100%",
-            minWidth: 0,
-            alignContent: "start",
-            alignSelf: "start",
-          }}
-        >
-          {fdStatCards.map((card, idx) => (
-            <Box
-              key={idx}
-              sx={{
-                bgcolor: "#F4F7FB",
-                borderRadius: "10px",
-                p: "12px 14px",
-                display: "grid",
-                rowGap: "6px",
-                minWidth: 0,
-              }}
-            >
-              <Typography sx={{ fontSize: "11px", color: "#64748B", lineHeight: 1.4 }}>
-                {card.label}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: "15px",
-                  fontWeight: 600,
-                  color: card.color,
-                  lineHeight: 1.3,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {card.value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-
-        {/* ───────── Buttons (bottom-left) ───────── */}
-        <Box
-          sx={{
-            gridArea: "buttons",
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(2, max-content)" },
-            justifyContent: "start",
-            gap: "12px",
-            alignSelf: "start",
-          }}
-        >
-          <BaseButton
-            sx={{
-              p: "8px 16px",
-              bgcolor: "#E8EEF5",
-              borderRadius: "999px",
-              fontSize: "13px",
-              fontWeight: 500,
-              textTransform: "none",
-              color: "#0F172A",
-              boxShadow: "none",
-              "&:hover": { bgcolor: "#DCE5F0" },
-            }}
-            onClick={onOpenAccountInfo}
-            startIcon={<Info size={16} />}
-            title="Account Information"
-          />
-          <BaseButton
-            sx={{
-              p: "8px 16px",
-              bgcolor: "#E8EEF5",
-              borderRadius: "999px",
-              fontSize: "13px",
-              fontWeight: 500,
-              textTransform: "none",
-              color: "#0F172A",
-              boxShadow: "none",
-              "&:hover": { bgcolor: "#DCE5F0" },
-            }}
-            onClick={(e) => {
-              setDownloadAnchor(e.currentTarget);
-              onOpenStatements?.(e);
-            }}
-            startIcon={<ReceiptText size={16} />}
-            title="Statements"
-          />
-        </Box>
-
-        <BaseDownloadPanel
-          anchorEl={downloadAnchor}
-          onClose={() => setDownloadAnchor(null)}
-          onDownload={(value) => {
-            setDownloadAnchor(null);
-            onExportStatements?.(value);
-          }}
-        />
-
-        {info && (
-          <AccountDetails
-            open={open || isDetailsOpen}
-            onClose={() => {
-              setIsDetailsOpen(false);
-              onClose?.();
-            }}
-            info={info}
-            fixedDeposit={fixedDeposit}
-            onDownloadCertificate={onDownloadCertificate}
-          />
-        )}
-      </Box>
-    );
-  }
-
-  // ==========================================
-  // Loan UI
-  // ==========================================
-  const isCL = rawType === "CL" || rawType === "LOAN" || desc.includes("loan");
-  if (isCL) {
-    const loanName = info?.productDesc || info?.accountName || "Car Loan";
-    const accNum = info?.accountNumber || "000 067 898";
-    const ref = (info as unknown as Record<string, unknown>)?.loanReference as string || info?.accountNumber || "CLN-2024-001892";
-    const loanType = info?.productDesc || "Car Loan";
-    const outstanding = info?.loanAmount ?? info?.currentBalance ?? info?.availableBalance ?? 6_700_000;
-    const rate = info?.interestRate ?? 5.25;
-    const frequency = info?.installmentFrequency || "Monthly";
-    const matDate = info?.maturityDate ? dayjs(info.maturityDate).format("DD MMM YYYY") : "08 Sep 2030";
-    const limit = (info as unknown as Record<string, unknown>)?.approvedLimit as number ?? info?.loanAmount ?? 100_000;
-    const disbDate = info?.disbursementDate ? dayjs(info.disbursementDate).format("DD MMM YYYY") : "08 Sep 2024";
-
-    const detailRows = [
-      { label: loanName, value: ref },
-      { label: "Loan Type", value: loanType },
-      { label: "Repayment Frequency", value: frequency },
-      {
-        label: "Approved Limit",
-        value: formatAmountSuffix(limit, ccy),
-        color: "#0F5196",
-      },
-      { label: "Disbursement Date", value: disbDate },
-    ];
-
-    const statCards = [
-      {
-        label: "Outstanding amount",
-        value: formatAmountSuffix(outstanding, ccy),
-        color: "#0F5196",
-      },
-      {
-        label: "Maturity Date",
-        value: matDate,
-        color: "#0F172A",
-      },
-      {
-        label: "Interest Rate",
-        value: `${typeof rate === "number" ? rate.toFixed(2) : rate}% p.a.`,
-        color: "#166D35",
-      },
-    ];
-
-    return (
-      <Box
-        sx={{
-          bgcolor: "#FFFFFF",
-          borderRadius: "20px",
-          width: "100%",
-          boxSizing: "border-box",
-          p: { xs: "16px", sm: "20px", md: "20px 24px" },
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-          gridTemplateAreas: {
-            xs: `"header" "detail" "cards" "buttons"`,
-            md: `"header cards" "detail cards" "buttons buttons"`,
-          },
-          gridTemplateRows: { md: "auto auto 1fr" },
-          columnGap: { md: "26px" },
-          rowGap: "20px",
-        }}
-      >
-        {/* ───────── Header (left, top) ───────── */}
-        <Box sx={{ gridArea: "header" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <Typography
-              sx={{
-                fontSize: { xs: "16px", md: "18px" },
-                fontWeight: 600,
-                color: "#0F172A",
-                lineHeight: 1.3,
-                m: 0,
-              }}
-            >
-              {loanName}
-            </Typography>
-            <Box
-              sx={{
-                px: "10px",
-                py: "2px",
-                borderRadius: "20px",
-                bgcolor: "#E0EEFF",
-                color: "#0F5196",
-                fontSize: "12px",
-                fontWeight: 600,
-                lineHeight: 1.4,
-              }}
-            >
-              Loan
-            </Box>
-          </Box>
-          <Typography
-            sx={{
-              color: "#475569",
-              fontSize: "13px",
-              lineHeight: 1.4,
-              mt: "6px",
-            }}
-          >
-            {formatAccountNumber(accNum) || "000 067 898"}
-          </Typography>
-        </Box>
-
-        {/* ───────── Account Details (left column) ───────── */}
-        <Box sx={{ gridArea: "detail" }}>
-          <Typography
-            sx={{
-              fontSize: "16px",
-              fontWeight: 700,
-              color: "#0F172A",
-              m: 0,
-              mb: "8px",
-              lineHeight: 1.4,
-            }}
-          >
-            Account Details
-          </Typography>
-
-          <Box>
-            {detailRows.map((row) => (
-              <Box
-                key={row.label}
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr auto",
-                  alignItems: "center",
-                  columnGap: "12px",
-                  py: "14px",
-                  borderBottom: "1px solid #E5E9F0",
-                  "&:last-of-type": { borderBottom: "none" },
-                }}
-              >
-                <Typography sx={{ fontSize: "13px", color: "#64748B" }}>
-                  {row.label}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    color: row.color || "#0F172A",
-                    textAlign: "right",
-                  }}
-                >
-                  {row.value}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-
-        {/* ───────── Stat cards (right column) ───────── */}
-        <Box
-          sx={{
-            gridArea: "cards",
-            display: "grid",
-            gridAutoRows: "min-content",
-            rowGap: "9px",
-            width: "100%",
-            minWidth: 0,
-            alignContent: "start",
-            alignSelf: "start",
-          }}
-        >
-          {statCards.map((card) => (
-            <Box
-              key={card.label}
-              sx={{
-                bgcolor: "#F4F7FB",
-                borderRadius: "10px",
-                p: "12px 14px",
-                display: "grid",
-                rowGap: "6px",
-                minWidth: 0,
-              }}
-            >
-              <Typography sx={{ fontSize: "11px", color: "#64748B", lineHeight: 1.4 }}>
-                {card.label}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: "15px",
-                  fontWeight: 600,
-                  color: card.color,
-                  lineHeight: 1.3,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {card.value}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-
-        {/* ───────── Buttons (bottom-left) ───────── */}
-        <Box
-          sx={{
-            gridArea: "buttons",
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(2, max-content)" },
-            justifyContent: "start",
-            gap: "12px",
-          }}
-        >
-          <BaseButton
-            sx={{
-              p: "8px 16px",
-              bgcolor: "#E8EEF5",
-              borderRadius: "999px",
-              fontSize: "13px",
-              fontWeight: 500,
-              textTransform: "none",
-              color: "#0F172A",
-              boxShadow: "none",
-              "&:hover": { bgcolor: "#DCE5F0" },
-            }}
-            onClick={onOpenAccountInfo}
-            startIcon={<Info size={16} />}
-            title="Account Information"
-          />
-          <BaseButton
-            sx={{
-              p: "8px 16px",
-              bgcolor: "#E8EEF5",
-              borderRadius: "999px",
-              fontSize: "13px",
-              fontWeight: 500,
-              textTransform: "none",
-              color: "#0F172A",
-              boxShadow: "none",
-              "&:hover": { bgcolor: "#DCE5F0" },
-            }}
-            onClick={(e) => {
-              setDownloadAnchor(e.currentTarget);
-              onOpenStatements?.(e);
-            }}
-            startIcon={<ReceiptText size={16} />}
-            title="Statements"
-          />
-        </Box>
-
-        <BaseDownloadPanel
-          anchorEl={downloadAnchor}
-          onClose={() => setDownloadAnchor(null)}
-          onDownload={(value) => {
-            setDownloadAnchor(null);
-            onExportStatements?.(value);
-          }}
-        />
-
-        {info && (
-          <AccountDetails
-            open={open || isDetailsOpen}
-            onClose={() => {
-              setIsDetailsOpen(false);
-              onClose?.();
-            }}
-            info={info}
-            fixedDeposit={fixedDeposit}
-            onDownloadCertificate={onDownloadCertificate}
-          />
-        )}
-      </Box>
-    );
-  }
-
-  // ==========================================
-  // Default Current Account UI
-  // ==========================================
-  const availableBalance = stats?.availableBalance ?? info?.availableBalance ?? 0;
-  const ledgerBalance = stats?.ledgerBalance ?? info?.ledgerBalance ?? 0;
-  const overdraftLimit =
-    stats?.overdraftLimit ??
-    (stats as unknown as Record<string, unknown>)?.odLimit as number ??
-    info?.overdraftLimit ??
-    (info as unknown as Record<string, unknown>)?.odLimit as number ??
-    0;
-  const blockedBalance =
-    stats?.blockedBalance ??
-    (stats as unknown as Record<string, unknown>)?.amountBlock as number ??
-    info?.blockedBalance ??
-    (info as unknown as Record<string, unknown>)?.amountBlock as number ??
-    0;
-
-  const statCards = [
-    {
-      label: "Available balance",
-      value: formatAmountPrefix(availableBalance, ccy),
-      color: "#0F5196",
-    },
-    {
-      label: "Ledger balance",
-      value: formatAmountPrefix(ledgerBalance, ccy),
-      color: "#0F172A",
-    },
-    {
-      label: "OD limit",
-      value: formatAmountPrefix(overdraftLimit, ccy),
-      color: "#0F172A",
-    },
-    {
-      label: "Amount blocked",
-      value: formatAmountPrefix(blockedBalance, ccy),
-      color: "#0F172A",
-    },
-  ];
-
-  const accountTypeLabel = (() => {
-    const type = (info?.accountType || fixedDeposit?.accountType || stats?.accountType || "").toUpperCase();
-    if (type === "TD") return "Fixed Term Deposit";
-    if (type === "CA") return "Current account";
-    if (type === "SA") return "Savings account";
-    if (type === "CL") return "Loan account";
-    if (info?.productDesc) {
-      const lower = info.productDesc.toLowerCase();
-      if (lower.includes("current")) return "Current account";
-      if (lower.includes("saving")) return "Savings account";
-      return info.productDesc;
-    }
-    return info?.accountType || "Current account";
-  })();
-
-  const rawAccountNumber = info?.accountNumber || "";
-  const formattedAccountNumber = formatAccountNumber(rawAccountNumber) || rawAccountNumber;
+  const rawAccountNumber = target?.accountNumber || info?.accountNumber || selectedAccount?.accountNumber || "";
+  const formattedAccNumber = formatAccountNumber(rawAccountNumber) || rawAccountNumber;
 
   const handleCopyAccount = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -683,236 +74,251 @@ export default function AccountDetailsCard({
     }
   };
 
-  // ==========================================
-  //  UI for AccountDetailCard
-  // ==========================================
-  return (
-   <Box
-  sx={{
-    bgcolor: "#FFFFFF",
-    borderRadius: "20px",
-    width: "100%",
-    boxSizing: "border-box",
-    p: { xs: "16px", sm: "20px", md: "20px 24px" },
-    display: "grid",
-    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-    gridTemplateAreas: {
-      xs: `"header" "detail" "cards" "buttons"`,
-      md: `"header cards" "detail cards" "buttons buttons"`,
-    },
-    gridTemplateRows: { md: "auto auto 1fr" },
-    columnGap: { md: "26px" },
-    rowGap: "20px",
-  }}
->
-  {/* ───────── Header (left, top) ───────── */}
-  <Box sx={{ gridArea: "header" }}>
-    <Typography
-      sx={{
-        fontSize: { xs: "16px", md: "18px" },
-        fontWeight: 600,
-        color: "#0F172A",
-        lineHeight: 1.3,
-        m: 0,
-      }}
-    >
-      {info?.accountName || "Shiiping co., ltd."}
-    </Typography>
+  // Subtitle Type Label
+  const accountTypeSubtitle = isTD
+    ? `Fixed Deposit · ${ccy}`
+    : isCL
+    ? `Loan account · ${ccy}`
+    : info?.productDesc
+    ? `${info.productDesc} · ${ccy}`
+    : `Current account · ${ccy}`;
 
-    {/* account number + copy icon */}
+  // Title name
+  const accountTitleName = isTD
+    ? "Fixed Account"
+    : target?.accountName || info?.accountName || selectedAccount?.accountName || "Shiiping co., ltd.";
+
+  // TD Metrics
+  const depositAmount = target?.placementAmt ?? info?.placementAmt ?? info?.availableBalance ?? selectedAccount?.availableBalance ?? 6700000;
+  const maturityAmount = target?.totalAmountToReceive ?? info?.totalAmountToReceive ?? 10000000;
+
+  // Progress calculation for TD (20 segments matching mockup)
+  const totalSegments = 20;
+  const percentage = (() => {
+    if (
+      target?.totalMaturityDays &&
+      target.totalMaturityDays > 0 &&
+      target.onGoingMaturityDays !== undefined
+    ) {
+      return Math.min(
+        100,
+        Math.max(0, Math.round((target.onGoingMaturityDays / target.totalMaturityDays) * 100)),
+      );
+    }
+    if (maturityAmount > 0 && depositAmount > 0) {
+      return Math.min(100, Math.max(0, Math.round((Number(depositAmount) / Number(maturityAmount)) * 100)));
+    }
+    return 20;
+  })();
+  const activeSegments = Math.max(0, Math.round((percentage / 100) * totalSegments)) || 4;
+  const ccySymbol = ccy === "KHR" ? "KHR " : "$";
+
+  // CA Metrics (100% dynamic from API / selectedAccount)
+  const availableBal = stats?.availableBalance ?? info?.availableBalance ?? selectedAccount?.availableBalance ?? 6700000;
+  const totalBal = stats?.ledgerBalance ?? info?.ledgerBalance ?? stats?.currentBalance ?? info?.currentBalance ?? 32400;
+
+  // CL Metrics
+  const approvedLimit = (info as unknown as Record<string, unknown>)?.approvedLimit as number ?? 100000;
+  const outstandingAmount = info?.loanAmount ?? info?.availableBalance ?? selectedAccount?.availableBalance ?? 6700000;
+
+  return (
     <Box
       sx={{
-        display: "grid",
-        gridTemplateColumns: "auto auto",
-        justifyContent: "start",
-        alignItems: "center",
-        columnGap: "8px",
-        mt: "8px",
+        bgcolor: "#FFFFFF",
+        borderRadius: "20px",
+        p: { xs: 2.5, sm: 3 },
+        boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
       }}
     >
-      <Typography sx={{ color: "#475569", fontSize: "13px", lineHeight: 1.4 }}>
-        {formattedAccountNumber || "000 190 068"}
-      </Typography>
-      <Tooltip title={copied ? "Copied!" : "Copy account number"}>
-        <IconButton
-          onClick={handleCopyAccount}
-          size="small"
-          sx={{
-            p: "2px",
-            color: copied ? "#166D35" : "#475569",
-            "&:hover": { color: "#0F172A", bgcolor: "transparent" },
-          }}
-        >
-          {copied ? <Check size={14} /> : <Copy size={14} />}
-        </IconButton>
-      </Tooltip>
-    </Box>
-
-    <Typography sx={{ color: "#64748B", fontSize: "11px", mt: "8px", lineHeight: 1.4 }}>
-      {accountTypeLabel} &middot; {ccy}
-    </Typography>
-  </Box>
-
-  {/* ───────── Account Detail (left, below header) ───────── */}
-  <Box sx={{ gridArea: "detail" }}>
-    <Typography
-      sx={{
-        fontSize: "16px",
-        fontWeight: 700,
-        color: "#0F172A",
-        m: 0,
-        mb: "8px",
-        lineHeight: 1.4,
-      }}
-    >
-      Account Detail
-    </Typography>
-
-    <Box>
-      {[
-        { label: "Account Name", value: info?.accountName || "Shiiping co., ltd." },
-        { label: "Account Number", value: formattedAccountNumber || "000 190 068" },
-        { label: "Account Type", value: isSA ? "Savings" : accountTypeLabel },
-        { label: "Currency", value: ccy },
-      ].map((row) => (
-        <Box
-          key={row.label}
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            alignItems: "center",
-            columnGap: "12px",
-            py: "14px",
-            borderBottom: "1px solid #E5E9F0",
-            "&:last-of-type": { borderBottom: "none" },
-          }}
-        >
-          <Typography sx={{ fontSize: "13px", color: "#64748B" }}>
-            {row.label}
-          </Typography>
-          <Typography
-            sx={{ fontSize: "13px", fontWeight: 500, color: "#0F172A", textAlign: "right" }}
-          >
-            {row.value}
-          </Typography>
-        </Box>
-      ))}
-    </Box>
-  </Box>
-
-  {/* ───────── Stat cards (right column) ───────── */}
-  <Box
-    sx={{
-      gridArea: "cards",
-      display: "grid",
-      gridAutoRows: "min-content",
-      rowGap: "9px",
-      width: "100%",
-      minWidth: 0,
-      alignContent: "start",
-      alignSelf: "start",
-    }}
-  >
-    {statCards.map((card) => (
-      <Box
-        key={card.label}
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={3}
         sx={{
-          bgcolor: "#F4F7FB",
-          borderRadius: "10px",
-          p: "12px 14px",
-          display: "grid",
-          rowGap: "6px",
-          minWidth: 0,
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", md: "center" },
         }}
       >
-        <Typography sx={{ fontSize: "11px", color: "#64748B", lineHeight: 1.4 }}>
-          {card.label}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: "15px",
-            fontWeight: 600,
-            color: card.color,
-            lineHeight: 1.3,
-            whiteSpace: "nowrap",
+        {/* ───────── Left Section: Account Header & Info ───────── */}
+        <Box sx={{ minWidth: 0, flex: 1, pr: { md: 2 } }}>
+          <Typography
+            sx={{
+              fontSize: { xs: 20, md: 24 },
+              fontWeight: 700,
+              color: "#0F172A",
+              lineHeight: 1.25,
+            }}
+          >
+            {accountTitleName}
+          </Typography>
+
+          {/* Account Number + Copy */}
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", mt: 1 }}>
+            <Typography sx={{ fontSize: 14, color: "#64748B", fontWeight: 500 }}>
+              {formattedAccNumber}
+            </Typography>
+            <Tooltip title={copied ? "Copied!" : "Copy account number"}>
+              <IconButton
+                size="small"
+                onClick={handleCopyAccount}
+                sx={{
+                  p: 0.25,
+                  color: copied ? "#166D35" : "#64748B",
+                  "&:hover": { color: "#0F172A" },
+                }}
+              >
+                {copied ? <Check size={15} /> : <Copy size={15} />}
+              </IconButton>
+            </Tooltip>
+          </Stack>
+
+          <Typography sx={{ fontSize: 13, color: "#64748B", mt: 0.5 }}>
+            {accountTypeSubtitle}
+          </Typography>
+
+          {/* Bottom Row: Account Information Button & Segmented Progress Bar (for Fixed Deposit) */}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={{ xs: 2, sm: 3 }}
+            sx={{
+              alignItems: { xs: "flex-start", sm: "center" },
+              mt: 2.5,
+              flexWrap: "wrap",
+            }}
+          >
+            <BaseButton
+              title="Account Information"
+              variant="contained"
+              startIcon={<Info size={16} />}
+              onClick={onOpenAccountInfo}
+              sx={{
+                marginTop: { xs: 0, sm: 3 },
+                bgcolor: "#EBF3FA",
+                color: "#0F172A",
+                borderRadius: "999px",
+                textTransform: "none",
+                fontSize: 13,
+                fontWeight: 600,
+                px: 3.25,
+                py: 0.9,
+                height: 38,
+                boxShadow: "none",
+                whiteSpace: "nowrap",
+                "&:hover": { bgcolor: "#DCE8F5" },
+              }}
+            />
+
+            {/* Segmented Progress Bar directly beside Account Information matching mockup */}
+            {isTD && (
+              <Box sx={{ minWidth: 200, maxWidth: 240, width: "100%", pt: { xs: 0.5, sm: 0 } }}>
+                <Stack direction="row" spacing={0.35} sx={{ alignItems: "center", mb: 0.5 }}>
+                  {Array.from({ length: totalSegments }).map((_, i) => (
+                    <Box
+                      key={i}
+                      sx={{
+                        flex: 1,
+                        height: 18,
+                        borderRadius: "3px",
+                        bgcolor: i < activeSegments ? "#2388E5" : "#DCE8F4",
+                        transition: "background-color 0.2s",
+                      }}
+                    />
+                  ))}
+                </Stack>
+                <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography sx={{ fontSize: 11.5, color: "#475569", fontWeight: 500 }}>
+                    <BaseBlurText>
+                      {ccySymbol}{Number(depositAmount).toLocaleString("en-US")} of {ccySymbol}{Number(maturityAmount).toLocaleString("en-US")}
+                    </BaseBlurText>
+                  </Typography>
+                  <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: "#2388E5" }}>
+                    {percentage}%
+                  </Typography>
+                </Stack>
+              </Box>
+            )}
+          </Stack>
+        </Box>
+
+        {/* ───────── Right Section: Metric Cards ───────── */}
+        <Box sx={{ width: { xs: "100%", md: "auto" }, minWidth: { md: 360 } }}>
+          {isTD ? (
+            /* Fixed Account Metric View (Deposit Amount & Amount on Maturity) */
+            <Stack spacing={1.25}>
+              <Box sx={{ bgcolor: "#F8FAFC", borderRadius: "14px", px: 2.5, py: 1.5 }}>
+                <Typography sx={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>
+                  Deposit Amount
+                </Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0F5196", mt: 0.25 }}>
+                  <BaseBlurText>{formatAmountPrefix(depositAmount, ccy)}</BaseBlurText>
+                </Typography>
+              </Box>
+
+              <Box sx={{ bgcolor: "#F8FAFC", borderRadius: "14px", px: 2.5, py: 1.5 }}>
+                <Typography sx={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>
+                  Amount on Maturity
+                </Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0F172A", mt: 0.25 }}>
+                  <BaseBlurText>{formatAmountPrefix(maturityAmount, ccy)}</BaseBlurText>
+                </Typography>
+              </Box>
+            </Stack>
+          ) : isCL ? (
+            /* Loan Account Metric View */
+            <Stack spacing={1.25}>
+              <Box sx={{ bgcolor: "#F8FAFC", borderRadius: "14px", px: 2.5, py: 1.5 }}>
+                <Typography sx={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>
+                  Approved Limit
+                </Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0F5196", mt: 0.25 }}>
+                  <BaseBlurText>{formatAmountPrefix(approvedLimit, ccy)}</BaseBlurText>
+                </Typography>
+              </Box>
+              <Box sx={{ bgcolor: "#F8FAFC", borderRadius: "14px", px: 2.5, py: 1.5 }}>
+                <Typography sx={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>
+                  Outstanding amount
+                </Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0F172A", mt: 0.25 }}>
+                  <BaseBlurText>{formatAmountPrefix(outstandingAmount, ccy)}</BaseBlurText>
+                </Typography>
+              </Box>
+            </Stack>
+          ) : (
+            /* Current / Savings Account Metric View */
+            <Stack spacing={1.25}>
+              <Box sx={{ bgcolor: "#F8FAFC", borderRadius: "14px", px: 2.5, py: 1.5 }}>
+                <Typography sx={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>
+                  Available Balance
+                </Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0F5196", mt: 0.25 }}>
+                  <BaseBlurText>{formatAmountPrefix(availableBal, ccy)}</BaseBlurText>
+                </Typography>
+              </Box>
+              <Box sx={{ bgcolor: "#F8FAFC", borderRadius: "14px", px: 2.5, py: 1.5 }}>
+                <Typography sx={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>
+                  Total Balance
+                </Typography>
+                <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0F172A", mt: 0.25 }}>
+                  <BaseBlurText>{formatAmountPrefix(totalBal, ccy)}</BaseBlurText>
+                </Typography>
+              </Box>
+            </Stack>
+          )}
+        </Box>
+      </Stack>
+
+      {/* Term deposit details dialog */}
+      {info && (
+        <AccountDetails
+          open={open || isDetailsOpen}
+          onClose={() => {
+            setIsDetailsOpen(false);
+            onClose?.();
           }}
-        >
-          {card.value}
-        </Typography>
-      </Box>
-    ))}
-  </Box>
-
-  {/* ───────── Buttons (bottom-left) ───────── */}
-  <Box
-    sx={{
-      gridArea: "buttons",
-      display: "grid",
-      gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(2, max-content)" },
-      justifyContent: "start",
-      gap: "12px",
-    }}
-  >
-    <BaseButton
-      sx={{
-        p: "8px 16px",
-        bgcolor: "#E8EEF5",
-        borderRadius: "999px",
-        fontSize: "13px",
-        fontWeight: 500,
-        textTransform: "none",
-        color: "#0F172A",
-        boxShadow: "none",
-        "&:hover": { bgcolor: "#DCE5F0" },
-      }}
-      onClick={onOpenAccountInfo}
-      startIcon={<Info size={16} />}
-      title="Account Information"
-    />
-    <BaseButton
-      sx={{
-        p: "8px 16px",
-        bgcolor: "#E8EEF5",
-        borderRadius: "999px",
-        fontSize: "13px",
-        fontWeight: 500,
-        textTransform: "none",
-        color: "#0F172A",
-        boxShadow: "none",
-        "&:hover": { bgcolor: "#DCE5F0" },
-      }}
-      onClick={(e) => {
-        setDownloadAnchor(e.currentTarget);
-        onOpenStatements?.(e);
-      }}
-      startIcon={<ReceiptText size={16} />}
-      title="Statements"
-    />
-  </Box>
-
-  <BaseDownloadPanel
-    anchorEl={downloadAnchor}
-    onClose={() => setDownloadAnchor(null)}
-    onDownload={(value) => {
-      setDownloadAnchor(null);
-      onExportStatements?.(value);
-    }}
-  />
-
-  {info && (
-    <AccountDetails
-      open={open || isDetailsOpen}
-      onClose={() => {
-        setIsDetailsOpen(false);
-        onClose?.();
-      }}
-      info={info}
-      fixedDeposit={fixedDeposit}
-      onDownloadCertificate={onDownloadCertificate}
-    />
-  )}
-</Box>
+          info={info}
+          fixedDeposit={fixedDeposit}
+          onDownloadCertificate={onDownloadCertificate}
+        />
+      )}
+    </Box>
   );
 }
-
-

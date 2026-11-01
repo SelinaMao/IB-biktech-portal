@@ -13,7 +13,6 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
   ArrowDown01,
-  ArrowUpDown,
   CirclePause,
   CirclePlay,
   Eye,
@@ -23,8 +22,12 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { font, padding, palette, radius } from "@/theme/palette";
+import { font, palette, radius } from "@/theme/palette";
 import BaseButton from "@core/components/BaseButton";
+import BaseFilterByDay, {
+  type BaseFilterByDayValue,
+  isDateWithinFilter,
+} from "@core/components/BaseFilterByDay";
 import BaseSearchButton from "@core/components/BaseSearchButton";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import type { ScheduledTransaction } from "../schedule.types";
@@ -68,6 +71,7 @@ export default function ScheduleTransactionsTable({
   onViewDetails,
 }: ScheduleTransactionsTableProps) {
   const [search, setSearch] = useState("");
+  const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
   const [currentPage, setPage] = useState(0);
   const statusTab = "scheduled";
 
@@ -97,6 +101,10 @@ export default function ScheduleTransactionsTable({
       );
     }
 
+    if (dateFilter) {
+      result = result.filter((item) => isDateWithinFilter(item.date, dateFilter));
+    }
+
     result.sort((a, b) => {
       let comparison = 0;
       if (sortField === "amount") {
@@ -113,7 +121,7 @@ export default function ScheduleTransactionsTable({
     });
 
     return result;
-  }, [schedules, search, sortField, sortDirection]);
+  }, [schedules, search, dateFilter, sortField, sortDirection]);
 
   const handleOpenActionMenu = (
     event: React.MouseEvent<HTMLElement>,
@@ -386,18 +394,18 @@ export default function ScheduleTransactionsTable({
         />
       </Stack>
 
-      {/* 2. Filter Row: BaseSearchButton on left, Sort button on right */}
+      {/* 2. Filter Row: BaseSearchButton on left, BaseFilterByDay & Sort on right */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
         sx={{
-          marginTop:6,
+          marginTop: 6,
           alignItems: { xs: "stretch", sm: "center" },
           justifyContent: "space-between",
           mb: 3,
-          borderTop:"1px solid",
+          borderTop: "1px solid",
           borderTopColor: palette.secondary[100],
-          pt:6,
+          pt: 6,
         }}
       >
         <BaseSearchButton
@@ -408,38 +416,58 @@ export default function ScheduleTransactionsTable({
           }}
           placeholder="Search"
           width={240}
+          sx={{
+            width: { xs: "100%", sm: 240 },
+          }}
         />
 
-        <Button
-          variant="outlined"
-          onClick={(e) => setSortMenuAnchor(e.currentTarget)}
-          endIcon={<ArrowDown01 size={16} />}
+        <Stack
+          direction="row"
+          spacing={1.5}
           sx={{
-            borderRadius: "8px",
-            borderColor: palette.slate[200],
-            color: palette.slate[700],
-            textTransform: "none",
-            fontSize: 14,
-            fontWeight: font.weight.regular,
-            px: 4,
-            py:1,
-            bgcolor: "#FFFFFF",
+            alignItems: "center",
             alignSelf: { xs: "flex-end", sm: "center" },
-            "&:hover": {
-              borderColor: palette.slate[300],
-              bgcolor: palette.slate[50],
-            },
           }}
         >
-          Sort
-        </Button>
+          <BaseFilterByDay
+            value={dateFilter}
+            onChange={(filter) => {
+              setDateFilter(filter);
+              setPage(0);
+            }}
+          />
+
+          <Button
+            variant="outlined"
+            onClick={(e) => setSortMenuAnchor(e.currentTarget)}
+            endIcon={<ArrowDown01 size={16} />}
+            sx={{
+              borderRadius: "8px",
+              borderColor: palette.slate[200],
+              color: palette.slate[700],
+              textTransform: "none",
+              fontSize: 14,
+              fontWeight: font.weight.regular,
+              px: 3,
+              py: 1,
+              height: 40,
+              bgcolor: "#FFFFFF",
+              "&:hover": {
+                borderColor: palette.slate[300],
+                bgcolor: palette.slate[50],
+              },
+            }}
+          >
+            Sort
+          </Button>
+        </Stack>
       </Stack>
 
       {/* 3. BaseTable using the requested configuration */}
       <BaseTable
         columns={columns}
         rows={filteredRows}
-        getRowKey={(t) => t.id ?? (t as any).ref ?? t.refNo}
+        getRowKey={(t) => t.id ?? ("ref" in t ? String(t.ref) : t.refNo)}
         minWidth={640}
         rounded={false}
         headerBgColor={palette.white}

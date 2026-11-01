@@ -67,7 +67,7 @@ export default function LoansSidebar({
         sx={{
           border: "0px solid",
           bgcolor: "white",
-          borderRadius: "20px",
+          borderRadius: "16px",
           padding: 3,
         }}
       >
