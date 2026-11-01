@@ -159,66 +159,6 @@ export default function TransactionsList({
     <>
       <SectionCard
         title="Latest Transactions"
-        // header={
-        //   <Stack
-        //     direction="row"
-        //     spacing={1.5}
-        //     sx={{ alignItems: "center", flexWrap: "wrap" }}
-        //   >
-        //     <BaseSearchButton
-        //       value={query}
-        //       onChange={onQueryChange}
-        //       placeholder="Search transactions…"
-        //     />
-
-        //     {showDateFilter && (
-        //       <>
-        //         <Button
-        //           variant="outlined"
-        //           size="small"
-        //           endIcon={<KeyboardArrowDownRoundedIcon />}
-        //           onClick={(e) => setRangeAnchor(e.currentTarget)}
-        //           sx={{ color: "text.primary", borderColor: palette.slate[200] }}
-        //         >
-        //           {BASE_FILTER_TYPE_LABELS[dateFilter.type]}
-        //         </Button>
-        //         <BaseFilter
-        //           anchorEl={rangeAnchor}
-        //           onClose={() => setRangeAnchor(null)}
-        //           defaultValue={dateFilter}
-        //           onApply={(value) => {
-        //             onDateFilterChange(value);
-        //             setRangeAnchor(null);
-        //           }}
-        //         />
-        //       </>
-        //     )}
-
-        //     {showDownload && (
-        //       <>
-        //         <Button
-        //           variant="outlined"
-        //           size="small"
-        //           disabled={isDownloading}
-        //           endIcon={<KeyboardArrowDownRoundedIcon />}
-        //           startIcon={isDownloading ? <CircularProgress size={16} color="inherit" /> : <DownloadRoundedIcon fontSize="small" />}
-        //           onClick={(e) => setDownloadAnchor(e.currentTarget)}
-        //           sx={{ color: "text.primary", borderColor: palette.slate[200] }}
-        //         >
-        //           Download
-        //         </Button>
-        //         <BaseDownloadPanel
-        //           anchorEl={downloadAnchor}
-        //           onClose={() => setDownloadAnchor(null)}
-        //           onDownload={(value) => {
-        //             setDownloadAnchor(null);
-        //             onDownload?.(value);
-        //           }}
-        //         />
-        //       </>
-        //     )}
-        //   </Stack>
-        // }
         showBorder={false}
       >
         <Box

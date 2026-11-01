@@ -219,8 +219,8 @@ export default function LoanTransactionsCard({
 
     const byDate = dateFilter
       ? byStatus.filter((t) =>
-          isDateWithinFilter(t.dueDate || t.date, dateFilter),
-        )
+        isDateWithinFilter(t.dueDate || t.date, dateFilter),
+      )
       : byStatus;
 
     const q = query.trim().toLowerCase();
@@ -336,10 +336,10 @@ export default function LoanTransactionsCard({
         let bg = "#F1F5F9";
         let color = "#475569";
         let label = "Upcoming";
- 
+
         if (s === "due") {
           bg = "#FDEFD9";
-        
+
           color = "#92400E";
           label = "Due";
         } else if (s === "upcoming") {
@@ -456,20 +456,20 @@ export default function LoanTransactionsCard({
               }}
             />
           </Box>
-           <BaseTable
-          columns={columns}
-          rows={pageItems}
-          getRowKey={(t) => t.ref || String(t.no)}
-          headerBgColor="#FFFFFF"
-          headerBorderColor="#E2E8F0"
-          headerTextColor={palette.slate[500]}
-          headerBorderTop={false}
-          rounded={false}
-          emptyTitle={`No ${showStatusToggle ? `${status} ` : ""}repayments in this period.`}
-          getRowSx={(row) => {
-            const isDue = (row.status || "").toLowerCase() === "due";
-            return isDue
-              ? {
+          <BaseTable
+            columns={columns}
+            rows={pageItems}
+            getRowKey={(t) => t.ref || String(t.no)}
+            headerBgColor="#FFFFFF"
+            headerBorderColor="#E2E8F0"
+            headerTextColor={palette.slate[500]}
+            headerBorderTop={false}
+            rounded={false}
+            emptyTitle={`No ${showStatusToggle ? `${status} ` : ""}repayments in this period.`}
+            getRowSx={(row) => {
+              const isDue = (row.status || "").toLowerCase() === "due";
+              return isDue
+                ? {
                   bgcolor: "#FFF5EA",
                   "&:hover": { bgcolor: "#FFEED8" },
                   "& .MuiTableCell-root, & td": {
@@ -478,32 +478,32 @@ export default function LoanTransactionsCard({
                     py: 3,
                   },
                 }
-              : {
+                : {
                   "& .MuiTableCell-root, & td": {
                     borderBottom: "none",
                     py: 3,
                   },
                 };
-          }}
-          pagination={
-            filtered.length > 0
-              ? {
+            }}
+            pagination={
+              filtered.length > 0
+                ? {
                   count: filtered.length,
                   page: currentPage,
                   rowsPerPage: ROWS_PER_PAGE,
                   onPageChange: setPage,
                 }
-              : undefined
-          }
-          paginationSx={{
-            pr: `${CARD_PADDING_PX}px`,
-            pl: `${CARD_PADDING_PX}px`,
-          }}
-          paginationVariant="compact"
-        />
+                : undefined
+            }
+            paginationSx={{
+              pr: `${CARD_PADDING_PX}px`,
+              pl: `${CARD_PADDING_PX}px`,
+            }}
+            paginationVariant="compact"
+          />
         </Stack>
-       
-        
+
+
       </Box>
     </SectionCard>
   );

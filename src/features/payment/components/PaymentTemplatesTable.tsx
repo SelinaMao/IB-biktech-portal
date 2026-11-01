@@ -6,20 +6,14 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { ChevronsUpDown, Pencil, Plus, Search, SquarePen, Trash2 } from "lucide-react";
+import { ChevronsUpDown, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
-import { font, palette } from "@/theme/palette";
+import { font, palette, radius } from "@/theme/palette";
 import BaseButton from "@core/components/BaseButton";
-import BasePagination from "@core/components/BasePagination";
+import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import type { PaymentTemplate } from "../payment.types";
 
 export interface PaymentTemplatesTableProps {
@@ -30,6 +24,29 @@ export interface PaymentTemplatesTableProps {
   onSelectTemplate?: (template: PaymentTemplate) => void;
 }
 
+const ROWS_PER_PAGE = 10;
+
+/** Proportional column width distribution across screen sizes */
+const COLUMN_WIDTHS = ["24%", "16%", "22%", "16%", "14%", "8%"] as const;
+
+/** Shared header cell styling */
+const HEAD_CELL_SX = {
+  bgcolor: "transparent",
+  py: 1.75,
+  px: 2,
+  fontSize: 13,
+  fontWeight: 500,
+  color: palette.slate[500],
+  borderBottom: "none",
+} as const;
+
+/** Shared body cell styling */
+const BODY_CELL_SX = {
+  py: 2,
+  px: 2,
+  borderBottom: "none",
+} as const;
+
 export default function PaymentTemplatesTable({
   templates,
   onAddTemplate,
@@ -39,7 +56,6 @@ export default function PaymentTemplatesTable({
 }: PaymentTemplatesTableProps) {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
-  const rowsPerPage = 10;
 
   const filteredTemplates = useMemo(() => {
     if (!search.trim()) return templates;
@@ -54,10 +70,167 @@ export default function PaymentTemplatesTable({
   }, [templates, search]);
 
   const totalCount = filteredTemplates.length;
-  const paginatedTemplates = useMemo(() => {
-    const start = page * rowsPerPage;
-    return filteredTemplates.slice(start, start + rowsPerPage);
-  }, [filteredTemplates, page, rowsPerPage]);
+
+  // Type-Safe columns with consistent width distribution & flexible headers
+  const columns: BaseTableColumn<PaymentTemplate>[] = [
+    {
+      key: "name",
+      header: (
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+          <span>Template name</span>
+          <ChevronsUpDown size={14} color={palette.slate[400]} />
+        </Stack>
+      ),
+      width: COLUMN_WIDTHS[0],
+      headSx: { ...HEAD_CELL_SX, pl: 2.5 },
+      cellSx: {
+        ...BODY_CELL_SX,
+        pl: 2.5,
+        fontSize: 14,
+        fontWeight: 600,
+        color: palette.slate[900],
+      },
+      render: (t) => t.name,
+    },
+    {
+      key: "type",
+      header: (
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+          <span>Type</span>
+          <ChevronsUpDown size={14} color={palette.slate[400]} />
+        </Stack>
+      ),
+      width: COLUMN_WIDTHS[1],
+      headSx: HEAD_CELL_SX,
+      cellSx: {
+        ...BODY_CELL_SX,
+        fontSize: 14,
+        color: palette.slate[700],
+      },
+      render: (t) => t.type,
+    },
+    {
+      key: "provider",
+      header: (
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+          <span>Service provider</span>
+          <ChevronsUpDown size={14} color={palette.slate[400]} />
+        </Stack>
+      ),
+      width: COLUMN_WIDTHS[2],
+      headSx: HEAD_CELL_SX,
+      cellSx: BODY_CELL_SX,
+      render: (t) => (
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+          <Avatar
+            sx={{
+              width: 30,
+              height: 30,
+              bgcolor: "#EDF2F7",
+              color: palette.slate[900],
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            {t.providerInitials}
+          </Avatar>
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: palette.slate[900],
+            }}
+          >
+            {t.providerName}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      key: "correspondentId",
+      header: "Correspondent ID",
+      width: COLUMN_WIDTHS[3],
+      headSx: HEAD_CELL_SX,
+      cellSx: {
+        ...BODY_CELL_SX,
+        fontSize: 14,
+        color: palette.slate[700],
+      },
+      render: (t) => t.correspondentId,
+    },
+    {
+      key: "createdAt",
+      header: (
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+          <span>Created date</span>
+          <ChevronsUpDown size={14} color={palette.slate[400]} />
+        </Stack>
+      ),
+      width: COLUMN_WIDTHS[4],
+      headSx: HEAD_CELL_SX,
+      cellSx: {
+        ...BODY_CELL_SX,
+        fontSize: 14,
+        color: palette.slate[700],
+      },
+      render: (t) => t.createdAt,
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      width: COLUMN_WIDTHS[5],
+      headSx: { ...HEAD_CELL_SX, pr: 0.5, pl: 2 },
+      cellSx: { ...BODY_CELL_SX, pr: 0.5, pl: 2 },
+      render: (t) => (
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{ justifyContent: "flex-end", alignItems: "center", pr: 2, gap: 2 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Tooltip title="Edit template">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditTemplate?.(t);
+              }}
+              sx={{
+                color: palette.slate[700],
+                p: 0.5,
+                "&:hover": {
+                  color: palette.slate[900],
+                  bgcolor: palette.slate[100],
+                },
+              }}
+            >
+              <Pencil size={17} />
+            </IconButton>
+          </Tooltip>
+
+          <Tooltip title="Delete template">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteTemplate?.(t);
+              }}
+              sx={{
+                color: "#EF4444",
+                p: 0.5,
+                "&:hover": {
+                  bgcolor: "rgba(239, 68, 68, 0.08)",
+                },
+              }}
+            >
+              <Trash2 size={17} />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      ),
+    },
+  ];
 
   return (
     <Box
@@ -122,7 +295,15 @@ export default function PaymentTemplatesTable({
       </Stack>
 
       {/* Search Input */}
-      <Box sx={{ mb: 6 ,mt:6}}>
+      <Box
+        sx={{
+          mb: 6,
+          mt: 6,
+          borderTop: "1px solid ",
+          pt: 6,
+          borderTopColor: palette.secondary[100],
+        }}
+      >
         <TextField
           size="small"
           placeholder="Search"
@@ -152,291 +333,41 @@ export default function PaymentTemplatesTable({
         />
       </Box>
 
-      {/* Table (Open, flat modern style without nested box border) */}
-      <TableContainer sx={{ border: "none", overflowX: "auto" }}>
-        <Table sx={{ minWidth: 720 }}>
-          <TableHead>
-            <TableRow sx={{ borderBottom: `1px solid ${palette.slate[200]}` }}>
-              <TableCell
-                sx={{
-                  bgcolor:"transparent",
-                  py: 1.75,
-                  px: 2,
-                  pl: 2.5,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: palette.slate[500],
-                  borderBottom: "none",
-                }}
-              >
-                <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-                  <span>Template name</span>
-                  <ChevronsUpDown size={14} color={palette.slate[400]} />
-                </Stack>
-              </TableCell>
-
-              <TableCell
-                sx={{
-                  bgcolor:"transparent",
-                  py: 1.75,
-                  px: 2,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: palette.slate[500],
-                  borderBottom: "none",
-                }}
-              >
-                <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-                  <span>Type</span>
-                  <ChevronsUpDown size={14} color={palette.slate[400]} />
-                </Stack>
-              </TableCell>
-
-              <TableCell
-                sx={{
-                  bgcolor:"transparent",
-                  py: 1.75,
-                  px: 2,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: palette.slate[500],
-                  borderBottom: "none",
-                }}
-              >
-                <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-                  <span>Service provider</span>
-                  <ChevronsUpDown size={14} color={palette.slate[400]} />
-                </Stack>
-              </TableCell>
-
-              <TableCell
-                sx={{
-                  bgcolor:"transparent",
-                  py: 1.75,
-                  px: 2,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: palette.slate[500],
-                  borderBottom: "none",
-                }}
-              >
-                <span>Correspondent ID</span>
-              </TableCell>
-
-              <TableCell
-                sx={{
-                  bgcolor:"transparent",
-                  py: 1.75,
-                  px: 2,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: palette.slate[500],
-                  borderBottom: "none",
-                }}
-              >
-                <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-                  <span>Created date</span>
-                  <ChevronsUpDown size={14} color={palette.slate[400]} />
-                </Stack>
-              </TableCell>
-
-              <TableCell
-                align="right"
-                sx={{
-                  bgcolor:"transparent",
-                  py: 1.75,
-                  pr: 0.5,
-                  pl: 2,
-                  borderBottom: "none",
-                }}
-              />
-            </TableRow>
-          </TableHead>
-
-          <TableBody>
-            {paginatedTemplates.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} sx={{ py: 6, textAlign: "center", borderBottom: "none" }}>
-                  <Typography sx={{ color: palette.slate[500], fontSize: 14 }}>
-                    No payment templates found.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedTemplates.map((template) => (
-                <TableRow
-                  key={template.id}
-                  onClick={() => onSelectTemplate?.(template)}
-                  sx={{
-                    cursor: "pointer",
-                    transition: "background-color 0.15s ease",
-                    "&:hover": {
-                      bgcolor: palette.slate[50],
-                    },
-                  }}
-                >
-                  {/* Template Name */}
-                  <TableCell
-                    sx={{
-                      py: 2,
-                      px: 2,
-                      pl: 2,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: palette.slate[900],
-                      borderBottom: "none",
-                    }}
-                  >
-                    {template.name}
-                  </TableCell>
-
-                  {/* Type */}
-                  <TableCell
-                    sx={{
-                      py: 2,
-                      px: 2,
-                      fontSize: 14,
-                      color: palette.slate[700],
-                      borderBottom: "none",
-                    }}
-                  >
-                    {template.type}
-                  </TableCell>
-
-                  {/* Service Provider */}
-                  <TableCell
-                    sx={{
-                      py: 2,
-                      px: 2,
-                      borderBottom: "none",
-                    }}
-                  >
-                    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-                      <Avatar
-                        sx={{
-                          width: 30,
-                          height: 30,
-                          bgcolor: "#EDF2F7",
-                          color: palette.slate[900],
-                          fontSize: 12,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {template.providerInitials}
-                      </Avatar>
-                      <Typography
-                        sx={{
-                          fontSize: 14,
-                          fontWeight: 500,
-                          color: palette.slate[900],
-                        }}
-                      >
-                        {template.providerName}
-                      </Typography>
-                    </Stack>
-                  </TableCell>
-
-                  {/* Correspondent ID */}
-                  <TableCell
-                    sx={{
-                      py: 2,
-                      px: 2,
-                      fontSize: 14,
-                      color: palette.slate[700],
-                      borderBottom: "none",
-                    }}
-                  >
-                    {template.correspondentId}
-                  </TableCell>
-
-                  {/* Created Date */}
-                  <TableCell
-                    sx={{
-                      py: 2,
-                      px: 2,
-                      fontSize: 14,
-                      color: palette.slate[700],
-                      borderBottom: "none",
-                    }}
-                  >
-                    {template.createdAt}
-                  </TableCell>
-
-                  {/* Actions */}
-                  <TableCell
-                    align="right"
-                    sx={{
-                      py: 2,
-                      pr: 0.5,
-                      pl: 2,
-                      borderBottom: "none",
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Stack
-                      direction="row"
-                      spacing={2}
-                      sx={{ justifyContent: "flex-end", alignItems: "center",pr:2,gap:2 }}
-                    >
-                      <Tooltip title="Edit template">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditTemplate?.(template);
-                          }}
-                          sx={{
-                            color: palette.slate[700],
-                            p: 0.5,
-                            "&:hover": {
-                              color: palette.slate[900],
-                              bgcolor: palette.slate[100],
-                            },
-                          }}
-                        >
-                          <Pencil size={17} />
-                        </IconButton>
-                      </Tooltip>
-
-                      <Tooltip title="Delete template">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteTemplate?.(template);
-                          }}
-                          sx={{
-                            color: "#EF4444",
-                            p: 0.5,
-                            "&:hover": {
-                              bgcolor: "rgba(239, 68, 68, 0.08)",
-                            },
-                          }}
-                        >
-                          <Trash2 size={17} />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* Pagination Footer only if more than rowsPerPage */}
-      {totalCount > rowsPerPage && (
-        <Box sx={{ mt: 3 }}>
-          <BasePagination
-            count={totalCount}
-            page={page}
-            rowsPerPage={rowsPerPage}
-            onPageChange={setPage}
-            variant="detailed"
-          />
-        </Box>
-      )}
+      {/* BaseTable (Open, flat modern style without nested box border) */}
+      <BaseTable
+        columns={columns}
+        rows={filteredTemplates}
+        getRowKey={(t) => t.id}
+        minWidth={720}
+        rounded={false}
+        headerBgColor="transparent"
+        headerBorderColor={palette.slate[200]}
+        headerTextColor={palette.slate[500]}
+        headerBorderTop={false}
+        emptyTitle="No payment templates found."
+        onRowClick={onSelectTemplate}
+        getRowSx={() => ({
+          cursor: "pointer",
+          transition: "background-color 0.15s ease",
+          "&:hover": {
+            bgcolor: palette.slate[50],
+            borderRadius: `${radius.md}px`,
+          },
+          "& td": { borderBottom: "none" },
+        })}
+        pagination={
+          totalCount > ROWS_PER_PAGE
+            ? {
+                count: totalCount,
+                page,
+                rowsPerPage: ROWS_PER_PAGE,
+                onPageChange: setPage,
+              }
+            : undefined
+        }
+        paginationVariant="detailed"
+        paginationSx={{ mt: 3 }}
+      />
     </Box>
   );
 }

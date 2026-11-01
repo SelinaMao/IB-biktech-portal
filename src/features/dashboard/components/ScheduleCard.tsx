@@ -101,7 +101,7 @@ export default function ScheduleCard({
         </Typography>
 
         {/* External Link Icon */}
-        <Box
+        {/* <Box
           component={Link}
           href={viewAllHref}
           aria-label="View all scheduled items"
@@ -120,7 +120,7 @@ export default function ScheduleCard({
           }}
         >
           <SquareArrowOutUpRight size={20} />
-        </Box>
+        </Box> */}
       </Box>
 
       {/* List Items */}
