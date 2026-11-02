@@ -69,7 +69,7 @@ export const transferApi = baseApi.injectEndpoints({
       transformResponse,
     }),
 
-    /** Same as own-account, to another SME Bank customer's account. */
+    /** Same as own-account, to another BiKTECH BANK customer's account. */
     submitOtherSmeAccountTransfer: build.mutation<TransferResult, Idempotent<OtherSmeAccountTransferRequest>>({
       query: ({ body, idempotencyKey }) => ({
         url: bank(adminApi.TRANSFER.OTHER_SME_ACCOUNT),

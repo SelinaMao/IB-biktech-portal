@@ -54,7 +54,7 @@ export default function NotFound() {
       >
         <Image
           src="/branding/BiKTECH.png"
-          alt="SME Bank"
+          alt="BiKTECH BANK"
           width={120}
           height={120}
           priority

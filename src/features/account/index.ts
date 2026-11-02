@@ -4,6 +4,7 @@ export {
   useListAccountsMutation,
   useGetAccountDetailMutation,
   useGetAccountSummaryMutation,
+  useGetCashFlowMutation,
   useListTransactionsMutation,
   downloadAccountCertificate,
   downloadTransactionStatement,

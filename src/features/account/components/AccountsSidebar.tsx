@@ -65,7 +65,7 @@ export default function AccountsSidebar({
     <Box
       sx={{
         bgcolor: "#FFFFFF",
-        borderRadius: "28px",
+        borderRadius: "16px",
         p: { xs: 2, sm: 2.5 },
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
         border: "1px solid #EDF2F7",

@@ -6,7 +6,7 @@
 
 ## What this project is
 
-Bank-internal admin console for **SME Bank of Cambodia** governing Web + Mobile
+Bank-internal admin console for **BiKTECH of Cambodia** governing Web + Mobile
 Corporate Banking channels. Configures systems that move money; does not move
 money itself. Security, auditability, dual control (maker-checker) come first.
 See CLAUDE.md for non-negotiables (no secrets in browser, BFF re-checks

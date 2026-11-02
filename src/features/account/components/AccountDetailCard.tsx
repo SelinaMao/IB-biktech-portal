@@ -125,7 +125,7 @@ export default function AccountDetailCard({
     <Box
       sx={{
         bgcolor: "#FFFFFF",
-        borderRadius: "20px",
+        borderRadius: "16px",
         p: { xs: 2.5, sm: 3 },
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
       }}
