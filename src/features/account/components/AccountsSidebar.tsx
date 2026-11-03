@@ -11,6 +11,7 @@ import { formatAccountNumber } from "@/utils/format-account-number";
 import SummaryCard from "./SummaryCard";
 import type { CoreAccountEntry, CoreAccountsResponse, SummaryCardProps } from "../account.types";
 import { adjustLightness } from "@/utils/get-color-light";
+import { display } from "html2canvas/dist/types/css/property-descriptors/display";
 
 export interface AccountsSidebarProps {
   summary: CoreAccountsResponse["summary"] | null;
@@ -19,12 +20,7 @@ export interface AccountsSidebarProps {
   onSelect?: (id: string) => void;
 }
 
-export default function AccountsSidebar({
-  summary,
-  accounts,
-  selectedId,
-  onSelect,
-}: AccountsSidebarProps) {
+export default function AccountsSidebar({ summary, accounts, selectedId, onSelect }: AccountsSidebarProps) {
   // Prefer the core API's reported totals; fall back to summing the list
   // client-side (e.g. before the first `listAccounts` response lands).
   const { totalBalanceKHR, totalBalanceUSD } = summary ?? {
@@ -40,6 +36,17 @@ export default function AccountsSidebar({
     tone: "success",
   };
 
+  const accountsList = [
+    {
+      name: "Savings",
+      accounts: accounts.filter((account) => account.accountType === "SA" || account.accountType === "CA"),
+    },
+    {
+      name: "Fixed Deposit",
+      accounts: accounts.filter((account) => account.accountType === "FD"),
+    },
+  ];
+
   return (
     <Stack spacing={2.5}>
       {/* <Box>
@@ -49,77 +56,132 @@ export default function AccountsSidebar({
         <SummaryCard {...availableBalanceCard} />
       </Box> */}
 
-      <Box sx={{
-        border:"0px solid",
-        bgcolor:"white",
-        borderRadius:"20px",
-        padding:3
-      }}>
-        <Typography sx={{ fontSize: 18, fontWeight: 600, color: "text.primary", mb: 1.5 }}>
-          Accounts
-        </Typography>
+      <Box
+        sx={{
+          bgcolor: "white",
+          borderRadius: "24px",
+          p: "16px",
+        }}
+      >
         <Stack spacing={2}>
-          {accounts.map((account) => {
-            const active = account.accountNumber === selectedId;
-            return (
-              <BaseCard
-                key={`${account.accountNumber}-${account.ccy}`}
-                role={onSelect ? "button" : undefined}
-                tabIndex={onSelect ? 0 : undefined}
-                onClick={() => onSelect?.(account.accountNumber)}
-                onKeyDown={(e) => {
-                  if (!onSelect) return;
-                  if (e.key === "Enter" || e.key === " ") onSelect(account.accountNumber);
-                }}
+          {/* Summary */}
+          <Box
+            sx={{
+              p: "16px",
+              backgroundColor: "#2764A514",
+              borderRadius: "12px",
+            }}
+          >
+            <Typography sx={{ color: "#6B7685", mb: 1 }}>Summary</Typography>
+
+            {accounts.map((account) => (
+              <Box
+                key={account.accountNumber}
                 sx={{
-                  padding:"5px",
-                  cursor: onSelect ? "pointer" : "default",
-                  // border: `0px solid ${active ? `${account.color}` : "0px"}`,
-                  backgroundColor: active ? "#2764A514" : "white",
-                  border:"none"
+                  display: "flex",
+                  gap: "5px",
+                  mb: 0.5,
                 }}
               >
-                <Stack
-                  direction="row"
-                  sx={{
-                    position: 'relative',
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    mb: 2,
-                    paddingLeft: '10px',
-                    // "&::before": {
-                    //   content: '""',
-                    //   top: '-20px',
-                    //   left: '-20px',
-                    //   position: "absolute",
-                    //   width: "15px",
-                    //   height: "80px",
-                    //   borderTopLeftRadius: active ? "14px" : "16px",
-                    //   borderBottomRightRadius: '12px',
-                    //   backgroundColor: account.color || "#F2C94C"
-                    // }
-                  }}
-                >
-                  <Box>
-                    <Typography sx={{ fontWeight: font.weight.regular, fontSize: font.size.base, color: palette.primary[1000] }}>
-                      {account.accountName}
-                    </Typography>
-                    <Typography sx={{ fontSize: font.size.xs, color: palette.text.secondary, mt: 0.25 }}>
-                      {formatAccountNumber(account.accountNumber)}
-                    </Typography>
-                  </Box>
-                  {/* <ChevronRight
-                    size={18}
-                    color={active ? palette.navy[800] : palette.slate[400]}
-                  /> */}
-                  <Typography sx={{ fontWeight: font.weight.bold, fontSize: font.size.sm, color: palette.text.primary, paddingLeft: '10px',margin:"5px" }}>
-                  <BaseBlurText>{formatCCY(account.availableBalance, account.ccy)}</BaseBlurText>
-                </Typography>
+                <Typography sx={{ color: palette.black30, fontWeight: 600 }}>{account.ccy}</Typography>
+
+                <Typography sx={{ color: palette.black30 }}>{formatCCY(account.availableBalance)}</Typography>
+              </Box>
+            ))}
+          </Box>
+
+          {/* Account groups */}
+          {accountsList.map(
+            (accountGroup) =>
+              accountGroup.accounts.length > 0 && (
+                <Stack key={accountGroup.name} spacing={1}>
+                  <Typography
+                    sx={{
+                      color: "#6B7685",
+                      fontSize: "15px",
+                      fontWeight: font.weight.semibold,
+                      py: "10px",
+                    }}
+                  >
+                    {accountGroup.name}
+                  </Typography>
+
+                  {accountGroup.accounts.map((account) => (
+                    <Box
+                      key={account.accountNumber}
+                      onClick={() => onSelect?.(account.accountNumber)}
+                      sx={{
+                        cursor: onSelect ? "pointer" : "default",
+                        width: "100%",
+                        boxSizing: "border-box",
+                        backgroundColor: "white",
+                        borderRadius: "8px",
+                        border: "1px solid #2764A514",
+                        p: "16px",
+                        display: "flex",
+                        gap: "10px",
+                        alignItems: "center",
+                        "&:hover": onSelect ? { backgroundColor: "#F8FAFC" } : {},
+                      }}
+                    >
+                      {/* Account indicator */}
+                      <Box
+                        sx={{
+                          backgroundColor: account.color || "#3391D0",
+                          width: "4px",
+                          height: "40px",
+                          borderRadius: "4px",
+                          flexShrink: 0,
+                        }}
+                      />
+
+                      {/* Account information */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "12px",
+                          }}
+                        >
+                          <Typography
+                            sx={{
+                              fontSize: "15px",
+                              color: palette.black30,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {account.accountName}
+                          </Typography>
+
+                          <Typography
+                            sx={{
+                              fontSize: "15px",
+                              color: palette.black30,
+                              fontWeight: 600,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {account.ccy} {formatCCY(account.availableBalance)}
+                          </Typography>
+                        </Box>
+
+                        <Typography
+                          sx={{
+                            fontSize: font.size.xs,
+                            color: palette.text.secondary,
+                            mt: 0.25,
+                          }}
+                        >
+                          {account.accountNumber}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
                 </Stack>
-                
-              </BaseCard>
-            );
-          })}
+              ),
+          )}
         </Stack>
       </Box>
     </Stack>

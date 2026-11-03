@@ -46,19 +46,7 @@ function formatAmountSuffix(amount: number | string | undefined | null, ccy: str
   return `${formatted} ${ccy}`;
 }
 
-export default function AccountDetailsCard({
-  open = false,
-  onClose,
-  stats,
-  info,
-  fixedDeposit,
-  isFixedDeposit = false,
-  isSaving = false,
-  onOpenAccountInfo,
-  onOpenStatements,
-  onExportStatements,
-  onDownloadCertificate,
-}: AccountDetailsProps) {
+export default function AccountDetailsCard({ open = false, onClose, stats, info, fixedDeposit, isFixedDeposit = false, isSaving = false, onOpenAccountInfo, onOpenStatements, onExportStatements, onDownloadCertificate }: AccountDetailsProps) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [downloadAnchor, setDownloadAnchor] = useState<null | HTMLElement>(null);
   const [copied, setCopied] = useState(false);
@@ -67,52 +55,25 @@ export default function AccountDetailsCard({
   const isTD = isFixedDeposit || info?.accountType === "TD" || fixedDeposit?.accountType === "TD";
   const rawType = (info?.accountType || stats?.accountType || "").toUpperCase();
   const desc = (info?.productDesc || stats?.productDesc || "").toLowerCase();
-  const isSA = Boolean(
-    isSaving ||
-    rawType === "SA" ||
-    rawType === "SAVING" ||
-    rawType === "SAVINGS" ||
-    desc.includes("saving")
-  );
+  const isSA = Boolean(isSaving || rawType === "SA" || rawType === "SAVING" || rawType === "SAVINGS" || desc.includes("saving"));
 
   // ==========================================
   // Fixed Term Deposit UI
   // ==========================================
   if (isTD) {
-    const principalAmount =
-      fixedDeposit?.placementAmt ?? info?.placementAmt ?? info?.availableBalance ?? 6700000;
-    const maturityAmount =
-      fixedDeposit?.totalAmountToReceive ?? info?.totalAmountToReceive ?? 7051500;
-    const interestEarned =
-      fixedDeposit?.interestAmount ?? info?.interestAmount;
-    const interestRateVal =
-      fixedDeposit?.interestRate ?? info?.interestRate ?? 3.5;
-    const tenureMonths =
-      fixedDeposit?.tenorMonths ?? info?.tenorMonths ?? 12;
-    const maturityDateVal =
-      fixedDeposit?.maturityDate ?? info?.maturityDate;
-    const formattedMaturityDate = maturityDateVal
-      ? dayjs(maturityDateVal).format("DD MMM YYYY")
-      : "08 Sep 2027";
-    const depositType =
-      rawType === "TD"
-        ? "Fixed Term Deposit"
-        : (fixedDeposit?.productDesc || info?.productDesc || "Fixed Term Deposit");
-    const fdAccountNumber =
-      info?.accountNumber || fixedDeposit?.accountNumber || "FD-2024-001892";
-    const linkedAccountNumber =
-      fixedDeposit?.accountSettlementNumber ||
-      info?.accountSettlementNumber ||
-      "000 190 068";
+    const principalAmount = fixedDeposit?.placementAmt ?? info?.placementAmt ?? info?.availableBalance ?? 6700000;
+    const maturityAmount = fixedDeposit?.totalAmountToReceive ?? info?.totalAmountToReceive ?? 7051500;
+    const interestEarned = fixedDeposit?.interestAmount ?? info?.interestAmount;
+    const interestRateVal = fixedDeposit?.interestRate ?? info?.interestRate ?? 3.5;
+    const tenureMonths = fixedDeposit?.tenorMonths ?? info?.tenorMonths ?? 12;
+    const maturityDateVal = fixedDeposit?.maturityDate ?? info?.maturityDate;
+    const formattedMaturityDate = maturityDateVal ? dayjs(maturityDateVal).format("DD MMM YYYY") : "08 Sep 2027";
+    const depositType = rawType === "TD" ? "Fixed Term Deposit" : fixedDeposit?.productDesc || info?.productDesc || "Fixed Term Deposit";
+    const fdAccountNumber = info?.accountNumber || fixedDeposit?.accountNumber || "FD-2024-001892";
+    const linkedAccountNumber = fixedDeposit?.accountSettlementNumber || info?.accountSettlementNumber || "000 190 068";
 
-    const card3Label =
-      interestEarned !== undefined && interestEarned !== maturityAmount && interestEarned > 0
-        ? "Interest Earned"
-        : "Maturity Amount";
-    const card3Value =
-      interestEarned !== undefined && interestEarned !== maturityAmount && interestEarned > 0
-        ? formatAmountSuffix(interestEarned, ccy)
-        : formatAmountSuffix(maturityAmount, ccy);
+    const card3Label = interestEarned !== undefined && interestEarned !== maturityAmount && interestEarned > 0 ? "Interest Earned" : "Maturity Amount";
+    const card3Value = interestEarned !== undefined && interestEarned !== maturityAmount && interestEarned > 0 ? formatAmountSuffix(interestEarned, ccy) : formatAmountSuffix(maturityAmount, ccy);
 
     const fdStatCards = [
       {
@@ -139,6 +100,9 @@ export default function AccountDetailsCard({
       { label: "Interest Rate", value: `${interestRateVal}% p.a.`, color: "#166D35" },
       { label: "Maturity Date", value: formattedMaturityDate },
     ];
+
+
+    console.log(info)
 
     return (
       <Box
@@ -213,9 +177,7 @@ export default function AccountDetailsCard({
                   "&:last-of-type": { borderBottom: "none" },
                 }}
               >
-                <Typography sx={{ fontSize: "13px", color: "#64748B" }}>
-                  {row.label}
-                </Typography>
+                <Typography sx={{ fontSize: "13px", color: "#64748B" }}>{row.label}</Typography>
                 <Typography
                   sx={{
                     fontSize: "13px",
@@ -256,9 +218,7 @@ export default function AccountDetailsCard({
                 minWidth: 0,
               }}
             >
-              <Typography sx={{ fontSize: "11px", color: "#64748B", lineHeight: 1.4 }}>
-                {card.label}
-              </Typography>
+              <Typography sx={{ fontSize: "11px", color: "#64748B", lineHeight: 1.4 }}>{card.label}</Typography>
               <Typography
                 sx={{
                   fontSize: "15px",
@@ -354,13 +314,13 @@ export default function AccountDetailsCard({
   if (isCL) {
     const loanName = info?.productDesc || info?.accountName || "Car Loan";
     const accNum = info?.accountNumber || "000 067 898";
-    const ref = (info as unknown as Record<string, unknown>)?.loanReference as string || info?.accountNumber || "CLN-2024-001892";
+    const ref = ((info as unknown as Record<string, unknown>)?.loanReference as string) || info?.accountNumber || "CLN-2024-001892";
     const loanType = info?.productDesc || "Car Loan";
     const outstanding = info?.loanAmount ?? info?.currentBalance ?? info?.availableBalance ?? 6_700_000;
     const rate = info?.interestRate ?? 5.25;
     const frequency = info?.installmentFrequency || "Monthly";
     const matDate = info?.maturityDate ? dayjs(info.maturityDate).format("DD MMM YYYY") : "08 Sep 2030";
-    const limit = (info as unknown as Record<string, unknown>)?.approvedLimit as number ?? info?.loanAmount ?? 100_000;
+    const limit = ((info as unknown as Record<string, unknown>)?.approvedLimit as number) ?? info?.loanAmount ?? 100_000;
     const disbDate = info?.disbursementDate ? dayjs(info.disbursementDate).format("DD MMM YYYY") : "08 Sep 2024";
 
     const detailRows = [
@@ -482,9 +442,7 @@ export default function AccountDetailsCard({
                   "&:last-of-type": { borderBottom: "none" },
                 }}
               >
-                <Typography sx={{ fontSize: "13px", color: "#64748B" }}>
-                  {row.label}
-                </Typography>
+                <Typography sx={{ fontSize: "13px", color: "#64748B" }}>{row.label}</Typography>
                 <Typography
                   sx={{
                     fontSize: "13px",
@@ -525,9 +483,7 @@ export default function AccountDetailsCard({
                 minWidth: 0,
               }}
             >
-              <Typography sx={{ fontSize: "11px", color: "#64748B", lineHeight: 1.4 }}>
-                {card.label}
-              </Typography>
+              <Typography sx={{ fontSize: "11px", color: "#64748B", lineHeight: 1.4 }}>{card.label}</Typography>
               <Typography
                 sx={{
                   fontSize: "15px",
@@ -620,18 +576,8 @@ export default function AccountDetailsCard({
   // ==========================================
   const availableBalance = stats?.availableBalance ?? info?.availableBalance ?? 0;
   const ledgerBalance = stats?.ledgerBalance ?? info?.ledgerBalance ?? 0;
-  const overdraftLimit =
-    stats?.overdraftLimit ??
-    (stats as unknown as Record<string, unknown>)?.odLimit as number ??
-    info?.overdraftLimit ??
-    (info as unknown as Record<string, unknown>)?.odLimit as number ??
-    0;
-  const blockedBalance =
-    stats?.blockedBalance ??
-    (stats as unknown as Record<string, unknown>)?.amountBlock as number ??
-    info?.blockedBalance ??
-    (info as unknown as Record<string, unknown>)?.amountBlock as number ??
-    0;
+  const overdraftLimit = stats?.overdraftLimit ?? ((stats as unknown as Record<string, unknown>)?.odLimit as number) ?? info?.overdraftLimit ?? ((info as unknown as Record<string, unknown>)?.odLimit as number) ?? 0;
+  const blockedBalance = stats?.blockedBalance ?? ((stats as unknown as Record<string, unknown>)?.amountBlock as number) ?? info?.blockedBalance ?? ((info as unknown as Record<string, unknown>)?.amountBlock as number) ?? 0;
 
   const statCards = [
     {
@@ -642,16 +588,6 @@ export default function AccountDetailsCard({
     {
       label: "Ledger balance",
       value: formatAmountPrefix(ledgerBalance, ccy),
-      color: "#0F172A",
-    },
-    {
-      label: "OD limit",
-      value: formatAmountPrefix(overdraftLimit, ccy),
-      color: "#0F172A",
-    },
-    {
-      label: "Amount blocked",
-      value: formatAmountPrefix(blockedBalance, ccy),
       color: "#0F172A",
     },
   ];
@@ -687,232 +623,212 @@ export default function AccountDetailsCard({
   //  UI for AccountDetailCard
   // ==========================================
   return (
-   <Box
-  sx={{
-    bgcolor: "#FFFFFF",
-    borderRadius: "20px",
-    width: "100%",
-    boxSizing: "border-box",
-    p: { xs: "16px", sm: "20px", md: "20px 24px" },
-    display: "grid",
-    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-    gridTemplateAreas: {
-      xs: `"header" "detail" "cards" "buttons"`,
-      md: `"header cards" "detail cards" "buttons buttons"`,
-    },
-    gridTemplateRows: { md: "auto auto 1fr" },
-    columnGap: { md: "26px" },
-    rowGap: "20px",
-  }}
->
-  {/* ───────── Header (left, top) ───────── */}
-  <Box sx={{ gridArea: "header" }}>
-    <Typography
-      sx={{
-        fontSize: { xs: "16px", md: "18px" },
-        fontWeight: 600,
-        color: "#0F172A",
-        lineHeight: 1.3,
-        m: 0,
-      }}
-    >
-      {info?.accountName || "Shiiping co., ltd."}
-    </Typography>
-
-    {/* account number + copy icon */}
     <Box
       sx={{
+        bgcolor: "#FFFFFF",
+        borderRadius: "20px",
+        width: "100%",
+        boxSizing: "border-box",
+        p: { xs: "16px", sm: "20px", md: "24px" },
+
         display: "grid",
-        gridTemplateColumns: "auto auto",
-        justifyContent: "start",
-        alignItems: "center",
-        columnGap: "8px",
-        mt: "8px",
+        gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "minmax(0, 1fr) minmax(0, 1fr)" },
+
+        gridTemplateAreas: {
+          xs: `"header" "detail" "cards" "buttons"`,
+          md: `"header cards" "detail cards" "buttons cards"`,
+        },
+
+        gridTemplateRows: { md: "1fr auto auto" },
+        columnGap: { md: "26px" },
+        rowGap: "20px",
+        alignItems: "stretch",
       }}
     >
-      <Typography sx={{ color: "#475569", fontSize: "13px", lineHeight: 1.4 }}>
-        {formattedAccountNumber || "000 190 068"}
-      </Typography>
-      <Tooltip title={copied ? "Copied!" : "Copy account number"}>
-        <IconButton
-          onClick={handleCopyAccount}
-          size="small"
-          sx={{
-            p: "2px",
-            color: copied ? "#166D35" : "#475569",
-            "&:hover": { color: "#0F172A", bgcolor: "transparent" },
-          }}
-        >
-          {copied ? <Check size={14} /> : <Copy size={14} />}
-        </IconButton>
-      </Tooltip>
-    </Box>
-
-    <Typography sx={{ color: "#64748B", fontSize: "11px", mt: "8px", lineHeight: 1.4 }}>
-      {accountTypeLabel} &middot; {ccy}
-    </Typography>
-  </Box>
-
-  {/* ───────── Account Detail (left, below header) ───────── */}
-  <Box sx={{ gridArea: "detail" }}>
-    <Typography
-      sx={{
-        fontSize: "16px",
-        fontWeight: 700,
-        color: "#0F172A",
-        m: 0,
-        mb: "8px",
-        lineHeight: 1.4,
-      }}
-    >
-      Account Detail
-    </Typography>
-
-    <Box>
-      {[
-        { label: "Account Name", value: info?.accountName || "Shiiping co., ltd." },
-        { label: "Account Number", value: formattedAccountNumber || "000 190 068" },
-        { label: "Account Type", value: isSA ? "Savings" : accountTypeLabel },
-        { label: "Currency", value: ccy },
-      ].map((row) => (
-        <Box
-          key={row.label}
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            alignItems: "center",
-            columnGap: "12px",
-            py: "14px",
-            borderBottom: "1px solid #E5E9F0",
-            "&:last-of-type": { borderBottom: "none" },
-          }}
-        >
-          <Typography sx={{ fontSize: "13px", color: "#64748B" }}>
-            {row.label}
-          </Typography>
+      {/* Header */}
+      <Box
+        sx={{
+          gridArea: "header",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          minWidth: 0,
+          gap: "20px",
+        }}
+      >
+        <Box>
           <Typography
-            sx={{ fontSize: "13px", fontWeight: 500, color: "#0F172A", textAlign: "right" }}
+            sx={{
+              fontSize: { xs: "16px", md: "18px" },
+              fontWeight: 600,
+              color: "#0F172A",
+              lineHeight: 1.3,
+            }}
           >
-            {row.value}
+            {info?.accountName || "Shiiping co., ltd."}
+          </Typography>
+
+          {/* Account number + copy icon */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              mt: "8px",
+            }}
+          >
+            <Typography
+              sx={{
+                color: "#475569",
+                fontSize: "13px",
+                lineHeight: 1.4,
+              }}
+            >
+              {info?.accountNumber || "000 190 068"}
+            </Typography>
+
+            <Tooltip title={copied ? "Copied!" : "Copy account number"}>
+              <IconButton
+                onClick={handleCopyAccount}
+                size="small"
+                sx={{
+                  p: "2px",
+                  color: copied ? "#166D35" : "#475569",
+                  "&:hover": {
+                    color: "#0F172A",
+                    bgcolor: "transparent",
+                  },
+                }}
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+
+          <Typography
+            sx={{
+              color: "#64748B",
+              fontSize: "11px",
+              mt: "8px",
+              lineHeight: 1.4,
+            }}
+          >
+            {accountTypeLabel} &middot; {ccy}
           </Typography>
         </Box>
-      ))}
-    </Box>
-  </Box>
 
-  {/* ───────── Stat cards (right column) ───────── */}
-  <Box
-    sx={{
-      gridArea: "cards",
-      display: "grid",
-      gridAutoRows: "min-content",
-      rowGap: "9px",
-      width: "100%",
-      minWidth: 0,
-      alignContent: "start",
-      alignSelf: "start",
-    }}
-  >
-    {statCards.map((card) => (
+        <BaseButton
+          sx={{
+            p: "8px 16px",
+            bgcolor: "#E8EEF5",
+            borderRadius: "999px",
+            fontSize: "13px",
+            fontWeight: 500,
+            textTransform: "none",
+            color: "#0F172A",
+            boxShadow: "none",
+            "&:hover": {
+              bgcolor: "#DCE5F0",
+              boxShadow: "none",
+            },
+          }}
+          onClick={onOpenAccountInfo}
+          startIcon={<Info size={16} />}
+          title="Account Information"
+        />
+      </Box>
+
+      {/* Account details: keep this area if you have detail content */}
+      <Box sx={{ gridArea: "detail", minWidth: 0 }}>{/* Add your account detail content here */}</Box>
+
+      {/* Stat cards */}
       <Box
-        key={card.label}
         sx={{
-          bgcolor: "#F4F7FB",
-          borderRadius: "10px",
-          p: "12px 14px",
+          gridArea: "cards",
           display: "grid",
-          rowGap: "6px",
+          gridAutoRows: "min-content",
+          rowGap: "9px",
+          width: "100%",
+          minWidth: 0,
+          alignContent: "start",
+        }}
+      >
+        {statCards.map((card) => (
+          <Box
+            key={card.label}
+            sx={{
+              bgcolor: "#F4F7FB",
+              borderRadius: "10px",
+              p: "12px 14px",
+              display: "grid",
+              rowGap: "6px",
+              minWidth: 0,
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: "11px",
+                color: "#64748B",
+                lineHeight: 1.4,
+              }}
+            >
+              {card.label}
+            </Typography>
+
+            <Typography
+              sx={{
+                fontSize: "15px",
+                fontWeight: 600,
+                color: card.color,
+                lineHeight: 1.3,
+                overflowWrap: "anywhere",
+              }}
+            >
+              {card.value}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Buttons */}
+      <Box
+        sx={{
+          gridArea: "buttons",
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          gap: "12px",
           minWidth: 0,
         }}
       >
-        <Typography sx={{ fontSize: "11px", color: "#64748B", lineHeight: 1.4 }}>
-          {card.label}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: "15px",
-            fontWeight: 600,
-            color: card.color,
-            lineHeight: 1.3,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {card.value}
-        </Typography>
+        {/* Add your action buttons here */}
       </Box>
-    ))}
-  </Box>
 
-  {/* ───────── Buttons (bottom-left) ───────── */}
-  <Box
-    sx={{
-      gridArea: "buttons",
-      display: "grid",
-      gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(2, max-content)" },
-      justifyContent: "start",
-      gap: "12px",
-    }}
-  >
-    <BaseButton
-      sx={{
-        p: "8px 16px",
-        bgcolor: "#E8EEF5",
-        borderRadius: "999px",
-        fontSize: "13px",
-        fontWeight: 500,
-        textTransform: "none",
-        color: "#0F172A",
-        boxShadow: "none",
-        "&:hover": { bgcolor: "#DCE5F0" },
-      }}
-      onClick={onOpenAccountInfo}
-      startIcon={<Info size={16} />}
-      title="Account Information"
-    />
-    <BaseButton
-      sx={{
-        p: "8px 16px",
-        bgcolor: "#E8EEF5",
-        borderRadius: "999px",
-        fontSize: "13px",
-        fontWeight: 500,
-        textTransform: "none",
-        color: "#0F172A",
-        boxShadow: "none",
-        "&:hover": { bgcolor: "#DCE5F0" },
-      }}
-      onClick={(e) => {
-        setDownloadAnchor(e.currentTarget);
-        onOpenStatements?.(e);
-      }}
-      startIcon={<ReceiptText size={16} />}
-      title="Statements"
-    />
-  </Box>
+      {/* Download panel */}
+      <BaseDownloadPanel
+        anchorEl={downloadAnchor}
+        onClose={() => setDownloadAnchor(null)}
+        onDownload={(value) => {
+          setDownloadAnchor(null);
+          onExportStatements?.(value);
+        }}
+      />
 
-  <BaseDownloadPanel
-    anchorEl={downloadAnchor}
-    onClose={() => setDownloadAnchor(null)}
-    onDownload={(value) => {
-      setDownloadAnchor(null);
-      onExportStatements?.(value);
-    }}
-  />
-
-  {info && (
-    <AccountDetails
-      open={open || isDetailsOpen}
-      onClose={() => {
-        setIsDetailsOpen(false);
-        onClose?.();
-      }}
-      info={info}
-      fixedDeposit={fixedDeposit}
-      onDownloadCertificate={onDownloadCertificate}
-    />
-  )}
-</Box>
+      {/* Account details dialog */}
+      {info && (
+        <AccountDetails
+          open={open || isDetailsOpen}
+          onClose={() => {
+            setIsDetailsOpen(false);
+            onClose?.();
+          }}
+          info={info}
+          fixedDeposit={fixedDeposit}
+          onDownloadCertificate={onDownloadCertificate}
+        />
+      )}
+    </Box>
   );
 }
-
-

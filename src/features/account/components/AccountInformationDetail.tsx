@@ -111,7 +111,7 @@ export default function AccountInformationDetail({
     return (
       <Box sx={{ width: "100%", pb: 4 }}>
         {/* Back Button & Title */}
-        
+
 
         <Stack spacing={3}>
           {/* Card 1: Account Information */}
@@ -130,7 +130,7 @@ export default function AccountInformationDetail({
                 mb: 1,
               }}
             >
-              Account Information
+              Account Information 
             </Typography>
 
             <Stack divider={<Divider sx={{ borderColor: "#F1F5F9" }} />}>
@@ -193,7 +193,7 @@ export default function AccountInformationDetail({
         {/* Left Main Content Column */}
         <Grid size={{ xs: 12, lg: 12 }}>
           {/* Back Button & Title */}
-          
+
 
           <Stack spacing={3}>
             {/* Card 1: Account Overview */}

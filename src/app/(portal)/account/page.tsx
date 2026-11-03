@@ -69,7 +69,6 @@ const TYPE_ACCT_TO_DETAILS_KEY: Record<string, string> = {
 };
 
 export default function AccountPage() {
-
   const [listAccounts, listAccountsResult] = useListAccountsMutation();
   useEffect(() => {
     listAccounts();
@@ -78,20 +77,30 @@ export default function AccountPage() {
 
   const bankAccounts = accountsResponse?.accounts ?? [];
   const coreSummary = accountsResponse?.summary ?? null;
- 
+
+
   const [accountNumber, setAccountNumber] = useState<string | undefined>();
 
-  useEffect(() => {
-    if (!accountNumber && bankAccounts.length > 0) {
-      const defaultAccount = bankAccounts.find((account: CoreAccountEntry) => account.accountType === "CA") ?? bankAccounts[0];
-      setAccountNumber(defaultAccount.accountNumber);
-    }
-  }, [bankAccounts, accountNumber]);
+  // useEffect(() => {
+  //   if (!accountNumber && bankAccounts.length > 0) {
+  //     const defaultAccount = bankAccounts.find((account: CoreAccountEntry) => account.accountType === "CA") ?? bankAccounts[0];
+  //     setAccountNumber(defaultAccount.accountNumber);
+  //   }
+  // }, [bankAccounts, accountNumber]);
 
+  const [isOpen, setIsOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [accountInformationDetail, setaccountInformationDetail] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<TTransactionDetailResponse | null>(null);
   const [newAccountOpen, setNewAccountOpen] = useState(false);
+
+  useEffect(() => {
+    if (accountNumber) {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  }, [accountNumber]);
 
   const [txnQuery, setTxnQuery] = useState("");
   const [debouncedTxnQuery, setDebouncedTxnQuery] = useState("");
@@ -165,7 +174,6 @@ export default function AccountPage() {
   };
 
   const handleDownloadStatement = async (value: BaseDownloadValue) => {
-
     if (!accountNumber || isDownloadingStatement) return;
     setIsDownloadingStatement(true);
     try {
@@ -190,7 +198,6 @@ export default function AccountPage() {
     }
   };
 
-
   const handleDownloadTransactionDetail = async (transaction: TTransactionDetailResponse) => {
     console.log("handleDownloadTransactionDetail", transaction);
 
@@ -211,15 +218,15 @@ export default function AccountPage() {
 
   const transactionsResponse = useAppSelector((state) => selectTransactionsForAccount(state, accountNumber));
 
-  const apiTransactions = useAppSelector((state) =>
-    selectAccountTransactions(state, accountNumber, selectedAccount?.accountName),
-  );
+  const apiTransactions = useAppSelector((state) => selectAccountTransactions(state, accountNumber, selectedAccount?.accountName));
   const transactionsStatus = transactionsResponse?.status ?? "loading";
   const transactionsTotal = transactionsResponse?.total ?? 0;
 
   const accountInfoDetail = useAppSelector((state) => selectAccountInfoDetail(state, accountNumber));
   // Live term-deposit terms, when the selected account is a TD.
   const fixedDepositDetail = useAppSelector((state) => selectFixedDepositDetail(state, accountNumber));
+
+  console.log(accountInfoDetail)
 
   const accountSummaryResponse = useAppSelector(selectAccountSummaryResponse);
   const cashFlowData = useMemo(() => (accountSummaryResponse && accountSummaryResponse.accountNumber === accountNumber ? mapCashFlowPoints(accountSummaryResponse.data) : undefined), [accountSummaryResponse, accountNumber]);
@@ -228,25 +235,16 @@ export default function AccountPage() {
     () =>
       accountInfoDetail
         ? {
-          name: accountInfoDetail.accountName,
-          accountNumber: accountInfoDetail.accountNumber,
-
-        }
+            name: accountInfoDetail.accountName,
+            accountNumber: accountInfoDetail.accountNumber,
+          }
         : undefined,
     [accountInfoDetail],
   );
   const selectedTransactions = apiTransactions ?? [];
 
   if (accountInformationDetail && accountInfoDetail) {
-    return (
-      <AccountInformationDetail
-        open={accountInformationDetail}
-        onClose={() => setaccountInformationDetail(false)}
-        info={accountInfoDetail}
-        fixedDeposit={fixedDepositDetail}
-        onDownloadCertificate={handleDownloadCertificate}
-      />
-    );
+    return <AccountInformationDetail open={accountInformationDetail} onClose={() => setaccountInformationDetail(false)} info={accountInfoDetail} fixedDeposit={fixedDepositDetail} onDownloadCertificate={handleDownloadCertificate} />;
   }
 
   return (
@@ -255,7 +253,7 @@ export default function AccountPage() {
         <Grid size={{ xs: 12, lg: 3 }}>
           <AccountsSidebar summary={coreSummary} accounts={bankAccounts} selectedId={accountNumber} onSelect={(id) => setAccountNumber(id)} />
         </Grid>
-         {/* <Grid size={12}>
+        {/* <Grid size={12}>
               {!accountInfoDetail || !selectedCompany ? (
                 <AccountOverviewCardSkeleton />
               ) : isFixedDeposit ? (
@@ -275,68 +273,73 @@ export default function AccountPage() {
             </Grid> */}
 
         <Grid size={{ xs: 12, lg: 9 }}>
-          <Grid container spacing={2.5}
+          <Grid
+            container
+            spacing={2.5}
             sx={{
               bgcolor: "while",
-
             }}
           >
-            <Grid size={12} sx={{
-              width: "100%",
-              bgcolor: "white",
-              borderRadius: "20px"
+            {isOpen && (
+              <>
+                <Grid
+                  size={12}
+                  sx={{
+                    width: "100%",
+                    bgcolor: "white",
+                    borderRadius: "20px",
+                  }}
+                >
+                  {accountInfoDetail && (
+                    <AccountDetailsCard
+                      accounts={bankAccounts}
+                      open={detailsOpen}
+                      onClose={() => setDetailsOpen(false)}
+                      key={accountNumber}
+                      info={accountInfoDetail}
+                      stats={accountInfoDetail}
+                      isFixedDeposit={isFixedDeposit}
+                      isSaving={isSaving}
+                      fixedDeposit={fixedDepositDetail}
+                      onOpenAccountInfo={() => setaccountInformationDetail(true)}
+                      onExportStatements={handleDownloadStatement}
+                      onDownloadCertificate={handleDownloadCertificate}
+                    />
+                  )}
+                </Grid>
 
-            }}>
-
-
-              {accountInfoDetail && (
-                <AccountDetailsCard
-                  accounts={bankAccounts}
-                  open={detailsOpen}
-                  onClose={() => setDetailsOpen(false)}
-                  key={accountNumber}
-                  info={accountInfoDetail}
-                  stats={accountInfoDetail}
-                  isFixedDeposit={isFixedDeposit}
-                  isSaving={isSaving}
-                  fixedDeposit={fixedDepositDetail}
-                  onOpenAccountInfo={() => setaccountInformationDetail(true)}
-                  onExportStatements={handleDownloadStatement}
-                  onDownloadCertificate={handleDownloadCertificate}
-                />
-              )}
-            </Grid>
-
-            <Grid size={12}>
-              <TransactionsList
-                key={accountNumber}
-                transactions={selectedTransactions}
-                isLoading={transactionsStatus === "loading"}
-                error={transactionsStatus === "failed"}
-                query={txnQuery}
-                onQueryChange={setTxnQuery}
-                showDateFilter
-                dateFilter={txnFilter}
-                onDateFilterChange={(value) => {
-                  setTxnFilter(value);
-                  setTxnPage(0);
-                }}
-                page={txnPage}
-                total={transactionsTotal}
-                rowsPerPage={TRANSACTIONS_PAGE_SIZE}
-                onPageChange={setTxnPage}
-                showDownload
-                isDownloading={isDownloadingStatement}
-                onDownload={handleDownloadStatement}
-                onSelectTransaction={setSelectedTransaction}
-                onViewCertificate={(format) => {
-                  // TODO(api): open the term deposit certificate viewer in the chosen format.
-                }}
-                onDownloadCertificate={(format) => {
-                  // TODO(api): request the term deposit certificate file in the chosen format.
-                }}
-              />
-            </Grid>
+                <Grid size={12}>
+                  <TransactionsList
+                    key={accountNumber}
+                    transactions={selectedTransactions}
+                    isLoading={transactionsStatus === "loading"}
+                    error={transactionsStatus === "failed"}
+                    query={txnQuery}
+                    onQueryChange={setTxnQuery}
+                    showDateFilter
+                    dateFilter={txnFilter}
+                    onDateFilterChange={(value) => {
+                      setTxnFilter(value);
+                      setTxnPage(0);
+                    }}
+                    page={txnPage}
+                    total={transactionsTotal}
+                    rowsPerPage={TRANSACTIONS_PAGE_SIZE}
+                    onPageChange={setTxnPage}
+                    showDownload
+                    isDownloading={isDownloadingStatement}
+                    onDownload={handleDownloadStatement}
+                    onSelectTransaction={setSelectedTransaction}
+                    onViewCertificate={(format) => {
+                      // TODO: Open the term deposit certificate viewer.
+                    }}
+                    onDownloadCertificate={(format) => {
+                      // TODO: Request the term deposit certificate file.
+                    }}
+                  />
+                </Grid>
+              </>
+            )}
 
             {/* <Grid size={12}>
               <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
@@ -347,15 +350,7 @@ export default function AccountPage() {
         </Grid>
       </Grid>
 
-
-
-      <TransactionDetailsPanel
-        open={Boolean(selectedTransaction)}
-        onClose={() => setSelectedTransaction(null)}
-        transaction={selectedTransaction}
-        onDownload={handleDownloadTransactionDetail}
-        isDownloading={isDownloadingTransaction}
-      />
+      <TransactionDetailsPanel open={Boolean(selectedTransaction)} onClose={() => setSelectedTransaction(null)} transaction={selectedTransaction} onDownload={handleDownloadTransactionDetail} isDownloading={isDownloadingTransaction} />
 
       <NewAccountDialog open={newAccountOpen} onClose={() => setNewAccountOpen(false)} />
 

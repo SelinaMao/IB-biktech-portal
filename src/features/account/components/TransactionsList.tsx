@@ -158,7 +158,7 @@ export default function TransactionsList({
   return (
     <>
       <SectionCard
-        title="Latest Transactions"
+        title="Transactions"
         // header={
         //   <Stack
         //     direction="row"
@@ -236,9 +236,9 @@ export default function TransactionsList({
                 justifyContent: "space-between",
                 flexWrap: "wrap",
                 gap: 2,
-                paddingTop: 6,
-                borderTop: "1px solid",
-                borderTopColor: palette.secondary[100]
+                // paddingTop: 6,
+                // borderTop: "1px solid",
+                // borderTopColor: palette.secondary[100]
               }}
             >
               <BaseSearchButton
