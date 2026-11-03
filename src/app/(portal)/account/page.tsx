@@ -1,33 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Box, Grid, Stack } from "@mui/material";
+import { Box, Grid } from "@mui/material";
 
-import BaseButton from "@core/components/BaseButton";
 import { resolveBaseDownloadRange, type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/BaseFilter";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import { showToast } from "@core/components/AppToast";
 import { useAppSelector } from "@/store/hooks";
 import {
-  AccountDetails,
-  AccountOverviewCard,
-  AccountOverviewCardSkeleton,
   AccountsSidebar,
   ChangeRolloverOptionDialog,
   NewAccountDialog,
-  TDAccountOverviewCard,
   TransactionDetailsPanel,
   TransactionsList,
-  mapCashFlowPoints,
-  matchRolloverOptionCode,
   downloadAccountCertificate,
   downloadTransactionStatement,
   generateTransactionReceiptPdf,
   type TransactionDownloadFileType,
   selectAccountInfoDetail,
   selectFixedDepositDetail,
-  selectAccountSummaryResponse,
   selectAccountsResponse,
   selectTransactionsForAccount,
   selectAccountTransactions,
@@ -38,14 +30,10 @@ import {
   type TTransactionDetailResponse,
   type CoreAccountEntry,
   type RolloverOption,
-  setAccounts,
 } from "@/features/account";
 import { downloadBlob } from "@/utils/download-file";
-import { CirclePlus, Info, NotepadText, ReceiptText } from "lucide-react";
 import AccountDetailsCard from "@/features/account/components/AccountDetailCard";
 import AccountInformationDetail from "@/features/account/components/AccountInformationDetail";
-import { Label } from "recharts";
-import { palette } from "@/theme/palette";
 
 const DEFAULT_TRANSACTIONS_FILTER: BaseFilterValue = { type: "all", from: null, to: null };
 // "Latest Transactions" rows per page — each page is its own `listTransactions` call.
@@ -58,15 +46,6 @@ const STATEMENT_DOWNLOAD_FORMATS: Record<BaseDownloadValue["format"], { fileType
 };
 
 const SEARCH_DEBOUNCE_MS = 400;
-
-const DEFAULT_ACCOUNT_ID = "current";
-
-/** Maps a core `typeAcct` code to the mock detail key that best represents it. */
-const TYPE_ACCT_TO_DETAILS_KEY: Record<string, string> = {
-  CA: "current",
-  CL: "loan",
-  TD: "fixed-deposit",
-};
 
 export default function AccountPage() {
   const [listAccounts, listAccountsResult] = useListAccountsMutation();
@@ -126,7 +105,6 @@ export default function AccountPage() {
   const accounType = selectedAccount?.accountType ?? "";
   const isFixedDeposit = accounType === "TD";
   const isSaving = accounType === "SA";
-  const selectedDetailsKey = TYPE_ACCT_TO_DETAILS_KEY[accounType] ?? DEFAULT_ACCOUNT_ID;
 
   const [getAccountDetail] = useGetAccountDetailMutation();
 
@@ -143,7 +121,6 @@ export default function AccountPage() {
   const [listTransactions] = useListTransactionsMutation();
 
   const [isDownloadingTransaction, setIsDownloadingTransaction] = useState(false);
-
   const [isDownloadingStatement, setIsDownloadingStatement] = useState(false);
 
   useEffect(() => {
@@ -199,8 +176,6 @@ export default function AccountPage() {
   };
 
   const handleDownloadTransactionDetail = async (transaction: TTransactionDetailResponse) => {
-    console.log("handleDownloadTransactionDetail", transaction);
-
     if (isDownloadingTransaction) return;
     setIsDownloadingTransaction(true);
     try {
@@ -223,13 +198,12 @@ export default function AccountPage() {
   const transactionsTotal = transactionsResponse?.total ?? 0;
 
   const accountInfoDetail = useAppSelector((state) => selectAccountInfoDetail(state, accountNumber));
-  // Live term-deposit terms, when the selected account is a TD.
   const fixedDepositDetail = useAppSelector((state) => selectFixedDepositDetail(state, accountNumber));
 
   console.log(accountInfoDetail)
 
-  const accountSummaryResponse = useAppSelector(selectAccountSummaryResponse);
-  const cashFlowData = useMemo(() => (accountSummaryResponse && accountSummaryResponse.accountNumber === accountNumber ? mapCashFlowPoints(accountSummaryResponse.data) : undefined), [accountSummaryResponse, accountNumber]);
+  // const accountSummaryResponse = useAppSelector(selectAccountSummaryResponse);
+  // const cashFlowData = useMemo(() => (accountSummaryResponse && accountSummaryResponse.accountNumber === accountNumber ? mapCashFlowPoints(accountSummaryResponse.data) : undefined), [accountSummaryResponse, accountNumber]);
 
   const selectedCompany = useMemo(
     () =>
@@ -250,8 +224,14 @@ export default function AccountPage() {
   return (
     <Box sx={{ width: "100%" }}>
       <Grid container spacing={2.5}>
+        {/* Left Column: Accounts Sidebar */}
         <Grid size={{ xs: 12, lg: 3 }}>
-          <AccountsSidebar summary={coreSummary} accounts={bankAccounts} selectedId={accountNumber} onSelect={(id) => setAccountNumber(id)} />
+          <AccountsSidebar
+            summary={coreSummary}
+            accounts={bankAccounts}
+            selectedId={accountNumber}
+            onSelect={(id) => setAccountNumber(id)}
+          />
         </Grid>
         {/* <Grid size={12}>
               {!accountInfoDetail || !selectedCompany ? (
@@ -272,6 +252,7 @@ export default function AccountPage() {
               )}
             </Grid> */}
 
+        {/* Right Column: Account Detail Card + Transactions List */}
         <Grid size={{ xs: 12, lg: 9 }}>
           <Grid
             container
@@ -316,7 +297,7 @@ export default function AccountPage() {
                     error={transactionsStatus === "failed"}
                     query={txnQuery}
                     onQueryChange={setTxnQuery}
-                    showDateFilter
+                    showDateFilter = {true}
                     dateFilter={txnFilter}
                     onDateFilterChange={(value) => {
                       setTxnFilter(value);

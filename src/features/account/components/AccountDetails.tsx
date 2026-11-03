@@ -1,14 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { Avatar, Box, CircularProgress, IconButton, Stack, Typography } from "@mui/material";
-import AccountBalanceRoundedIcon from "@mui/icons-material/AccountBalanceRounded";
-import { Download } from "lucide-react";
+import dayjs from "dayjs";
+import {
+  Avatar,
+  Box,
+  Dialog,
+  DialogContent,
+  Divider,
+  IconButton,
+  Stack,
+  Typography,
+} from "@mui/material";
+import { Download, X } from "lucide-react";
 
-import { font, palette, radius } from "@/theme/palette";
 import { formatAccountNumber } from "@/utils/format-account-number";
-import BaseChip from "@core/components/BaseChip";
-import BaseSideDialog from "@core/components/BaseSideDialog";
+import BaseButton from "@core/components/BaseButton";
 import type { IAccountDetailResponses } from "../account.types";
 
 export interface AccountDetailsProps {
@@ -19,32 +26,24 @@ export interface AccountDetailsProps {
   onDownloadCertificate?: () => void | Promise<void>;
 }
 
-function StatusBadge({ value }: { value: string }) {
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <BaseChip bgColor={palette.success.main} minWidth={60} height={22} color={palette.white}>
-      {value}
-    </BaseChip>
-  );
-}
-
-const BOLD_ROW_KEYS = [
-  "ACCOUNT_CURRENT_BALANCE",
-  "ACCOUNT_AVAILABLE_BALANCE",
-  "ACCOUNT_LEDGER_BALANCE",
-  "ACCOUNT_FLOATING_BALANCE",
-];
-
-function Row({ label, value, rowKey }: { label: string; value: React.ReactNode; rowKey: string }) {
-  const isBold = BOLD_ROW_KEYS.includes(rowKey);
-  return (
-    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", gap: 2 }}>
-      <Typography sx={{ fontSize: font.size.sm, color: "text.secondary" }}>{label}</Typography>
+    <Stack
+      direction="row"
+      sx={{
+        justifyContent: "space-between",
+        alignItems: "center",
+        py: 1.25,
+      }}
+    >
+      <Typography sx={{ fontSize: 13, color: "#64748B", fontWeight: 400 }}>
+        {label}
+      </Typography>
       <Typography
-        component="div"
         sx={{
-          fontSize: font.size.sm,
-          fontWeight: isBold ? font.weight.semibold : font.weight.regular,
-          color: "text.primary",
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#0F172A",
           textAlign: "right",
         }}
       >
@@ -54,8 +53,6 @@ function Row({ label, value, rowKey }: { label: string; value: React.ReactNode; 
   );
 }
 
-/** Slide-over triggered by "View Details" on an account overview card —
- *  the account's full profile as a plain label/value list. */
 export default function AccountDetails({
   open,
   onClose,
@@ -63,14 +60,9 @@ export default function AccountDetails({
   fixedDeposit,
   onDownloadCertificate,
 }: AccountDetailsProps) {
-  const nameParts = (info.accountName || "?").trim().split(/\s+/).filter(Boolean);
-  const initials = (
-    nameParts.length > 1 ? nameParts.slice(0, 2).map((part) => part[0]).join("") : nameParts[0]?.slice(0, 2) ?? "?"
-  ).toUpperCase();
-
-  const rows = (info.fields ?? []).filter((field) => field.value);
-
+  const target = fixedDeposit || info;
   const [isDownloading, setIsDownloading] = useState(false);
+
   const handleDownloadClick = async () => {
     if (!onDownloadCertificate || isDownloading) return;
     setIsDownloading(true);
@@ -81,104 +73,178 @@ export default function AccountDetails({
     }
   };
 
+  const rawAccNumber = target?.accountNumber || info?.accountNumber || "001234569001";
+  const formattedAccNumber = formatAccountNumber(rawAccNumber) || rawAccNumber;
+
+  const productTitle = target?.productDesc || info?.productDesc || "Term deposit 12M";
+  const customerName = (info?.fullName || info?.accountName || "ABC TRADING CO., LTD.").toUpperCase();
+
+  const openingDate = target?.openedDate
+    ? dayjs(target.openedDate).format("DD MMM YYYY")
+    : "15 Mar 2026";
+  const effectiveDate = target?.openedDate
+    ? dayjs(target.openedDate).format("DD MMM YYYY")
+    : "15 Mar 2026";
+  const maturityDate = target?.maturityDate
+    ? dayjs(target.maturityDate).format("DD MMM YYYY")
+    : "15 Mar 2027";
+  const tenor = target?.tenorMonths ? `${target.tenorMonths} months` : "12 months";
+  const settlementAccount = target?.accountSettlementNumber
+    ? `Operating account · ${formatAccountNumber(target.accountSettlementNumber)}`
+    : "Operating account · 0012 3456 7890";
+
   return (
-    <BaseSideDialog
+    <Dialog
       open={open}
       onClose={onClose}
-      title="Account Details"
-      icon={<AccountBalanceRoundedIcon fontSize="small" />}
-      width={420}
+      slotProps={{
+        backdrop: {
+          sx: { bgcolor: "rgba(15, 23, 42, 0.4)" },
+        },
+        paper: {
+          sx: {
+            borderRadius: "20px",
+            width: { xs: "calc(100vw - 32px)", sm: 460 },
+            maxWidth: 480,
+            p: { xs: 2.5, sm: 3 },
+            boxSizing: "border-box",
+            boxShadow: "0px 20px 40px rgba(15, 23, 42, 0.16)",
+          },
+        },
+      }}
     >
-      <Stack spacing={4} py={4}>
-        <Stack direction="row" spacing={3} sx={{ alignItems: "center" }}>
-          <Avatar
-            variant="rounded"
+      <DialogContent sx={{ p: 0 }}>
+        {/* Header */}
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "center",
+            mb: 2.5,
+          }}
+        >
+          <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0F172A" }}>
+            Term deposit details
+          </Typography>
+          <IconButton
+            onClick={onClose}
+            size="small"
             sx={{
-              width: 50,
-              height: 50,
-              borderRadius: "12px",
-              fontSize: font.size.xl,
-              fontWeight: font.weight.medium,
-              color: palette.white,
-              bgcolor: palette.navy[800],
+              color: "#64748B",
+              bgcolor: "#F1F5F9",
+              borderRadius: "8px",
+              p: 0.75,
+              "&:hover": { bgcolor: "#E2E8F0" },
             }}
           >
-            {initials}
+            <X size={18} />
+          </IconButton>
+        </Stack>
+
+        {/* Profile Card */}
+        <Stack direction="row" spacing={2} sx={{ alignItems: "center", mb: 2.5 }}>
+          <Avatar
+            sx={{
+              width: 44,
+              height: 44,
+              bgcolor: "#1C64B4",
+              color: "#FFFFFF",
+              fontSize: 15,
+              fontWeight: 700,
+            }}
+          >
+            TD
           </Avatar>
-          <Typography sx={{ fontSize: font.size.lg, fontWeight: font.weight.medium }}>
-            {info.accountName}
-          </Typography>
-        </Stack>
-
-        <Stack spacing={4} py={4}>
-          {rows.map((row) => (
-            <Row
-              key={row.key}
-              rowKey={row.key}
-              label={row.label}
-              value={
-                row.key === "ACCOUNT_STATUS" ? (
-                  <StatusBadge value={row.value} />
-                ) : row.key === "ACCOUNT_NUMBER" ? (
-                  formatAccountNumber(row.value)
-                ) : (
-                  row.value
-                )
-              }
-            />
-          ))}
-        </Stack>
-
-        {info.joinHolderDto && info.joinHolderDto.length > 0 && (
-          <Box>
-            <Typography sx={{ fontSize: font.size.xs, color: "text.secondary", mb: 0.5 }}>Joint Holders</Typography>
-            <Stack spacing={0.25}>
-              {info.joinHolderDto.map((holder) => (
-                <Typography key={holder.accountNumber} sx={{ fontSize: font.size.sm, fontWeight: font.weight.semibold }}>
-                  {holder.accountName}
-                </Typography>
-              ))}
-            </Stack>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: "#0F172A",
+                lineHeight: 1.25,
+              }}
+            >
+              {productTitle}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#64748B",
+                mt: 0.25,
+                lineHeight: 1.2,
+              }}
+            >
+              {customerName}
+            </Typography>
           </Box>
-        )}
+        </Stack>
 
-        {fixedDeposit && (
-          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
-            <Box
-              component="button"
-              type="button"
-              onClick={handleDownloadClick}
-              disabled={isDownloading}
-              sx={{
-                cursor: isDownloading ? "default" : "pointer",
-                border: "none",
-                bgcolor: "transparent",
-                p: 0,
-                fontFamily: "inherit",
-                fontSize: font.size.base,
-                opacity: isDownloading ? 0.6 : 1,
+        {/* Rows with Dividers */}
+        <Stack divider={<Divider sx={{ borderColor: "#F1F5F9" }} />}>
+          <DetailRow label="Account number" value={formattedAccNumber} />
+          <DetailRow label="Account type" value="Term deposit" />
+          <DetailRow label="Account status" value={target?.status || info?.status || "Active"} />
+          <DetailRow label="Opening date" value={openingDate} />
+          <DetailRow label="Effective date" value={effectiveDate} />
+          <DetailRow label="Maturity date" value={maturityDate} />
+          <DetailRow label="Tenor" value={tenor} />
+          <DetailRow label="Settlement account" value={settlementAccount} />
+        </Stack>
 
-                textAlign: "left",
-              }}
-            >
-              Download Certificate
-            </Box>
-            <IconButton
-              onClick={handleDownloadClick}
-              disabled={isDownloading}
-              aria-label="Download certificate"
-              sx={{
-                bgcolor: palette.info.bg,
-                color: palette.info[600],
-                borderRadius: `${radius.md}px`,
-                "&:hover": { bgcolor: palette.info[200] },
-              }}
-            >
-              {isDownloading ? <CircularProgress size={18} color="inherit" /> : <Download size={18} />}
-            </IconButton>
-          </Stack>
-        )}
-      </Stack>
-    </BaseSideDialog>
+        {/* Footer Buttons */}
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{
+            justifyContent: "flex-end",
+            alignItems: "center",
+            mt: 3,
+            pt: 1,
+          }}
+        >
+          <BaseButton
+            title="Close"
+            variant="outlined"
+            onClick={onClose}
+            sx={{
+              borderColor: "#E2E8F0",
+              color: "#0F172A",
+              borderRadius: "10px",
+              textTransform: "none",
+              fontSize: 14,
+              fontWeight: 600,
+              px: 2.5,
+              height: 40,
+              "&:hover": {
+                borderColor: "#CBD5E1",
+                bgcolor: "#F8FAFC",
+              },
+            }}
+          />
+          <BaseButton
+            title="Download certificate"
+            variant="contained"
+            startIcon={<Download size={16} />}
+            onClick={handleDownloadClick}
+            disabled={isDownloading}
+            sx={{
+              bgcolor: "#1C64B4",
+              color: "#FFFFFF",
+              borderRadius: "10px",
+              textTransform: "none",
+              fontSize: 14,
+              fontWeight: 600,
+              px: 2.5,
+              height: 40,
+              boxShadow: "none",
+              "&:hover": {
+                bgcolor: "#154F91",
+              },
+            }}
+          />
+        </Stack>
+      </DialogContent>
+    </Dialog>
   );
 }

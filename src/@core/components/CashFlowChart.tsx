@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { ArrowDownRight, ArrowUpRight, MoveDownRight, MoveUpLeft, MoveUpRight } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
 import { formatCCY } from "@/utils/format-ccy";
 import { font, palette, radius, padding } from "@/theme/palette";
@@ -104,14 +104,27 @@ export default function CashFlowChart({
 
   const totals = useMemo(
     () => ({
-      inflow: data.reduce((sum, d) => sum + d.inflow, 0),
-      outflow: data.reduce((sum, d) => sum + d.outflow, 0),
+      inflow: data.reduce((sum, d) => sum + (d.inflow || 0), 0),
+      outflow: data.reduce((sum, d) => sum + (d.outflow || 0), 0),
     }),
     [data],
   );
 
-  const displayExpense = expenseAmount ?? (totals.outflow > 0 ? `-${formatCCY(totals.outflow, currency)}` : "-$23,000.90");
-  const displayIncome = incomeAmount ?? (totals.inflow > 0 ? formatCCY(totals.inflow, currency) : "$3,000.90");
+  const displayExpense =
+    expenseAmount ??
+    (totals.outflow > 0
+      ? `-${formatCCY(totals.outflow, currency)}`
+      : data.length > 0
+      ? currency === "USD" ? "-$0.00" : "-៛ 0.00"
+      : currency === "USD" ? "-$20,200.00" : "-៛ 80,800,000.00");
+
+  const displayIncome =
+    incomeAmount ??
+    (totals.inflow > 0
+      ? formatCCY(totals.inflow, currency)
+      : data.length > 0
+      ? currency === "USD" ? "$0.00" : "៛ 0.00"
+      : currency === "USD" ? "$28,100.00" : "៛ 112,400,000.00");
 
   const content = (
     <Box sx={{ width: "100%" }}>
@@ -205,7 +218,7 @@ export default function CashFlowChart({
                 flexShrink: 0,
               }}
             >
-              <MoveUpLeft size={18} strokeWidth={2} />
+              <ArrowUpRight size={18} strokeWidth={2} />
             </Box>
             <Box>
               <Typography
@@ -242,7 +255,7 @@ export default function CashFlowChart({
                 flexShrink: 0,
               }}
             >
-              <MoveDownRight size={18} strokeWidth={2} />
+              <ArrowDownRight size={18} strokeWidth={2} />
             </Box>
             <Box>
               <Typography
@@ -288,7 +301,7 @@ export default function CashFlowChart({
     <BaseCard
       sx={{
         p: { xs: 2.5, sm: "20px 24px" },
-        borderRadius: "20px",
+        borderRadius: "16px",
         border: `1px solid ${palette.slate[200]}`,
         bgcolor: "#FFFFFF",
       }}

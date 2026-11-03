@@ -65,7 +65,7 @@ interface PendingRequestsCardProps {
 export default function PendingRequestsCard({
   items = defaultPendingRequests,
   totalBadge,
-  viewAllHref = "/approval",
+  viewAllHref = "/approval-workflow/requests",
 }: PendingRequestsCardProps) {
   const totalCount =
     totalBadge ?? items.reduce((sum, item) => sum + item.count, 0);
@@ -123,7 +123,7 @@ export default function PendingRequestsCard({
         </Box>
 
         {/* External Link Icon */}
-        <Box
+        {/* <Box
           component={Link}
           href={viewAllHref}
           aria-label="View all scheduled items"
@@ -142,7 +142,7 @@ export default function PendingRequestsCard({
           }}
         >
           <SquareArrowOutUpRight size={20} />
-        </Box>
+        </Box> */}
       </Box>
 
       {/* Request Items List */}
@@ -153,7 +153,7 @@ export default function PendingRequestsCard({
             <Box
               key={item.id}
               component={Link}
-              href={item.href}
+              href={viewAllHref}
               sx={{
                 display: "flex",
                 alignItems: "center",

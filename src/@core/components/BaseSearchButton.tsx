@@ -1,15 +1,14 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useRef, type KeyboardEvent } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
+import type { SxProps, Theme } from "@mui/material/styles";
+import { Search } from "lucide-react";
 
 import { palette } from "@/theme/palette";
-import BaseIconButton from "./BaseIconButton";
-import { Search } from "lucide-react";
 
 export interface BaseSearchButtonProps {
   value: string;
@@ -18,52 +17,28 @@ export interface BaseSearchButtonProps {
   tooltip?: string;
   /** Width of the expanded input. Default 240. */
   width?: number | string;
+  focusBorderColor?: string;
+  sx?: SxProps<Theme>;
 }
 
 /**
- * Collapsed icon button that expands into a text input on click. Stays
- * expanded while it holds a query and collapses back on blur once cleared.
+ * Search input field matching portal design system.
  */
 export default function BaseSearchButton({
   value,
   onChange,
   placeholder = "Search…",
-  tooltip = "Search",
   width = 240,
+  focusBorderColor,
+  sx,
 }: BaseSearchButtonProps) {
-  const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleBlur = () => {
-    if (!value) setOpen(false);
-  };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Escape") return;
     onChange("");
-    setOpen(false);
     inputRef.current?.blur();
   };
-
-  // if (!open) {
-  //   return (
-  //     <BaseIconButton
-  //       icon={<SearchRoundedIcon fontSize="small" />}
-  //       tooltip={tooltip}
-  //       onClick={() => {
-  //         setOpen(true);
-  //         requestAnimationFrame(() => inputRef.current?.focus());
-  //       }}
-  //       sx={{
-  //         width: 33,
-  //         height: 33,
-  //         borderRadius: "12px",
-  //         border: `1px solid ${palette.slate[200]}`,
-  //         "&:hover": { backgroundColor: palette.primary[100] },
-  //       }}
-  //     />
-  //   );
-  // }
 
   return (
     <TextField
@@ -72,18 +47,35 @@ export default function BaseSearchButton({
       value={value}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
-      onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       sx={{
         width,
-        "& .MuiOutlinedInput-root": { height: 43, borderRadius: "12px" },
+        "& .MuiOutlinedInput-root": {
+          height: 40,
+          borderRadius: "10px",
+          bgcolor: "#FFFFFF",
+          fontSize: 13,
+          "& fieldset": {
+            borderColor: palette.slate[200],
+            borderWidth: "1px",
+            transition: "border-color 0.15s ease",
+          },
+          "&:hover fieldset": {
+            borderColor: palette.slate[300],
+          },
+          "&.Mui-focused fieldset": {
+            borderColor: focusBorderColor ?? palette.slate[300],
+            borderWidth: "1px !important",
+          },
+        },
         "& .MuiOutlinedInput-input": { paddingTop: 0, paddingBottom: 0 },
+        ...sx,
       }}
       slotProps={{
         input: {
           startAdornment: (
             <InputAdornment position="start">
-              <Search fontSize="small" />
+              <Search size={16} color="#94A3B8" />
             </InputAdornment>
           ),
           endAdornment: value ? (

@@ -14,6 +14,7 @@ import type {
   AccountDownloadRequest,
   AccountListRequest,
   AccountSummaryRequest,
+  CashFlowRequest,
   CoreAccountSummaryEntry,
   CoreAccountsResponse,
   CorePageInfo,
@@ -76,6 +77,14 @@ export const accountApi = baseApi.injectEndpoints({
         }
       },
     }),
+    getCashFlow: build.mutation<CoreAccountSummaryEntry, CashFlowRequest>({
+      query: (body) => ({
+        url: bank(adminApi.TRANSACTION.CASH_FLOW),
+        method: "POST",
+        body,
+      }),
+      transformResponse: (response: TransformResponse<CoreAccountSummaryEntry>) => response.data,
+    }),
     listTransactions: build.mutation<TransactionListPage, TransactionListRequest>({
       query: (body) => ({
         url: bank(adminApi.TRANSACTION.LIST),
@@ -105,6 +114,7 @@ export const {
   useListAccountsMutation,
   useGetAccountDetailMutation,
   useGetAccountSummaryMutation,
+  useGetCashFlowMutation,
   useListTransactionsMutation,
 } = accountApi;
 

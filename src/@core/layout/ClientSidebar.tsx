@@ -74,7 +74,7 @@ const NAV_ITEMS = [
   },
   {
     key: "Schedule",
-    href: "/client-dashboard",
+    href: "/schedule",
     Icon: CalendarSync,
     // Not in CLIENT_PERMISSIONS — confirmed codes are payment.payment.{create,approve},
     // no payment.view code exists yet; not substituting since create/approve is a

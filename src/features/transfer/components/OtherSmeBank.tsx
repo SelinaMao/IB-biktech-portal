@@ -119,7 +119,7 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
     <PreviewTransfer
       open={open}
       onClose={onClose}
-      title="Other SME Bank Account"
+      title="Other BiKTECH BANK Account"
       icon={<Landmark size={18} />}
       fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
       toAccount={{

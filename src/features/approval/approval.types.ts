@@ -59,5 +59,7 @@ export type ApprovalSummary = {
   pendingCount: number;
   pendingAmountKHRLabel: string;
   pendingAmountUSDLabel: string;
+  pendingAmountSubLabel?: string;
+  oldestDateText?: string;
   typeBreakdown: ApprovalTypeBreakdown[];
 };

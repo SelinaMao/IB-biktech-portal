@@ -1,74 +1,145 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
-import { ClipboardClock, Smartphone } from "lucide-react";
+import { FileText, Wallet } from "lucide-react";
 
 import { showToast } from "@core/components/AppToast";
-import BaseSearchButton from "@core/components/BaseSearchButton";
-import BaseTitle from "@core/components/BaseTitle";
+import BaseFilterByDay, {
+  isDateWithinFilter,
+  type BaseFilterByDayValue,
+} from "@core/components/BaseFilterByDay";
 import BaseSwitch from "@core/form/BaseSwitch";
-import { StatCard, SectionCard } from "@/features/dashboard";
+import { palette } from "@/theme/palette";
+import { CLIENT_PERMISSIONS, useCan } from "@/features/auth";
+import { useListMyTasksQuery } from "@/features/workflow";
+import { useListUsersQuery } from "@/features/user";
 import {
   ApprovalTable,
   ApprovalDetailDialog,
-  ApprovalTypeBreakdownCard,
+  ApprovalSummaryCards,
   approvalSummary,
   pendingApprovalEntries as initialPendingApprovalEntries,
+  nonFinancialApprovalEntries as initialNonFinancialEntries,
   approvalHistoryEntries as initialApprovalHistoryEntries,
   type ApprovalEntry,
   type ApprovalTab,
 } from "@/features/approval";
-import BaseListSection from "@/@core/components/BaseListSection";
-import { font } from "@/theme/palette";
-
-const TAB_OPTIONS: { value: ApprovalTab; label: string }[] = [
-  { value: "pending", label: "Pending" },
-  { value: "history", label: "History" },
-];
 
 const PAGE_SIZE = 10;
 
 export default function ApprovalPage() {
+  const canSeeTasks = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);
+  const canViewUsers = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);
+
+  // Dynamic API queries
+  const { data: myTasksData, isLoading: tasksLoading } = useListMyTasksQuery(
+    { status: "PENDING" },
+    { skip: !canSeeTasks }
+  );
+  const { data: usersData } = useListUsersQuery(
+    { page: 0, size: 200 },
+    { skip: !canViewUsers }
+  );
+
+  const [category, setCategory] = useState<"financial" | "non-financial">("financial");
   const [tab, setTab] = useState<ApprovalTab>("pending");
   const [search, setSearch] = useState("");
+  const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
   const [page, setPage] = useState(0);
+
   const [pendingEntries, setPendingEntries] = useState(initialPendingApprovalEntries);
+  const [nonFinancialEntries, setNonFinancialEntries] = useState(initialNonFinancialEntries);
   const [historyEntries, setHistoryEntries] = useState(initialApprovalHistoryEntries);
   const [selectedEntry, setSelectedEntry] = useState<ApprovalEntry | null>(null);
 
-  const sourceEntries = tab === "pending" ? pendingEntries : historyEntries;
+  // Map users for initiator names
+  const nameByUserId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of usersData?.content ?? []) {
+      map.set(entry.user.id, entry.user.fullName || entry.user.username);
+    }
+    return map;
+  }, [usersData]);
+
+  // Synchronize dynamic API tasks into pendingEntries if API returns records
+  useEffect(() => {
+    const tasks = myTasksData?.content;
+    if (tasks && tasks.length > 0) {
+      const mapped = tasks.map((task) => ({
+        id: task.taskId,
+        creationDate: task.createdAt,
+        transactionType: task.functionName,
+        transactionId: task.instanceId,
+        refNo: task.referenceId || task.taskId.slice(0, 12),
+        amount: (task as any).amount || 0,
+        fee: 0,
+        currency: (task as any).currency || "USD",
+        payToName: (task as any).payTo || nameByUserId.get(task.initiatedBy) || "Beneficiary",
+        payToAccountNo: (task as any).payToAccount || "001 234 567",
+        sourceAccountName: (task as any).sourceAccount || "Operating Account",
+        sourceAccountNo: (task as any).sourceAccountNo || "0012 3456 7890",
+        pendingOn: "You",
+        status: "PENDING" as const,
+      }));
+      setPendingEntries(mapped);
+    }
+  }, [myTasksData, nameByUserId]);
+
+  const activeCategoryEntries = category === "financial" ? pendingEntries : nonFinancialEntries;
+  const sourceEntries = tab === "pending" ? activeCategoryEntries : historyEntries;
 
   const filteredEntries = useMemo(() => {
+    let result = sourceEntries;
+
+    // Apply date filter via isDateWithinFilter
+    if (dateFilter && dateFilter.type !== "all") {
+      result = result.filter((entry) => isDateWithinFilter(entry.creationDate, dateFilter));
+    }
+
+    // Apply search filter
     const q = search.trim().toLowerCase();
-    if (!q) return sourceEntries;
-    return sourceEntries.filter((entry) =>
-      [entry.transactionType, entry.refNo, entry.payToName, entry.sourceAccountName]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [sourceEntries, search]);
+    if (q) {
+      result = result.filter((entry) =>
+        [
+          entry.transactionType,
+          entry.refNo,
+          entry.payToName,
+          entry.payToAccountNo,
+          entry.sourceAccountName,
+          entry.sourceAccountNo,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
+      );
+    }
+
+    return result;
+  }, [sourceEntries, search, dateFilter]);
 
   const entries = useMemo(
     () => filteredEntries.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
     [filteredEntries, page],
   );
 
-  const handleTabChange = (value: ApprovalTab) => {
-    setTab(value);
-    setPage(0);
-  };
-
   const handleSearchChange = (value: string) => {
     setSearch(value);
     setPage(0);
   };
 
+  const handleDateFilterChange = (filter: BaseFilterByDayValue | null) => {
+    setDateFilter(filter);
+    setPage(0);
+  };
+
   const handleApprove = (entry: ApprovalEntry) => {
-    setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    if (category === "financial") {
+      setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    } else {
+      setNonFinancialEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    }
     setHistoryEntries((prev) => [{ ...entry, status: "APPROVED" }, ...prev]);
     setSelectedEntry(null);
     showToast("success", {
@@ -78,7 +149,11 @@ export default function ApprovalPage() {
   };
 
   const handleReject = (entry: ApprovalEntry, reason: string) => {
-    setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    if (category === "financial") {
+      setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    } else {
+      setNonFinancialEntries((prev) => prev.filter((e) => e.id !== entry.id));
+    }
     setHistoryEntries((prev) => [{ ...entry, status: "REJECTED", rejectReason: reason }, ...prev]);
     setSelectedEntry(null);
     showToast("error", {
@@ -89,60 +164,151 @@ export default function ApprovalPage() {
 
   return (
     <Box sx={{ width: "100%" }}>
+      {/* 1. Top 3 Summary Cards with dynamic API entries & events */}
+      <ApprovalSummaryCards
+        entries={category === "financial" ? pendingEntries : nonFinancialEntries}
+        isLoading={tasksLoading}
+        onBreakdownItemClick={(item) => {
+          setSearch(item.label);
+          setPage(0);
+        }}
+      />
 
-      <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <StatCard
-            label="Pending Approval"
-            value={String(pendingEntries.length)}
-            icon={<ClipboardClock />}
-            tone="warning"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-          <StatCard
-            label="Pending Amount"
-            sub={approvalSummary.pendingAmountKHRLabel}
-            value={approvalSummary.pendingAmountUSDLabel}
-            icon={<Smartphone />}
-            tone="info"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 12, lg: 4 }}>
-          <ApprovalTypeBreakdownCard title="Pending by type" items={approvalSummary.typeBreakdown} />
-        </Grid>
-      </Grid>
+      {/* 2. Category Tabs: Financial & Non-financial */}
+      <Box sx={{ borderBottom: `1px solid ${palette.slate[200]}`, mt: 4, mb: 2.5 }}>
+        <Stack direction="row" spacing={3}>
+          {/* Financial Tab */}
+          <Box
+            component="button"
+            type="button"
+            onClick={() => {
+              setCategory("financial");
+              setPage(0);
+            }}
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 1,
+              pb: 1.5,
+              border: "none",
+              borderBottom: category === "financial" ? "2px solid #2764A5" : "2px solid transparent",
+              bgcolor: "transparent",
+              color: category === "financial" ? "#0F172A" : "#64748B",
+              cursor: "pointer",
+              fontWeight: category === "financial" ? 600 : 500,
+              fontSize: 14,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Wallet size={17} color={category === "financial" ? "#2764A5" : "#64748B"} />
+            <span>Financial</span>
+            <Box
+              sx={{
+                bgcolor: category === "financial" ? "#2764A5" : "#E7EEF5",
+                color: category === "financial" ? "#FFFFFF" : "#64748B",
+                fontSize: 11,
+                fontWeight: 600,
+                px: 0.9,
+                py: 0.2,
+                borderRadius: "999px",
+                minWidth: 18,
+                textAlign: "center",
+                lineHeight: 1.3,
+              }}
+            >
+              {pendingEntries.length}
+            </Box>
+          </Box>
 
-      <Box sx={{ mt: 4, mb: 3 }}>
-        <BaseTitle fontSize={font.size.xxl} fontWeight={font.weight.medium}>
-          Approvals
-        </BaseTitle>
+          {/* Non-financial Tab */}
+          <Box
+            component="button"
+            type="button"
+            onClick={() => {
+              setCategory("non-financial");
+              setPage(0);
+            }}
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 1,
+              pb: 1.5,
+              border: "none",
+              borderBottom: category === "non-financial" ? "2px solid #2764A5" : "2px solid transparent",
+              bgcolor: "transparent",
+              color: category === "non-financial" ? "#0F172A" : "#64748B",
+              cursor: "pointer",
+              fontWeight: category === "non-financial" ? 600 : 500,
+              fontSize: 14,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <FileText size={17} color={category === "non-financial" ? "#2764A5" : "#64748B"} />
+            <span>Non-financial</span>
+            <Box
+              sx={{
+                bgcolor: category === "non-financial" ? "#2764A5" : "#E7EEF5",
+                color: category === "non-financial" ? "#FFFFFF" : "#64748B",
+                fontSize: 11,
+                fontWeight: 600,
+                px: 0.9,
+                py: 0.2,
+                borderRadius: "999px",
+                minWidth: 18,
+                textAlign: "center",
+                lineHeight: 1.3,
+              }}
+            >
+              {nonFinancialEntries.length}
+            </Box>
+          </Box>
+        </Stack>
       </Box>
 
-      <SectionCard
-        title="Approval Lists"
-        titleSx={{ fontSize: font.size.lg, fontWeight: font.weight.medium, p: 6 }}
-        noPadding
-        header={
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", pl: 6, pr: 6, pt: 3, pb: 3 }}>
-            <BaseSearchButton value={search} onChange={handleSearchChange} placeholder="Search approvals…" />
-            <BaseSwitch options={TAB_OPTIONS} value={tab} onChange={handleTabChange} />
-          </Stack>
-        }
-      >
-        <ApprovalTable
-          entries={entries}
-          pagination={{
-            count: filteredEntries.length,
-            page,
-            rowsPerPage: PAGE_SIZE,
-            onPageChange: setPage,
+      {/* 3. Sub-filter switch: Pending (5) & History */}
+      <Box sx={{ mb: 3 }}>
+        <BaseSwitch
+          options={[
+            {
+              value: "pending",
+              label: `Pending (${category === "financial" ? pendingEntries.length : nonFinancialEntries.length})`,
+            },
+            { value: "history", label: "History" },
+          ]}
+          value={tab}
+          onChange={(val) => {
+            setTab(val);
+            setPage(0);
           }}
-          paginationSx={{ px: 5, py: 2 }}
-          onRowClick={setSelectedEntry}
+          activeBgcolor="#2764A5"
+          activeColor="#FFFFFF"
+          sx={{ bgcolor: "#EDF0F4", borderRadius: "8px", p: 0.5 }}
+          itemSx={{
+            borderRadius: "6px !important",
+            fontSize: "13px",
+            fontWeight: 600,
+            py: 0.6,
+            px: 1.75,
+          }}
         />
-      </SectionCard>
+      </Box>
 
+      {/* 4. Transactions Card & Table using BaseSearchButton, BaseFilterByDay, and BasePagination */}
+      <ApprovalTable
+        entries={entries}
+        isLoading={tasksLoading}
+        totalCount={filteredEntries.length}
+        search={search}
+        onSearchChange={handleSearchChange}
+        dateFilter={dateFilter}
+        onDateFilterChange={handleDateFilterChange}
+        page={page}
+        rowsPerPage={PAGE_SIZE}
+        onPageChange={setPage}
+        onRowClick={setSelectedEntry}
+      />
+
+      {/* Transaction Detail Dialog */}
       <ApprovalDetailDialog
         open={Boolean(selectedEntry)}
         onClose={() => setSelectedEntry(null)}

@@ -42,7 +42,7 @@ export function findAccount(accounts: TransferAccount[], id: string) {
   return accounts.find((a) => a.id === id);
 }
 
-/** Resolves a beneficiary name from an "Other SME Bank" account number against the mock directory. */
+/** Resolves a beneficiary name from an "Other BiKTECH BANK" account number against the mock directory. */
 export function findOtherSmeBankAccountName(
   directory: { number: string; name: string }[],
   accountNumber: string,

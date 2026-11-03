@@ -34,7 +34,7 @@ export const transferOptions: TransferOption[] = [
   {
     slug: "schedule",
     label: "Schedule Transfer",
-    description: "Transfer funds to another SME Bank account.",
+    description: "Transfer funds to another BiKTECH BANK account.",
     icon: <Landmark size={40} />,
   },
   {

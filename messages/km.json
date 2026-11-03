@@ -163,17 +163,17 @@
       "notLinked": "មិនទាន់បានភ្ជាប់"
     },
     "title": "បើកដំណើរការធនាគារចល័ត",
-    "subtitle": "ភ្ជាប់កម្មវិធី SME Bank លើទូរសព្ទរបស់អ្នកដោយសុវត្ថិភាព",
+    "subtitle": "ភ្ជាប់កម្មវិធី BiKTECH BANK លើទូរសព្ទរបស់អ្នកដោយសុវត្ថិភាព",
     "activatePrompt": {
       "title": "បើកដំណើរការកម្មវិធី",
-      "description": "មុនពេលចាប់ផ្តើម សូមបើកដំណើរការកម្មវិធី SME Bank Biz App របស់អ្នក ដើម្បីចូលប្រើមុខងារទាំងអស់ដោយសុវត្ថិភាព។",
+      "description": "មុនពេលចាប់ផ្តើម សូមបើកដំណើរការកម្មវិធី BiKTECH BANK Biz App របស់អ្នក ដើម្បីចូលប្រើមុខងារទាំងអស់ដោយសុវត្ថិភាព។",
       "signOut": "ចាកចេញ",
       "getStarted": "ចាប់ផ្តើម"
     },
     "signedInAs": "បានចូលជា <user>{name}</user>",
     "creating": "កំពុងរៀបចំកូដ QR សុវត្ថិភាព…",
     "loading": "កំពុងផ្ទុកការបើកដំណើរការធនាគារចល័ត…",
-    "qrAlt": "កូដ QR សម្រាប់បើកដំណើរការធនាគារចល័ត SME Bank",
+    "qrAlt": "កូដ QR សម្រាប់បើកដំណើរការធនាគារចល័ត BiKTECH BANK",
     "qrTimeLabel": "កូដ QR ផុតកំណត់ក្នុង",
     "pinTimeLabel": "សូមបញ្ចប់ការបើកដំណើរការធនាគារចល័តក្នុង",
     "generateAgain": "បង្កើតកូដ QR ថ្មី",
@@ -182,15 +182,15 @@
     "scan": {
       "title": "ស្កេនដើម្បីបើកដំណើរការ",
       "instruction": "ស្កេនកូដ QR នេះជាមួយ",
-      "appName": "SME Bank Biz App",
+      "appName": "BiKTECH BANK App",
       "expireIn": "ផុតកំណត់ក្នុង {seconds} វិនាទី",
-      "noAppQuestion": "មិនទាន់មានកម្មវិធី SME Bank Biz App លើទូរសព្ទ?",
+      "noAppQuestion": "មិនទាន់មានកម្មវិធី BiKTECH BANK App លើទូរសព្ទ?",
       "availableIn": "អាចទាញយកបានលើ",
       "playStore": "Play Store",
       "appStore": "App Store"
     },
     "pending": {
-      "heading": "ស្កេនជាមួយកម្មវិធី SME Bank លើទូរសព្ទ",
+      "heading": "ស្កេនជាមួយកម្មវិធី BiKTECH BANK លើទូរសព្ទ",
       "description": "សូមចូលប្រើលើទូរសព្ទជាមុន បន្ទាប់មកស្កេនកូដ QR នេះដើម្បីភ្ជាប់ឧបករណ៍។"
     },
     "scanned": {
@@ -200,7 +200,7 @@
     "success": {
       "label": "ជោគជ័យ",
       "heading": "បានបើកដំណើរការកម្មវិធី",
-      "description": "មុនពេលចាប់ផ្តើម សូមបើកដំណើរការកម្មវិធី SME Bank Biz App របស់អ្នក ដើម្បីចូលប្រើមុខងារទាំងអស់ដោយសុវត្ថិភាព។",
+      "description": "មុនពេលចាប់ផ្តើម សូមបើកដំណើរការកម្មវិធី BiKTECH BANK Biz App របស់អ្នក ដើម្បីចូលប្រើមុខងារទាំងអស់ដោយសុវត្ថិភាព។",
       "closing": "បិទក្នុង {seconds}វិនាទី"
     },
     "expired": {

@@ -1,19 +1,22 @@
 "use client";
 
 import React, { useState } from "react";
-import { Box, Divider, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { Check, Copy, Info, ReceiptText } from "lucide-react";
-import dayjs from "dayjs";
 
 import { formatAccountNumber } from "@/utils/format-account-number";
+import BaseBlurText from "@core/components/BaseBlurText";
 import BaseButton from "@core/components/BaseButton";
-import BaseDownloadPanel, { type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
+import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import type { CoreAccountEntry, IAccountDetailResponses } from "../account.types";
 import AccountDetails from "./AccountDetails";
+import BaseDownloadPanel from "@core/components/BaseDownloadPanel";
+import dayjs from "dayjs";
 
 export interface AccountDetailsProps {
   open?: boolean;
   accounts?: CoreAccountEntry[];
+  selectedAccount?: CoreAccountEntry;
   stats?: IAccountDetailResponses;
   onClose?: () => void;
   info?: IAccountDetailResponses;
@@ -26,8 +29,11 @@ export interface AccountDetailsProps {
   onDownloadCertificate?: () => void | Promise<void>;
 }
 
-/** Formats as "USD 6,700,000.00" (prefix currency code) */
-function formatAmountPrefix(amount: number | string | undefined | null, ccy: string = "USD"): string {
+/** Formats dynamic amount as "USD 6,700,000.00" */
+function formatAmountPrefix(
+  amount: number | string | undefined | null,
+  ccy: string = "USD",
+): string {
   const num = Number(amount ?? 0);
   const formatted = (isNaN(num) ? 0 : num).toLocaleString("en-US", {
     minimumFractionDigits: 2,

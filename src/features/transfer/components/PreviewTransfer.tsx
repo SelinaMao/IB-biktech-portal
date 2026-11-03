@@ -82,6 +82,16 @@ export type PreviewTransferProps = {
      */
     // submit?: () => Promise<TransferResult>;
     submit?: (idempotencyKey?: string) => Promise<TransferResult>;
+    breadcrumbPrefix?: string;
+    breadcrumbSubPrefix?: string;
+    successTitle?: string;
+    successSubtitle?: string;
+    makeAnotherTitle?: string;
+    backButtonTitle?: string;
+    onBackToMain?: () => void;
+    receiptTitle?: string;
+    step0ActionPosition?: "inside" | "outside";
+    step0ButtonTitle?: string;
 };
 
 export type PreviewTransferDialogProps = PreviewTransferProps;
@@ -120,6 +130,15 @@ export default function PreviewTransfer({
     onReset,
     onReview,
     submit,
+    breadcrumbPrefix,
+    breadcrumbSubPrefix,
+    successTitle,
+    successSubtitle,
+    makeAnotherTitle,
+    backButtonTitle,
+    receiptTitle,
+    step0ActionPosition,
+    step0ButtonTitle,
 }: PreviewTransferProps) {
     const [step, setStep] = React.useState(0);
     const [chooseVerifyOpen, setChooseVerifyOpen] = React.useState(false);
@@ -240,8 +259,8 @@ export default function PreviewTransfer({
     useTopBarBreadcrumb(
         open
             ? {
-                prefix: "Transfer",
-                subPrefix: title,
+                prefix: breadcrumbPrefix ?? "Transfer",
+                subPrefix: breadcrumbSubPrefix ?? title,
                 onBack: step === 2 ? handleBackToDashboard : handleClose,
             }
             : null
@@ -257,7 +276,7 @@ export default function PreviewTransfer({
     const displayFee = "$0.00";
 
     const handleDownloadReceipt = () => {
-        const content = `TRANSFER RECEIPT\n--------------------------------\nTransaction ID: ${displayTransactionId}\nReference No: ${displayReferenceNo}\nStatus: Completed\nCompleted On: ${completedDateStr}\n\nFrom: ${displayFromName}\nAccount: ${displayFromNumber}\n\nTo: ${displayToName}\nAccount: ${displayToNumber}\n\nAmount: ${displayAmountVal}\nTransfer Fee: ${displayFee}\nTotal Debited: ${displayAmountVal}\n--------------------------------\nSecured by Obsidian Ops`;
+        const content = `${receiptTitle ?? "TRANSFER RECEIPT"}\n--------------------------------\nTransaction ID: ${displayTransactionId}\nReference No: ${displayReferenceNo}\nStatus: Completed\nCompleted On: ${completedDateStr}\n\nFrom: ${displayFromName}\nAccount: ${displayFromNumber}\n\nTo: ${displayToName}\nAccount: ${displayToNumber}\n\nAmount: ${displayAmountVal}\nTransfer Fee: ${displayFee}\nTotal Debited: ${displayAmountVal}\n--------------------------------\nSecured by Obsidian Ops`;
         const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
         downloadBlob(blob, `Receipt-${displayReferenceNo}.txt`);
         showToast("success", {
@@ -292,11 +311,12 @@ export default function PreviewTransfer({
     const footer =
         step === 0 ? (
             <BaseButton
-                title="Review"
+                title={step0ButtonTitle ?? "Review"}
                 variant="contained"
                 fullWidth
                 disabled={!canSubmit}
                 onClick={goToReview}
+                endIcon={<ArrowRight size={18} />}
                 sx={{
                     height: 52,
                     borderRadius: "999px",
@@ -445,9 +465,9 @@ export default function PreviewTransfer({
                 >
                     {title}
                 </Typography>
-                {step === 2 && (
-                    <Typography sx={{ fontSize: 14, color: "#64748B", mt: 0.5 }}>
-                        Transfer to Other Account Bank
+                {step === 2 && successSubtitle !== "" && (
+                    <Typography sx={{ fontSize: 14, color: "#64748B", mt: 0.5, textAlign: "center" }}>
+                        {successSubtitle ?? "Transfer to Other Account Bank"}
                     </Typography>
                 )}
                 <Box sx={{ width: { xs: "100%", sm: 500, md: 520 }, maxWidth: "100%", mx: "auto", mt: 4, mb: 1 }}>
@@ -488,6 +508,11 @@ export default function PreviewTransfer({
                         }}
                     >
                         {children}
+                        {step0ActionPosition === "inside" && (
+                            <Box sx={{ mt: 3.5 }}>
+                                {footer}
+                            </Box>
+                        )}
                     </Box>
                 )}
 
@@ -625,7 +650,7 @@ export default function PreviewTransfer({
 
                                 {/* Title & Subtitle */}
                                 <Typography sx={{ fontSize: 22, fontWeight: 700, color: "#0F172A", textAlign: "center" }}>
-                                    Transfer successful
+                                    {successTitle ?? "Transfer successful"}
                                 </Typography>
                                 <Typography sx={{ fontSize: 13.5, color: "#64748B", textAlign: "center", mt: 0.5, mb: 3 }}>
                                     Your bank transfer was completed and the receipt is ready.
@@ -841,7 +866,7 @@ export default function PreviewTransfer({
                                 <Box>
                                     <Stack spacing={2}>
                                         <BaseButton
-                                            title="Back to Dashboard"
+                                            title={backButtonTitle ?? "Back to Dashboard"}
                                             variant="contained"
                                             fullWidth
                                             onClick={handleBackToDashboard}
@@ -880,7 +905,7 @@ export default function PreviewTransfer({
                                         />
 
                                         <BaseButton
-                                            title="Make another transfer"
+                                            title={makeAnotherTitle ?? "Make another transfer"}
                                             variant="text"
                                             fullWidth
                                             onClick={handleMakeAnotherTransfer}
@@ -913,7 +938,7 @@ export default function PreviewTransfer({
                 )}
 
                 {/* Bottom Action Button on page background (Only for Step 0 & 1) */}
-                {step !== 2 && (
+                {step !== 2 && (step !== 0 || step0ActionPosition !== "inside") && (
                     <Box
                         sx={{
                             mt: 3,

@@ -46,12 +46,28 @@ export const findTransactionField = (
   key: string,
 ): string | undefined => fields?.find((field) => field.key === key)?.value;
 
-export const mapCashFlowPoints = (entry: CoreAccountSummaryEntry): CashFlowPoint[] =>
-  entry.transactionSummary.data.map((point) => ({
-    date: dayjs(point.date).format("MMM D"),
-    inflow: point.transactionIn,
-    outflow: point.transactionOut,
-  }));
+export const mapCashFlowPoints = (entry?: CoreAccountSummaryEntry | any): CashFlowPoint[] => {
+  if (!entry) return [];
+  const rawList = Array.isArray(entry)
+    ? entry
+    : (entry.transactionSummary?.data ?? entry.data ?? entry.cashFlow ?? []);
+
+  if (!Array.isArray(rawList)) return [];
+
+  return rawList.map((point: any, index: number) => {
+    const rawDate = point.date || point.transactionDate || "";
+    const parsed = dayjs(rawDate);
+    const dateLabel = parsed.isValid() ? parsed.format("DD") : String(rawDate || index + 1);
+    const fullDate = parsed.isValid() ? parsed.format("DD MMM YYYY") : undefined;
+
+    return {
+      date: dateLabel,
+      inflow: Number(point.transactionIn ?? point.inflow ?? point.cashIn ?? 0),
+      outflow: Number(point.transactionOut ?? point.outflow ?? point.cashOut ?? 0),
+      fullDate,
+    };
+  });
+};
 
 
 export interface AccountState {

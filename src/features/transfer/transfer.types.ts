@@ -26,7 +26,7 @@ export interface TransferTemplate {
   toAccountNumber: string;
   toAccountName?: string | null;
   toAccountCurrency?: string | null;
-  /** Absent for an SME Bank receiver. */
+  /** Absent for an BiKTECH BANK receiver. */
   bankCode?: string | null;
   createdBy: string;
   createdAt: string;
@@ -272,7 +272,7 @@ export interface BulkTransferResult {
     toAccountName?: string | null;
     toAccountCurrency?: string | null;
     bankCode?: string | null;
-    /** SME Bank, Bakong for a wallet, else the receiving bank's code. */
+    /** BiKTECH BANK, Bakong for a wallet, else the receiving bank's code. */
     bankName?: string | null;
     amount: number;
     currency: string;

@@ -164,17 +164,17 @@
       "notLinked": "Not linked"
     },
     "title": "Activate Mobile Banking",
-    "subtitle": "Link your SME Bank mobile app securely",
+    "subtitle": "Link your BiKTECH BANK mobile app securely",
     "activatePrompt": {
       "title": "Activate App",
-      "description": "Before you start, activate your SME Bank Biz App to securely access all features.",
+      "description": "Before you start, activate your BiKTECH BANK Biz App to securely access all features.",
       "signOut": "Sign Out",
       "getStarted": "Get Started"
     },
     "signedInAs": "Signed in as <user>{name}</user>",
     "creating": "Preparing a secure QR code…",
     "loading": "Loading mobile activation…",
-    "qrAlt": "SME Bank mobile activation QR code",
+    "qrAlt": "BiKTECH BANK mobile activation QR code",
     "qrTimeLabel": "QR code expires in",
     "pinTimeLabel": "Complete mobile activation within",
     "generateAgain": "Generate a new QR code",
@@ -183,15 +183,15 @@
     "scan": {
       "title": "Scan For Activate",
       "instruction": "Scan this QR with",
-      "appName": "SME Bank Biz App",
+      "appName": "BiKTECH BANK Biz App",
       "expireIn": "Expire in {seconds}s",
-      "noAppQuestion": "No SME Bank Biz App in phone?",
+      "noAppQuestion": "No BiKTECH BANK Biz App in phone?",
       "availableIn": "Available in",
       "playStore": "Play Store",
       "appStore": "App Store"
     },
     "pending": {
-      "heading": "Scan with the SME Bank mobile app",
+      "heading": "Scan with the BiKTECH BANK mobile app",
       "description": "First sign in on your mobile, then scan this QR code to link the device."
     },
     "scanned": {
@@ -201,7 +201,7 @@
     "success": {
       "label": "Success",
       "heading": "Activated App",
-      "description": "Before you start, activate your SME Bank Biz App to securely access all features.",
+      "description": "Before you start, activate your BiKTECH BANK Biz App to securely access all features.",
       "closing": "Close in {seconds}s"
     },
     "expired": {
