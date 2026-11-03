@@ -18,6 +18,8 @@ import { formatTransactionAmount, isIncomingTransaction } from "../account.slice
 import type { TTransactionDetailResponse } from "../account.types";
 import StatementDownloadDialog from "./StatementDownloadDialog";
 import { padding, palette } from "@/theme/palette";
+import { SectionCard } from "@/features/dashboard";
+import BaseSearchButton from "@/@core/components/BaseSearchButton";
 
 export interface TransactionsListProps {
   transactions: TTransactionDetailResponse[];
@@ -26,7 +28,7 @@ export interface TransactionsListProps {
   onSelectTransaction?: (transaction: TTransactionDetailResponse) => void;
   query: string;
   onQueryChange: (value: string) => void;
-  showDateFilter?: boolean;
+  // showDateFilter?: boolean;
   dateFilter: BaseFilterValue;
   onDateFilterChange: (value: BaseFilterValue) => void;
   page: number;
@@ -202,113 +204,137 @@ export default function TransactionsList({
   ];
 
   return (
-    <Box
-      sx={{
-        bgcolor: "#FFFFFF",
-        borderRadius: "16px",
-        p: `${padding.xxl}px`,
-        boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
-      }}
-    >
-      {/* ───────── Top Row: Transactions Title & Download Statements Button ───────── */}
-      <Stack
-        direction="row"
-        sx={{
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2.5,
-        }}
+    <>
+      <SectionCard
+        title="Transactions"
+        showBorder={false}
       >
-        <Typography sx={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>
-          Transactions
-        </Typography>
-
-        {showDownload && (
-          <BaseButton
-            title="Download Statements"
-            variant="contained"
-            startIcon={<Download size={16} />}
-            onClick={() => setStatementOpen(true)}
+        <Box
+          sx={{
+            width: `calc(100% + ${CARD_PADDING_PX * 2}px)`,
+            mx: `-${CARD_PADDING_PX}px`,
+            padding: "10px",
+          }}
+        >
+          <Box
             sx={{
-              bgcolor: "#EBF3FA",
-              color: "#0F172A",
-              borderRadius: "999px",
-              textTransform: "none",
-              fontSize: 13,
-              fontWeight: 600,
-              px: 3.5,
-              py: 1,
-              height: 40,
-              boxShadow: "none",
-              whiteSpace: "nowrap",
-              "&:hover": { bgcolor: "#DCE8F5" },
+              fontFamily: "var(--font-noto-khmer), sans-serif",
+              width: "100%",
             }}
-          />
-        )}
-      </Stack>
+          >
+            {/* Search and Download Row */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 2,
+              }}
+            >
+              <BaseSearchButton
+                value={query}
+                onChange={onQueryChange}
+                placeholder="Search transactions…"
+              />
 
-      {/* Filter Row: BaseSearchByDay */}
-      <Box
-        sx={{
-          mb: 3,
-          mt: 6,
-          borderTop: "1px solid",
-          pt: 6,
-          borderTopColor: palette.secondary[100],
-        }}
-      >
-        <BaseSearchByDay
-          search={query}
-          onSearchChange={(val) => {
-            onQueryChange(val);
-            onPageChange(0);
-          }}
-          dateFilter={filterByDayValue}
-          onDateFilterChange={(filter) => {
-            handleDayFilterChange(filter);
-            onPageChange(0);
-          }}
-        />
-      </Box>
+              {showDownload && (
+                <BaseButton
+                  title="Download Statements"
+                  variant="contained"
+                  startIcon={<Download size={16} />}
+                  onClick={() => setStatementOpen(true)}
+                  sx={{
+                    bgcolor: "#EBF3FA",
+                    color: "#0F172A",
+                    borderRadius: "999px",
+                    textTransform: "none",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    px: 3.5,
+                    py: 1,
+                    height: 40,
+                    boxShadow: "none",
+                    whiteSpace: "nowrap",
+                    "&:hover": {
+                      bgcolor: "#DCE8F5",
+                    },
+                  }}
+                />
+              )}
+            </Box>
 
-      {/* ───────── BaseTable with built-in BasePagination compact ───────── */}
-      <BaseTable
-        columns={columns}
-        rows={transactions}
-        getRowKey={(t) => t.transactionId}
-        skeletonRows={rowsPerPage}
-        onRowClick={onSelectTransaction}
-        isLoading={isLoading}
-        headerBgColor="white"
-        headerBorderColor="#F1F5F9"
-        headerBorderTop={false}
-        rounded={false}
-        emptyTitle={error ? "Could not load transactions." : "No transactions in this period."}
-        emptyDescription={error ? "Please try again." : undefined}
-        pagination={
-          total > 0 && !error
-            ? {
-                count: total,
-                page,
-                rowsPerPage,
-                onPageChange,
+            {/* Filter Row: BaseSearchByDay */}
+            {/* {showDateFilter && (
+              <Box
+                sx={{
+                  mb: 3,
+                  mt: 6,
+                  borderTop: "1px solid",
+                  pt: 6,
+                  borderTopColor: palette.secondary[100],
+                }}
+              >
+                <BaseSearchByDay
+                  search={query}
+                  onSearchChange={(val) => {
+                    onQueryChange(val);
+                    onPageChange(0);
+                  }}
+                  dateFilter={filterByDayValue}
+                  onDateFilterChange={(filter) => {
+                    handleDayFilterChange(filter);
+                    onPageChange(0);
+                  }}
+                />
+              </Box>
+            )} */}
+
+            {/* Transactions Table */}
+            <BaseTable
+              columns={columns}
+              rows={transactions}
+              getRowKey={(t) => t.transactionId}
+              skeletonRows={rowsPerPage}
+              onRowClick={onSelectTransaction}
+              isLoading={isLoading}
+              headerBgColor="white"
+              headerBorderColor="#F1F5F9"
+              headerBorderTop={false}
+              rounded={false}
+              emptyTitle={
+                error
+                  ? "Could not load transactions."
+                  : "No transactions in this period."
               }
-            : undefined
-        }
-        paginationVariant="compact"
-      />
+              emptyDescription={error ? "Please try again." : undefined}
+              pagination={
+                total > 0 && !error
+                  ? {
+                      count: total,
+                      page,
+                      rowsPerPage,
+                      onPageChange,
+                    }
+                  : undefined
+              }
+              paginationVariant="compact"
+            />
 
-      {/* ───────── Statement Download Dialog ───────── */}
-      <StatementDownloadDialog
-        open={statementOpen}
-        onClose={() => setStatementOpen(false)}
-        accountName={accountName}
-        accountNumber={accountNumber}
-        onDownload={(val) => {
-          onDownload?.(val);
-        }}
-        isDownloading={isDownloading}
-      />
-    </Box>
+            {/* Statement Download Dialog */}
+            <StatementDownloadDialog
+              open={statementOpen}
+              onClose={() => setStatementOpen(false)}
+              accountName={accountName}
+              accountNumber={accountNumber}
+              onDownload={(val) => {
+                onDownload?.(val);
+              }}
+              isDownloading={isDownloading}
+            />
+          </Box>
+        </Box>
+      </SectionCard>
+    </>
   );
 }

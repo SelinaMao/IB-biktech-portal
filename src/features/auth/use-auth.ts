@@ -22,11 +22,12 @@ import {
   type VerifyOtpResult,
   type ResendOtpRequest,
   type ResendOtpResult,
+  useSignUpVerifyOtpMutation,
 } from "./auth.api";
 import { clearSession, setSession, type SessionUser } from "./auth.slice";
 import { toAuthError } from "./auth.error";
 import { leaveToLogin, postSessionMessage } from "./session-sync";
-import { TSignUpForm } from "@/@core/types/auth";
+import { ConfirmCodeResult, RequestConfirmOTP, SignUpResponse, TSignUpForm } from "@/@core/types/auth";
 import { useVerifyOtpMutation } from "../otp/otp.api";
 
 export function useAuth() {
@@ -39,6 +40,7 @@ export function useAuth() {
   const [logoutMutation] = useLogoutMutation();
   const [requestSignupCodeMutation] = useRequestSignupCodeMutation();
   const [forgotPasswordMutation] = useForgotPasswordMutation();
+  const [confirmCodeMutation] = useSignUpVerifyOtpMutation();
 
   /**
    * Every sign-in starts from an empty store. Whatever this browser cached for the previous user —
@@ -174,6 +176,17 @@ export function useAuth() {
     [dispatch, logoutMutation],
   );
 
+  const confirmCodeOtp = useCallback(
+    async (body: RequestConfirmOTP): Promise<ConfirmCodeResult> => {
+      try {
+        return await confirmCodeMutation(body).unwrap();
+      } catch (error) {
+        throw toAuthError(error);
+      }
+    },
+    [confirmCodeMutation],
+  );
+
   return {
     beginSession,
     login,
@@ -183,6 +196,7 @@ export function useAuth() {
     resetPassword,
     logout,
     signUp,
+    confirmCodeOtp,
     forgotPassword,
   };
 }
