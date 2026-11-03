@@ -21,10 +21,11 @@ import { font, palette, radius } from "@/theme/palette";
 
 /** One point on the cash-flow timeline. */
 export type CashFlowPoint = {
-  /** Label on the X axis, e.g. "Jul 12" or "2026-07". */
+  /** Label on the X axis, e.g. "Jul 12" or "2026-07" or "22". */
   date: string;
   inflow: number;
   outflow: number;
+  fullDate?: string;
 };
 
 /**
@@ -42,7 +43,7 @@ export const CASH_FLOW_PANEL_RADIUS = 14;
 
 const formatCompactNumber = (v: number) => {
   if (v === 0) return "0K";
-  return `${Math.round(v / 1000)}K`;
+  return Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(v);
 };
 
 /** 5 evenly-spaced y-axis ticks (0, 1000, 2000, 3000, 4000) */
@@ -78,13 +79,15 @@ function ChartTooltip({
   hideAmount = false,
 }: {
   active?: boolean;
-  payload?: Array<{ dataKey: string; value: number }>;
+  payload?: Array<{ dataKey: string; value: number; payload?: CashFlowPoint }>;
   label?: string;
   currency: string;
   labels: Record<"inflow" | "outflow", string>;
   hideAmount?: boolean;
 }) {
   if (!active || !payload?.length) return null;
+  const pointFullDate = payload[0]?.payload?.fullDate;
+  const displayLabel = pointFullDate || label;
   return (
     <Box
       sx={{
@@ -96,9 +99,11 @@ function ChartTooltip({
         py: 1,
       }}
     >
-      <Typography variant="caption" sx={{ color: "text.secondary" }}>
-        {label}
-      </Typography>
+      {displayLabel && (
+        <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
+          {displayLabel}
+        </Typography>
+      )}
       {payload.map((entry) => {
         const series = CASH_FLOW_SERIES.find((s) => s.key === entry.dataKey);
         return (
@@ -207,6 +212,7 @@ export default function CashFlowChartPanel({
                   tickLine={false}
                   axisLine={false}
                   tickMargin={14}
+                  interval={data.length > 15 ? Math.floor(data.length / 6) : 0}
                   tick={{ fill: palette.slate[20], fontSize: 12, fontWeight: 500 }}
                 />
                 <YAxis

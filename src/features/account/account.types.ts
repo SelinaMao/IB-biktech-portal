@@ -84,6 +84,14 @@ export interface AccountSummaryRequest {
   numberOfInstallment?: number;
 }
 
+/** Request body for `POST transactions/dashboard` — cash in/out per day from CBS. */
+export interface CashFlowRequest {
+  accountNumber: string;
+  type?: string;
+  startedDate?: string;
+  endedDate?: string;
+}
+
 /** Request body for `GET accounts` — optional filters. Every field is
  *  optional so the unfiltered call (`account/page.tsx`) can still pass no
  *  body, while callers that only want one account type (e.g. `loan/page.tsx`

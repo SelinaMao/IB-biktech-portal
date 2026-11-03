@@ -12,7 +12,7 @@ export const templateTransfers: TransferTemplate[] = [
   {
     id: "tpl-1",
     templateName: "Chamrouen",
-    toAccountName: "SME Bank",
+    toAccountName: "BiKTECH BANK",
     toAccountNumber: "300 050 756",
     transferType: "OTHER_SME_ACCOUNT",
     createdBy: "system",
@@ -71,7 +71,7 @@ export const scheduleFrequencies = [
   { value: "monthly", label: "Monthly" },
 ];
 
-/** Mock directory used to resolve a beneficiary name from an "Other SME Bank" account number. */
+/** Mock directory used to resolve a beneficiary name from an "Other BiKTECH BANK" account number. */
 export const otherSmeBankDirectory = [
   { number: "000 000 096", name: "Sarah Jenkins" },
   { number: "111 022 998", name: "Rous Soboros" },

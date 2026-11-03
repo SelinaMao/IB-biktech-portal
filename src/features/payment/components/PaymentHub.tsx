@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 
@@ -16,28 +17,43 @@ import BillPaymentView from "./BillPaymentView";
 import CreateTemplateDialog from "./CreateTemplateDialog";
 import DeleteTemplateDialog from "./DeleteTemplateDialog";
 import EditTemplateDialog from "./EditTemplateDialog";
+import MobileTopUpView from "./MobileTopUpView";
 import PayBillDialog from "./PayBillDialog";
 import PaymentActionCards from "./PaymentActionCards";
 import PaymentTemplatesTable from "./PaymentTemplatesTable";
 
 export interface PaymentHubProps {
-  initialView?: "main" | "bill-payment";
+  initialView?: "main" | "bill-payment" | "mobile-topup";
 }
 
 export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
-  const [currentView, setCurrentView] = useState<"main" | "bill-payment">(initialView);
+  const router = useRouter();
+  const [currentView, setCurrentView] = useState<"main" | "bill-payment" | "mobile-topup">(initialView);
   const [templates, setTemplates] = useState<PaymentTemplate[]>(INITIAL_PAYMENT_TEMPLATES);
 
+  const handleBackToMain = () => {
+    setCurrentView("main");
+    if (typeof window !== "undefined" && window.location.pathname.includes("/payment/")) {
+      router.push("/payment");
+    }
+  };
+
   // When on main view: null -> TopBar displays just "Payment"
-  // When on a card subview (e.g. Bill Payment): displays "< Payment / Bill Payements"
+  // When on a card subview (e.g. Mobile Top-up): displays "< Payment / Mobile Top-up"
   useTopBarBreadcrumb(
     currentView === "bill-payment"
       ? {
-          prefix: "Payments",
-          subPrefix: "Bill Payements",
-          onBack: () => setCurrentView("main"),
+          prefix: "Payment",
+          subPrefix: "Bill Payment",
+          onBack: handleBackToMain,
         }
-      : null,
+      : currentView === "mobile-topup"
+        ? {
+            prefix: "Payment",
+            subPrefix: "Mobile Top-up",
+            onBack: handleBackToMain,
+          }
+        : null,
   );
 
   // Dialog States
@@ -54,10 +70,12 @@ export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
   const handleSelectAction = (slug: PaymentActionSlug) => {
     if (slug === "bill-payment") {
       setCurrentView("bill-payment");
+    } else if (slug === "mobile-topup") {
+      setCurrentView("mobile-topup");
     } else {
       showToast("info", {
-        title: slug === "mobile-topup" ? "Mobile Top-up" : "Charity & Donation",
-        message: "This service flow will open with connected telecom/charity rails.",
+        title: "Charity & Donation",
+        message: "This service flow will open with connected charity rails.",
       });
     }
   };
@@ -124,6 +142,25 @@ export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
           onClose={() => setPayDialogOpen(false)}
           template={payTargetTemplate}
           provider={payTargetProvider}
+        />
+      </Box>
+    );
+  }
+
+  if (currentView === "mobile-topup") {
+    return (
+      <Box sx={{ width: "100%" }}>
+        <MobileTopUpView
+          onBackToPayments={handleBackToMain}
+          onSaveTemplate={(tpl) =>
+            handleCreateTemplate({
+              name: tpl.name,
+              type: tpl.type,
+              providerName: tpl.providerName,
+              providerInitials: tpl.providerInitials,
+              correspondentId: tpl.correspondentId,
+            })
+          }
         />
       </Box>
     );

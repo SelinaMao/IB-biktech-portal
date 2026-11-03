@@ -115,7 +115,7 @@ export default function LoanDetailCard({
     <Box
       sx={{
         bgcolor: "#FFFFFF",
-        borderRadius: "20px",
+        borderRadius: "16px",
         width: "100%",
         boxSizing: "border-box",
         p: { xs: "16px", sm: "20px", md: "20px 24px" },

@@ -50,7 +50,7 @@ export default function StatCard({
       <BaseCard
         sx={{
           bgcolor: "#FFFFFF",
-          borderRadius: "20px",
+          borderRadius: `${radius.xl}px`,
           p: { xs: 2.5, sm: "20px 24px" },
           border: `1px solid ${palette.slate[200]}`,
           boxShadow: "none",

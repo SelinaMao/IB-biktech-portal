@@ -67,7 +67,7 @@ function errorView(error: unknown, fallbackTitle: string): View {
 }
 
 /**
- * Shows an action's QR for SME Bank Biz App and waits for the phone to scan it; the scan
+ * Shows an action's QR for BiKTECH BANK Biz App and waits for the phone to scan it; the scan
  * authorizes the action, which is then carried out. Nothing happens until the phone scans.
  */
 export default function AuthenticatorDialog({
@@ -278,7 +278,7 @@ function Heading({ view, subject }: { view: "waiting" | "authorizing" | "expired
           <>
             Scan this QR with{" "}
             <Box component="span" sx={{ fontWeight: font.weight.bold }}>
-              SME Bank Biz App
+              BiKTECH BANK App
             </Box>
           </>
         )}

@@ -262,10 +262,21 @@ export default function TransactionsCard({
                 flexShrink: 0,
               }}
             >
-              {isNegative ? (
-                <ArrowUpRight size={18} strokeWidth={1.8} />
+              {isNegative ?  (
+                <Box
+                  component="img"
+                  src="/assets/icons/move-up-right.svg"
+                  alt="Transfer"
+                  sx={{ width: 24, height: 24 }}
+                />
+                // <MoveUpLeft />
               ) : (
-                <ArrowDownLeft size={18} strokeWidth={1.8} />
+                 <Box
+                  component="img"
+                  src="/assets/icons/move-down-right.svg"
+                  alt="Transfer"
+                  sx={{ width: 24, height: 24 }}
+                />
               )}
             </Box>
 
