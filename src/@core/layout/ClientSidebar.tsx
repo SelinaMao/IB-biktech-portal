@@ -72,6 +72,13 @@ const NAV_ITEMS = [
     // different scope than view.
     permissions: Object.values(CLIENT_PERMISSIONS.PAYMENT),
   },
+    {
+    key: "Payroll",
+    href: "/client-dashboard",
+    Icon: UsersRound,
+    // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
+    permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
+  },
   {
     key: "Schedule",
     href: "/schedule",
@@ -81,27 +88,21 @@ const NAV_ITEMS = [
     // different scope than view.
     permissions: Object.values(CLIENT_PERMISSIONS.PAYMENT),
   },
-  {
-    key: "Payroll",
-    href: "/client-dashboard",
-    Icon: UsersRound,
-    // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
-    permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
-  },
-  {
-    key: "Other Services",
-    href: "/client-dashboard",
-    Icon: SquareMenu,
-    // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
-    permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
-  },
-  {
-    key: "Merchant",
-    href: "/client-dashboard",
-    Icon: Store,
-    // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
-    permissions: Object.values(CLIENT_PERMISSIONS.MERCHANT),
-  },
+
+  // {
+  //   key: "Other Services",
+  //   href: "/client-dashboard",
+  //   Icon: SquareMenu,
+  //   // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
+  //   permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
+  // },
+  // {
+  //   key: "Merchant",
+  //   href: "/client-dashboard",
+  //   Icon: Store,
+  //   // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
+  //   permissions: Object.values(CLIENT_PERMISSIONS.MERCHANT),
+  // },
 
   {
     key: "Administrator",

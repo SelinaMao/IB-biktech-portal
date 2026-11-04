@@ -8,6 +8,8 @@ import Typography from "@mui/material/Typography";
 
 import { palette } from "@/theme/palette";
 import type { BaseTablePagination } from "@core/types/BaseTable.types";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { MoreHoriz } from "@mui/icons-material";
 
 export type BasePaginationProps = BaseTablePagination & {
   /** "detailed" (default) — "Showing X–Y of N" + numbered pages, for list/table screens.
@@ -56,6 +58,7 @@ export default function BasePagination({
     const pages = getPageNumbers(currentPage, pageCount);
 
     return (
+
       <Stack
         direction="row"
         sx={{
@@ -66,83 +69,30 @@ export default function BasePagination({
           py: { xs: 0.2, md: 0.8 },
         }}
       >
-        {/* Total Count Label */}
-        <Typography
-          sx={{
-            fontSize: 15,
-            fontWeight: 400,
-            color: "#0F172A",
-            mr: 0.5,
-          }}
-        >
-          {count} {count === 1 ? "Transaction" : "Transactions"}
-        </Typography>
-
-        {/* "Page:" Pill */}
-        <Box
-          sx={{
-            display: { xs: "none", sm: "inline-flex" },
-            bgcolor: "#ECEFF5",
-            borderRadius: "9999px",
-            px: { sm: 1.7, md: 2 },
-            height: { sm: 28, md: 28 },
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Typography
+        <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
+          {/* Previous Button */}
+          <Button
+            variant="text"
+            disabled={page === 0}
+            onClick={() => onPageChange(page - 1)}
+            startIcon={<ChevronLeft fontSize="small" />}
             sx={{
-              fontSize: 15,
-              fontWeight: 400,
+              height: 40,
+              px: 1.75,
+              mr: 0.5,
+              borderRadius: "10px",
               color: "#0F172A",
-              lineHeight: 1,
+              fontSize: 15,
+              fontWeight: 500,
+              textTransform: "none",
+              "&:hover": { bgcolor: "#EBEBEB" },
+              "&.Mui-disabled": { bgcolor: "#Ffffff", color: "#94A3B8" },
             }}
           >
-            Page:
-          </Typography>
-        </Box>
+            Previous
+          </Button>
 
-        {/* Previous Button */}
-        <Button
-          variant="text"
-          disabled={page === 0}
-          onClick={() => onPageChange(page - 1)}
-          sx={{
-            width: 30,
-            height: 30,
-            minWidth: 30,
-            p: 0,
-            borderRadius: "50%",
-            bgcolor: "#ECEFF5",
-            color: "#0F172A",
-            "&:hover": {
-              bgcolor: "#DDE3EE",
-            },
-            "&.Mui-disabled": {
-              bgcolor: "#ECEFF5",
-              color: "#94A3B8",
-              opacity: 0.6,
-            },
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m17 18-6-6 6-6" />
-            <path d="M7 6v12" />
-          </svg>
-        </Button>
-
-        {/* Page Numbers (01, 02, 03) */}
-        <Stack direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
+          {/* Page Numbers (1, 2, 3) */}
           {pages.map((item) => {
             const isSelected = item === currentPage;
             return (
@@ -151,64 +101,92 @@ export default function BasePagination({
                 variant="text"
                 onClick={() => onPageChange(item - 1)}
                 sx={{
-                  width: 30,
-                  height: 30,
-                  minWidth: 30,
+                  width: 40,
+                  height: 40,
+                  minWidth: 40,
                   p: 0,
-                  borderRadius: "50%",
+                  borderRadius: "10px",
                   fontSize: 15,
-                  fontWeight: isSelected ? 500 : 400,
-                  bgcolor: isSelected ? palette.primary[40] : "transparent",
-                  color: isSelected ? palette.white : "#0F172A",
-                  "&:hover": {
-                    bgcolor: isSelected ? palette.primary[40] : "#ECEFF5",
-                  },
+                  fontWeight: 500,
+                  color: "#0F172A",
+                  border: "1px solid",
+                  borderColor: isSelected ? "#E2E8F0" : "transparent",
+                  bgcolor: isSelected ? "#FFFFFF" : "transparent",
+                  boxShadow: isSelected ? "0px 1px 2px rgba(15, 23, 42, 0.06)" : "none",
+                  "&:hover": { bgcolor: isSelected ? "#FFFFFF" : "#F5F5F5" },
                 }}
               >
-                {String(item).padStart(2, "0")}
+                {item}
               </Button>
             );
           })}
-        </Stack>
 
-        {/* Next Button */}
-        <Button
-          variant="text"
-          disabled={page >= pageCount - 1}
-          onClick={() => onPageChange(page + 1)}
-          sx={{
-             width: 30,
-                  height: 30,
-                  minWidth: 30,
-            p: 0,
-            borderRadius: "50%",
-            bgcolor: "#ECEFF5",
-            color: "#0F172A",
-            "&:hover": {
-              bgcolor: "#DDE3EE",
-            },
-            "&.Mui-disabled": {
-              bgcolor: "#ECEFF5",
-              color: "#94A3B8",
-              opacity: 0.6,
-            },
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          {/* "..." shown only when there are more pages than displayed */}
+          {pages.length < pageCount && !pages.includes(pageCount) && (
+            <>
+              {/* Ellipsis */}
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#0F172A",
+                }}
+              >
+                <MoreHoriz fontSize="small" />
+              </Box>
+
+              {/* Last page */}
+              <Button
+                variant="text"
+                onClick={() => onPageChange(pageCount - 1)}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  minWidth: 40,
+                  p: 0,
+                  borderRadius: "10px",
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: "#0F172A",
+                  border: "1px solid",
+                  borderColor: currentPage === pageCount ? "#E2E8F0" : "transparent",
+                  bgcolor: currentPage === pageCount ? "#FFFFFF" : "transparent",
+                  boxShadow:
+                    currentPage === pageCount ? "0px 1px 2px rgba(15, 23, 42, 0.06)" : "none",
+                  "&:hover": { bgcolor: currentPage === pageCount ? "#FFFFFF" : "#F5F5F5" },
+                }}
+              >
+                {pageCount}
+              </Button>
+            </>
+          )}
+
+
+          {/* Next Button */}
+          <Button
+            variant="text"
+            disabled={page >= pageCount - 1}
+            onClick={() => onPageChange(page + 1)}
+            endIcon={<ChevronRight fontSize="small" />}
+            sx={{
+              height: 40,
+              px: 1.75,
+              ml: 0.5,
+              borderRadius: "10px",
+              color: "#0F172A",
+              fontSize: 15,
+              fontWeight: 500,
+              textTransform: "none",
+              "&:hover": { bgcolor: "#F5F5F5" },
+              "&.Mui-disabled": { color: "#94A3B8", bgcolor: "#ffffff" },
+            }}
           >
-            <path d="m7 18 6-6-6-6" />
-            <path d="M17 6v12" />
-          </svg>
-        </Button>
+            Next
+          </Button>
+        </Stack>
       </Stack>
     );
   }

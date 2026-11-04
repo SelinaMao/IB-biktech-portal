@@ -1,36 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Box,
-  Checkbox,
-  IconButton,
-  InputAdornment,
-  Link,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Box, Checkbox, IconButton, InputAdornment, Link, Stack, TextField, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import { SwitchLanguageMenu } from "@core/components/SwitchLanguageMenu";
+import { useAuth } from "@/features/auth";
 
-const FOOTER_LINKS = [
-  "FAQs",
-  "User Guide",
-  "Contact Us",
-  "Security",
-  "Privacy Policy",
-];
+const FOOTER_LINKS = ["FAQs", "User Guide", "Contact Us", "Security", "Privacy Policy"];
 
 const SPECIAL_CHAR_REGEX = /[^A-Za-z0-9\s'"<>&;`\\|]/;
 
 export default function SetupPasswordPage() {
+  const { setPassword } = useAuth();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [password, setPassword] = useState("");
+  const [password1, setPassword1] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreedTerms, setAgreedTerms] = useState(false);
 
@@ -48,27 +35,27 @@ export default function SetupPasswordPage() {
     {
       key: "minLength",
       label: "Minimum 8 characters",
-      met: password.length >= 8,
+      met: password1.length >= 8,
     },
     {
       key: "specialChar",
       label: "At least 1 special character",
-      met: SPECIAL_CHAR_REGEX.test(password),
+      met: SPECIAL_CHAR_REGEX.test(password1),
     },
     {
       key: "number",
       label: "At least 1 number",
-      met: /[0-9]/.test(password),
+      met: /[0-9]/.test(password1),
     },
     {
       key: "capitalLetter",
       label: "At least 1 capital letter",
-      met: /[A-Z]/.test(password),
+      met: /[A-Z]/.test(password1),
     },
     {
       key: "lowercaseLetter",
       label: "At least 1 lowercase letter",
-      met: /[a-z]/.test(password),
+      met: /[a-z]/.test(password1),
     },
   ];
 
@@ -103,7 +90,7 @@ export default function SetupPasswordPage() {
   };
 
   const handlePasswordChange = (value: string) => {
-    setPassword(value);
+    setPassword1(value);
     if (touched.password) {
       setPasswordError(validatePassword(value));
     }
@@ -115,7 +102,7 @@ export default function SetupPasswordPage() {
   const handleConfirmPasswordChange = (value: string) => {
     setConfirmPassword(value);
     if (touched.confirmPassword) {
-      setConfirmPasswordError(validateConfirmPassword(value, password));
+      setConfirmPasswordError(validateConfirmPassword(value, password1));
     }
   };
 
@@ -126,21 +113,34 @@ export default function SetupPasswordPage() {
     }
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
     setTouched({ password: true, confirmPassword: true, terms: true });
 
-    const pErr = validatePassword(password);
-    const cpErr = validateConfirmPassword(confirmPassword, password);
+    const pErr = validatePassword(password1);
+    const cpErr = validateConfirmPassword(confirmPassword, password1);
     const tErr = agreedTerms ? "" : "Please agree to the Terms & Conditions";
 
     setPasswordError(pErr);
     setConfirmPasswordError(cpErr);
     setTermsError(tErr);
 
+    const token = sessionStorage.getItem("token");
+    const verification = sessionStorage.getItem("verification");
+    if(!token || !verification){
+      return;
+    }
+
     if (!pErr && !cpErr && !tErr) {
-      router.push("/success");
+      try {
+        await setPassword({ challengeToken: token, verificationToken: verification, newPassword: password1 });
+        router.push("/success");
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("verification");
+      } catch (error) {
+        console.log(error);
+      }
     }
   };
 
@@ -178,7 +178,7 @@ export default function SetupPasswordPage() {
             color: "#1E293B",
             border: "none",
             borderRadius: "24px",
-          px: 4,
+            px: 4,
             py: 2,
             fontSize: "14px",
             fontWeight: 500,
@@ -189,16 +189,7 @@ export default function SetupPasswordPage() {
             },
           }}
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
           Back
@@ -279,11 +270,11 @@ export default function SetupPasswordPage() {
             fullWidth
             type={showPassword ? "text" : "password"}
             placeholder="Enter Password"
-            value={password}
+            value={password1}
             onChange={(e) => handlePasswordChange(e.target.value)}
             onBlur={() => {
               setTouched((prev) => ({ ...prev, password: true }));
-              setPasswordError(validatePassword(password));
+              setPasswordError(validatePassword(password1));
             }}
             error={Boolean(passwordError)}
             helperText={passwordError}
@@ -291,39 +282,14 @@ export default function SetupPasswordPage() {
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      edge="end"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                      sx={{ color: passwordError ? "#EF4444" : "#64748B" }}
-                    >
+                    <IconButton onClick={() => setShowPassword((prev) => !prev)} edge="end" aria-label={showPassword ? "Hide password" : "Show password"} sx={{ color: passwordError ? "#EF4444" : "#64748B" }}>
                       {showPassword ? (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
                           <circle cx="12" cy="12" r="3" />
                         </svg>
                       ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
                           <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
                           <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
@@ -406,7 +372,7 @@ export default function SetupPasswordPage() {
             onChange={(e) => handleConfirmPasswordChange(e.target.value)}
             onBlur={() => {
               setTouched((prev) => ({ ...prev, confirmPassword: true }));
-              setConfirmPasswordError(validateConfirmPassword(confirmPassword, password));
+              setConfirmPasswordError(validateConfirmPassword(confirmPassword, password1));
             }}
             error={Boolean(confirmPasswordError)}
             helperText={confirmPasswordError}
@@ -414,39 +380,14 @@ export default function SetupPasswordPage() {
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowConfirmPassword((prev) => !prev)}
-                      edge="end"
-                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-                      sx={{ color: confirmPasswordError ? "#EF4444" : "#64748B" }}
-                    >
+                    <IconButton onClick={() => setShowConfirmPassword((prev) => !prev)} edge="end" aria-label={showConfirmPassword ? "Hide password" : "Show password"} sx={{ color: confirmPasswordError ? "#EF4444" : "#64748B" }}>
                       {showConfirmPassword ? (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
                           <circle cx="12" cy="12" r="3" />
                         </svg>
                       ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49" />
                           <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
                           <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143" />
@@ -509,24 +450,14 @@ export default function SetupPasswordPage() {
           {/* Password Requirements Checklist */}
           <Stack spacing={1.25} sx={{ mt: 1, mb: 3 }}>
             {requirements.map((req) => (
-              <Stack
-                key={req.key}
-                direction="row"
-                spacing={1}
-                sx={{ alignItems: "center" }}
-              >
+              <Stack key={req.key} direction="row" spacing={1} sx={{ alignItems: "center" }}>
                 {req.met ? (
-                  <CheckCircleRoundedIcon
-                    sx={{ fontSize: 18, color: "#10B981" }}
-                  />
+                  <CheckCircleRoundedIcon sx={{ fontSize: 18, color: "#10B981" }} />
                 ) : (
                   <RadioButtonUncheckedRoundedIcon
                     sx={{
                       fontSize: 18,
-                      color:
-                        touched.password && !allRequirementsMet
-                          ? "#CBD5E1"
-                          : "#CBD5E1",
+                      color: touched.password && !allRequirementsMet ? "#CBD5E1" : "#CBD5E1",
                     }}
                   />
                 )}
@@ -592,7 +523,7 @@ export default function SetupPasswordPage() {
             component="button"
             type="submit"
             sx={{
-                marginTop:4,
+              marginTop: 4,
               width: "100%",
               height: 48,
               borderRadius: "24px",

@@ -27,7 +27,7 @@ import {
   type ApprovalTab,
 } from "@/features/approval";
 
-const PAGE_SIZE = 10;
+const ROWS_PER_PAGE = 5;
 
 export default function ApprovalPage() {
   const canSeeTasks = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);
@@ -120,7 +120,7 @@ export default function ApprovalPage() {
   }, [sourceEntries, search, dateFilter]);
 
   const entries = useMemo(
-    () => filteredEntries.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+    () => filteredEntries.slice(page * ROWS_PER_PAGE, page * ROWS_PER_PAGE + ROWS_PER_PAGE),
     [filteredEntries, page],
   );
 
@@ -303,7 +303,7 @@ export default function ApprovalPage() {
         dateFilter={dateFilter}
         onDateFilterChange={handleDateFilterChange}
         page={page}
-        rowsPerPage={PAGE_SIZE}
+        rowsPerPage={ROWS_PER_PAGE}
         onPageChange={setPage}
         onRowClick={setSelectedEntry}
       />

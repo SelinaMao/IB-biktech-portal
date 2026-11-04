@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { Box, Typography } from "@mui/material";
-import { Info, ReceiptText } from "lucide-react";
+import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Check, Copy, Info } from "lucide-react";
+import dayjs from "dayjs";
 
 import { formatAccountNumber } from "@/utils/format-account-number";
+import BaseBlurText from "@core/components/BaseBlurText";
 import BaseButton from "@core/components/BaseButton";
-import BaseDownloadPanel, { type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
+import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import type { BorrowerProfile, LoanScheduleDetails } from "../loan.types";
 
 export interface LoanDetailCardProps {
@@ -34,7 +36,10 @@ export interface LoanDetailCardProps {
 }
 
 /** Formats as "6,700,000.00 USD" (suffix currency code) */
-function formatAmountSuffix(amount: number | string | undefined | null, ccy: string = "USD"): string {
+function formatAmountSuffix(
+  amount: number | string | undefined | null,
+  ccy: string = "USD",
+): string {
   const num = Number(amount ?? 0);
   const formatted = (isNaN(num) ? 0 : num).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -43,279 +48,222 @@ function formatAmountSuffix(amount: number | string | undefined | null, ccy: str
   return `${formatted} ${ccy}`;
 }
 
+function formatMaturityDate(dateStr?: string): string {
+  if (!dateStr || dateStr === "-") return "-";
+  const parsed = dayjs(dateStr);
+  return parsed.isValid() ? parsed.format("DD MMM YYYY") : dateStr;
+}
+
 export default function LoanDetailCard({
   borrower,
   schedule,
   loanName,
   accountNumber,
-  loanReference,
   loanType,
   outstandingAmount,
   currency = "USD",
-  nextPaymentAmount,
-  nextPaymentDate,
-  interestRatePct,
-  repaymentFrequency,
   maturityDate,
-  approvedLimit,
-  disbursementDate,
-  overdueCount,
-  onPayNow,
   onOpenDetails,
   onOpenAccountInfo,
-  onOpenStatements,
-  onExportStatements,
 }: LoanDetailCardProps) {
-  const [downloadAnchor, setDownloadAnchor] = useState<null | HTMLElement>(null);
+  const [copied, setCopied] = useState(false);
 
-  // Resolve data with sensible fallbacks matching the design
+  // Resolve data from props and borrower/schedule
   const name = loanName || borrower?.name || "Car Loan";
-  const accNum = accountNumber || borrower?.accountNumber || "000 067 898";
-  const ref = loanReference || "CLN-2024-001892";
-  const type = loanType || schedule?.accountType || "Car Loan";
-  const outstanding = outstandingAmount ?? schedule?.outstandingPrincipal ?? 6_700_000;
+  const rawAccNumber = accountNumber || borrower?.accountNumber || "";
+  const formattedAccNumber =
+    formatAccountNumber(rawAccNumber) || rawAccNumber || "000 067 898";
+  const type = loanType || schedule?.accountType || "Loan";
   const ccy = currency || schedule?.currency || "USD";
-  const rate = interestRatePct ?? schedule?.interestRatePct ?? 5.25;
-  const frequency = repaymentFrequency || schedule?.repaymentMethod || "Monthly";
-  const matDate = maturityDate || schedule?.maturityDate || "08 Sep 2030";
-  const limit = approvedLimit ?? schedule?.approvedLimit ?? 100_000;
-  const disbDate = disbursementDate || schedule?.disbursementDate || "08 Sep 2024";
+  const outstanding = outstandingAmount ?? schedule?.outstandingPrincipal ?? 0;
+  const rawMatDate = maturityDate || schedule?.maturityDate || "-";
+  const formattedMatDate = formatMaturityDate(rawMatDate);
 
-  const detailRows = [
-    { label: name, value: ref },
-    { label: "Loan Type", value: type },
-    { label: "Repayment Frequency", value: frequency },
-    {
-      label: "Approved Limit",
-      value: formatAmountSuffix(limit, ccy),
-      color: "#0F5196",
-    },
-    { label: "Disbursement Date", value: disbDate },
-  ];
+  const accountTypeSubtitle = `${
+    type.toLowerCase().includes("loan") ? "Loan" : type
+  } · ${ccy}`;
 
-  const statCards = [
-    {
-      label: "Outstanding amount",
-      value: formatAmountSuffix(outstanding, ccy),
-      color: "#0F5196",
-    },
-    {
-      label: "Maturity Date",
-      value: matDate,
-      color: "#0F172A",
-    },
-    {
-      label: "Interest Rate",
-      value: `${typeof rate === "number" ? rate.toFixed(2) : rate}% p.a.`,
-      color: "#166D35",
-    },
-  ];
+  const handleCopyAccount = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const textToCopy = (rawAccNumber || formattedAccNumber).replace(/\s+/g, "");
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <Box
       sx={{
         bgcolor: "#FFFFFF",
-        borderRadius: "16px",
-        width: "100%",
-        boxSizing: "border-box",
-        p: { xs: "16px", sm: "20px", md: "20px 24px" },
-        display: "grid",
-        gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-        gridTemplateAreas: {
-          xs: `"header" "detail" "cards" "buttons"`,
-          md: `"header cards" "detail cards" "buttons buttons"`,
-        },
-        gridTemplateRows: { md: "auto auto 1fr" },
-        columnGap: { md: "26px" },
-        rowGap: "20px",
+        borderRadius: "24px",
+         p: { xs: 2.5, sm: "16px 16px" },
+        boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
       }}
     >
-      {/* ───────── Header (left, top) ───────── */}
-      <Box sx={{ gridArea: "header" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <Typography
-            sx={{
-              fontSize: { xs: "16px", md: "18px" },
-              fontWeight: 600,
-              color: "#0F172A",
-              lineHeight: 1.3,
-              m: 0,
-            }}
-          >
-            {name}
-          </Typography>
-          <Box
-            sx={{
-              px: "10px",
-              py: "2px",
-              borderRadius: "20px",
-              bgcolor: "#E0EEFF",
-              color: "#0F5196",
-              fontSize: "12px",
-              fontWeight: 600,
-              lineHeight: 1.4,
-            }}
-          >
-            Loan
-          </Box>
-        </Box>
-        <Typography
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={3}
+        sx={{
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", md: "stretch" },
+        }}
+      >
+        {/* ───────── Left Section: Account Header & Info ───────── */}
+        <Box
           sx={{
-            color: "#475569",
-            fontSize: "13px",
-            lineHeight: 1.4,
-            mt: "6px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minWidth: 0,
+            flex: 1,
+            pr: { md: 2 },
           }}
         >
-          {formatAccountNumber(accNum) || "000 067 898"}
-        </Typography>
-      </Box>
-
-      {/* ───────── Account Details (left column) ───────── */}
-      <Box sx={{ gridArea: "detail" }}>
-        <Typography
-          sx={{
-            fontSize: "16px",
-            fontWeight: 700,
-            color: "#0F172A",
-            m: 0,
-            mb: "8px",
-            lineHeight: 1.4,
-          }}
-        >
-          Account Details
-        </Typography>
-
-        <Box>
-          {detailRows.map((row) => (
-            <Box
-              key={row.label}
+          <Box>
+            <Typography
               sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto",
-                alignItems: "center",
-                columnGap: "12px",
-                py: "14px",
-                borderBottom: "1px solid #E5E9F0",
-                "&:last-of-type": { borderBottom: "none" },
+                fontSize: { xs: 20, md: 22 },
+                fontWeight: 700,
+                color: "#0F172A",
+                lineHeight: 1.25,
               }}
             >
-              <Typography sx={{ fontSize: "13px", color: "#64748B" }}>
-                {row.label}
+              {name}
+            </Typography>
+
+            {/* Account Number + Copy */}
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{ alignItems: "center", mt: 3 }}
+            >
+              <Typography
+                sx={{ fontSize: 14, color: "#334155", fontWeight: 500 }}
+              >
+                {formattedAccNumber}
+              </Typography>
+              <Tooltip title={copied ? "Copied!" : "Copy account number"}>
+                <IconButton
+                  size="small"
+                  onClick={handleCopyAccount}
+                  sx={{
+                    p: 1.25,
+                    color: copied ? "#166D35" : "#475569",
+                    "&:hover": { color: "#0F172A" },
+                  }}
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                </IconButton>
+              </Tooltip>
+            </Stack>
+
+            <Typography sx={{ fontSize: 13, color: "#64748B", mt: 3 }}>
+              {accountTypeSubtitle}
+            </Typography>
+          </Box>
+
+          {/* Bottom Button: Account Information */}
+          <Box sx={{ mt: { xs: 4.5, md: 5.5 } }}>
+            <BaseButton
+              title="Account Information"
+              variant="contained"
+              startIcon={<Info size={16} />}
+              onClick={onOpenAccountInfo || onOpenDetails}
+              sx={{
+                bgcolor: "#EBF3FA",
+                color: "#0F172A",
+                borderRadius: "999px",
+                textTransform: "none",
+                fontSize: 13,
+                fontWeight: 600,
+                px: 4.5,
+                py: 0.9,
+                height: 38,
+                boxShadow: "none",
+                whiteSpace: "nowrap",
+                "&:hover": { bgcolor: "#DCE8F5" },
+              }}
+            />
+          </Box>
+        </Box>
+
+        {/* ───────── Right Section: Metric Cards ───────── */}
+        <Box
+          sx={{
+            width: { xs: "100%", md: 360, lg: 233 },
+            minWidth: { md: 240 },
+            flexShrink: 0,
+          }}
+        >
+          <Stack spacing={4}>
+            {/* Outstanding Balance */}
+            <Box
+              sx={{
+                bgcolor: "#F4F7FB",
+                borderRadius: "14px",
+                p: "14px 20px",
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  color: "#64748B",
+                  fontWeight: 400,
+                  mb: 0.5,
+                  lineHeight: 1.2,
+                }}
+              >
+                Outstanding Balance
               </Typography>
               <Typography
                 sx={{
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  color: row.color || "#0F172A",
-                  textAlign: "right",
+                  fontSize: 18,
+                  fontWeight: 600,
+                  color: "#0D4984",
+                  lineHeight: 1.3,
+                  fontfamily: "latin",
                 }}
               >
-                {row.value}
+                <BaseBlurText>
+                  {formatAmountSuffix(outstanding, ccy)}
+                </BaseBlurText>
               </Typography>
             </Box>
-          ))}
-        </Box>
-      </Box>
 
-      {/* ───────── Stat cards (right column) ───────── */}
-      <Box
-        sx={{
-          gridArea: "cards",
-          display: "grid",
-          gridAutoRows: "min-content",
-          rowGap: "9px",
-          width: "100%",
-          minWidth: 0,
-          alignContent: "start",
-          alignSelf: "start",
-        }}
-      >
-        {statCards.map((card) => (
-          <Box
-            key={card.label}
-            sx={{
-              bgcolor: "#F4F7FB",
-              borderRadius: "10px",
-              p: "12px 14px",
-              display: "grid",
-              rowGap: "6px",
-              minWidth: 0,
-            }}
-          >
-            <Typography sx={{ fontSize: "11px", color: "#64748B", lineHeight: 1.4 }}>
-              {card.label}
-            </Typography>
-            <Typography
+            {/* Maturity Date */}
+            <Box
               sx={{
-                fontSize: "15px",
-                fontWeight: 600,
-                color: card.color,
-                lineHeight: 1.3,
-                whiteSpace: "nowrap",
+                bgcolor: "#F4F7FB",
+                borderRadius: "14px",
+                p: "14px 20px",
               }}
             >
-              {card.value}
-            </Typography>
-          </Box>
-        ))}
-      </Box>
-
-      {/* ───────── Buttons (bottom-left) ───────── */}
-      <Box
-        sx={{
-          gridArea: "buttons",
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(2, max-content)" },
-          justifyContent: "start",
-          gap: "12px",
-        }}
-      >
-        <BaseButton
-          sx={{
-            p: "8px 16px",
-            bgcolor: "#E8EEF5",
-            borderRadius: "999px",
-            fontSize: "13px",
-            fontWeight: 500,
-            textTransform: "none",
-            color: "#0F172A",
-            boxShadow: "none",
-            "&:hover": { bgcolor: "#DCE5F0" },
-          }}
-          // onClick={onOpenAccountInfo || onOpenDetails}
-          startIcon={<Info size={16} />}
-          title="Account Information"
-        />
-        <BaseButton
-          sx={{
-            p: "8px 16px",
-            bgcolor: "#E8EEF5",
-            borderRadius: "999px",
-            fontSize: "13px",
-            fontWeight: 500,
-            textTransform: "none",
-            color: "#0F172A",
-            boxShadow: "none",
-            "&:hover": { bgcolor: "#DCE5F0" },
-          }}
-          onClick={(e) => {
-            setDownloadAnchor(e.currentTarget);
-            onOpenStatements?.(e);
-          }}
-          startIcon={<ReceiptText size={16} />}
-          title="Statements"
-        />
-      </Box>
-
-      <BaseDownloadPanel
-        anchorEl={downloadAnchor}
-        onClose={() => setDownloadAnchor(null)}
-        onDownload={(value) => {
-          setDownloadAnchor(null);
-          onExportStatements?.(value);
-        }}
-      />
+              <Typography
+                 sx={{
+                  fontSize: 14,
+                  color: "#64748B",
+                  fontWeight: 400,
+                  mb: 0.5,
+                  lineHeight: 1.2,
+                }}              >
+                Maturity Date
+              </Typography>
+              <Typography
+                 sx={{
+                  fontSize: 16,
+                  fontWeight: 500,
+                  color: "#0F172A",
+                  lineHeight: 1.3,
+                }}
+              >
+                {formattedMatDate}
+              </Typography>
+            </Box>
+          </Stack>
+        </Box>
+      </Stack>
     </Box>
   );
 }

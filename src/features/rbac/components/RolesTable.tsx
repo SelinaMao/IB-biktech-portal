@@ -1,12 +1,12 @@
 "use client";
 
+import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { PenLine, Trash2 } from "lucide-react";
+import { Pencil, PenLine, Trash2 } from "lucide-react";
 
 import BaseIconButton from "@core/components/BaseIconButton";
 import BaseTable, { type BaseTableColumn, type BaseTablePagination } from "@core/components/BaseTable";
-import { baseTableHeaderTextSx } from "@core/components/BaseTableHeader";
 import { font, palette } from "@/theme/palette";
 import type { Role } from "../rbac.types";
 
@@ -24,32 +24,62 @@ export type RolesTableProps = {
 };
 
 /**
- * Roles list — thin column config over the shared BaseTable (no bespoke table
- * markup). System roles have their edit/delete actions disabled.
+ * Roles list — styled BaseTable following the clean UI design.
+ * Preserves the original event handling and true permission counts.
  */
-export default function RolesTable({ roles, isLoading, onEdit, onDelete, canEdit = false, canDelete = false, pagination, onRowClick }: RolesTableProps) {
+export default function RolesTable({
+  roles,
+  isLoading,
+  onEdit,
+  onDelete,
+  canEdit = false,
+  canDelete = false,
+  pagination,
+  onRowClick,
+}: RolesTableProps) {
+  const headSx = {
+    color: palette.slate[400],
+    fontWeight: 400,
+    fontSize: "14px",
+  };
+
   const columns: BaseTableColumn<Role>[] = [
     {
       key: "role",
-      header: "Role Name",
+      header: "Role",
+      width: "22%",
+      headSx: { ...headSx, pl: { xs: 2, sm: 2.5 } },
+      cellSx: { pl: { xs: 2, sm: 2.5 }, py: 2.2 },
       render: (role) => (
-        <>
-          <Typography variant="body2" sx={baseTableHeaderTextSx}>
-            {role.name}
-          </Typography>
-        </>
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 500, fontSize: "14px", color: "#0F172A" }}
+        >
+          {role.name}
+        </Typography>
       ),
     },
     {
       key: "permissions",
       header: "Access",
+      width: "48%",
+      headSx,
+      cellSx: { py: 2.2 },
       render: (role) => {
-        // Approve is a verb, so what a role signs is counted from its grants — never a stored flag.
-        const signs = role.permissionCodes.filter((code) => code.endsWith(":APPROVE")).length;
+        const codes = role.permissionCodes ?? [];
+        const signs = codes.filter((code) => code.endsWith(":APPROVE")).length;
         return (
-          <Stack>
-            <Typography variant="body2">{role.permissionCodes.length} permissions</Typography>
-            <Typography variant="caption" color="text.secondary">
+          <Stack spacing={0.25}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 600, fontSize: "14px", color: "#0F172A", lineHeight: 1.4 }}
+            >
+              {codes.length} {codes.length === 1 ? "permission" : "permissions"}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 400, fontSize: "13px", color: palette.slate[400], lineHeight: 1.4 }}
+            >
               {signs === 0 ? "Signs nothing" : `Signs ${signs}`}
             </Typography>
           </Stack>
@@ -59,24 +89,58 @@ export default function RolesTable({ roles, isLoading, onEdit, onDelete, canEdit
     {
       key: "status",
       header: "Status",
+      width: "16%",
+      headSx,
+      cellSx: { py: 2.2 },
       render: (role) => {
-        return role.isApprover ? "Approve" : "Not Approve";
+        const isApproved = Boolean(role.isApprover);
+        return (
+          <Box
+            component="span"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              px: 1.5,
+              py: 0.5,
+              borderRadius: "6px",
+              bgcolor: isApproved ? "#0E7054" : "#F1F5F9",
+              color: isApproved ? "#FFFFFF" : "#475569",
+              fontSize: "13px",
+              fontWeight: 600,
+              lineHeight: 1.4,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {isApproved ? "Approve" : "Not Approve"}
+          </Box>
+        );
       },
     },
     {
       key: "actions",
-      header: "Actions",
+      header: "Action",
+      width: "14%",
       align: "right",
+      headSx: { ...headSx, pr: { xs: 2, sm: 2.5 } },
+      cellSx: { pr: { xs: 2, sm: 2.5 }, py: 2.2 },
       render: (role) => (
-        <Stack direction="row" spacing={2} onClick={(e) => e.stopPropagation()} sx={{ justifyContent: "flex-end" }}>
+        <Stack
+          direction="row"
+          spacing={1.5}
+          onClick={(e) => e.stopPropagation()}
+          sx={{ justifyContent: "flex-end", alignItems: "center" }}
+        >
           {canEdit && (
             <BaseIconButton
               isBorder
-              icon={<PenLine size={font.size.md} color={palette.icon.default} />}
-              // The tooltip claimed system roles were uneditable while the button still fired.
+              icon={<Pencil size={font.size.md} color={palette.icon.default} />}
               tooltip={role.isSystem ? "System roles can't be edited" : "Edit role access"}
               disabled={role.isSystem}
-              onClick={() => onEdit(role)}
+              onClick={(e) => {
+                e?.stopPropagation?.();
+                onEdit(role);
+              }}
               aria-label={`Edit ${role.name}`}
             />
           )}
@@ -88,7 +152,10 @@ export default function RolesTable({ roles, isLoading, onEdit, onDelete, canEdit
               tooltip={role.isSystem ? "System roles can't be deleted" : "Delete role"}
               color="error"
               disabled={role.isSystem}
-              onClick={() => onDelete(role)}
+              onClick={(e) => {
+                e?.stopPropagation?.();
+                onDelete(role);
+              }}
               aria-label={`Delete ${role.name}`}
             />
           )}
@@ -103,15 +170,17 @@ export default function RolesTable({ roles, isLoading, onEdit, onDelete, canEdit
       rows={roles}
       getRowKey={(role) => role.id}
       isLoading={isLoading}
-      minWidth={1040}
+      minWidth={720}
       emptyTitle="No roles found"
       emptyDescription="Try a different search, or create a new role."
       pagination={pagination}
+      paginationVariant="compact"
       onRowClick={onRowClick}
-      rounded={true}
-      headerBgColor={palette.slate[50]}
+      rounded={false}
+      headerBgColor="transparent"
       headerBorderColor={palette.slate[200]}
       headerTextColor={palette.slate[400]}
+      headerBorderTop={false}
     />
   );
 }

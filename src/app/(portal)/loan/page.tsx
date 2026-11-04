@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Box, Grid, Stack } from "@mui/material";
-import { CirclePlus } from "lucide-react";
-
-import BaseButton from "@core/components/BaseButton";
+import { Box, Grid } from "@mui/material";
 import { resolveBaseDownloadRange, type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { showToast } from "@core/components/AppToast";
 import { useAppSelector } from "@/store/hooks";
@@ -59,7 +56,7 @@ export default function LoanPage() {
   // `listAccounts` is a mutation with no fetch-on-mount of its own (same
   // pattern as `account/page.tsx`) — trigger it manually and read the
   // response back from the slice via `selectAccountsResponse`.
-  const [listAccounts, listAccountsResult] = useListAccountsMutation();
+  const [listAccounts] = useListAccountsMutation();
   useEffect(() => {
     listAccounts({ type: "CL" });
   }, [listAccounts]);
@@ -110,23 +107,10 @@ export default function LoanPage() {
   const [selectedLoanId, setSelectedLoanId] = useState<string | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  // Auto-select the first loan once the list loads so the overview/transactions panels
-  // always show a selected loan.
-  useEffect(() => {
-    if (loanAccounts.length > 0) {
-      const exists = loanAccounts.some(
-        (l) => l.id === selectedLoanId || l.number === selectedLoanId,
-      );
-      if (!exists) {
-        setSelectedLoanId(loanAccounts[0].id);
-      }
-    }
-  }, [loanAccounts, selectedLoanId]);
-
   const selectedLoanAccount = useMemo(() => {
-    return (
-      loanAccounts.find((l) => l.id === selectedLoanId || l.number === selectedLoanId) ??
-      loanAccounts[0]
+    if (!selectedLoanId) return undefined;
+    return loanAccounts.find(
+      (l) => l.id === selectedLoanId || l.number === selectedLoanId,
     );
   }, [loanAccounts, selectedLoanId]);
 
@@ -225,7 +209,7 @@ export default function LoanPage() {
       });
     }
   };
-
+  
   return (
     <Box sx={{ width: "100%" }}>
       <Grid container spacing={2.5}>
@@ -234,47 +218,49 @@ export default function LoanPage() {
             outstandingKhr={outstandingByCcy.khr}
             outstandingUsd={outstandingByCcy.usd}
             loans={loanAccounts}
-            selectedId={selectedLoanAccount?.id ?? selectedLoanId}
+            selectedId={selectedLoanAccount?.id}
             onSelect={(id) => setSelectedLoanId(id)}
           />
         </Grid>
 
         <Grid size={{ xs: 12, lg: 9 }}>
-          <Grid container spacing={2.5}>
-            <Grid size={12}>
-              <LoanDetailCard
-                key={selectedLoanAccount?.id ?? selectedLoanId}
-                loanName={selectedLoanAccount?.name}
-                accountNumber={selectedLoanAccount?.number}
-                loanType={selectedLoanAccount?.type || schedule.accountType}
-                outstandingAmount={selectedLoanAccount?.balance}
-                currency={selectedLoanAccount?.currency || schedule.currency}
-                loanReference={
-                  selectedLoanAccount?.id === "overdraft"
-                    ? "OD-2026-00014"
-                    : "LN-2026-00087"
-                }
-                borrower={borrower}
-                schedule={schedule}
-                onOpenDetails={() => setDetailsOpen(true)}
-                onOpenAccountInfo={() => setDetailsOpen(true)}
-                onExportStatements={handleExportStatements}
-                onPayNow={() => {
-                  showToast("info", {
-                    title: "Loan Repayment",
-                    message: "Proceeding to repayment...",
-                  });
-                }}
-              />
-            </Grid>
+          {selectedLoanAccount && (
+            <Grid container spacing={2.5}>
+              <Grid size={12}>
+                <LoanDetailCard
+                  key={selectedLoanAccount.id}
+                  loanName={selectedLoanAccount.name}
+                  accountNumber={selectedLoanAccount.number}
+                  loanType={selectedLoanAccount.type || schedule.accountType}
+                  outstandingAmount={selectedLoanAccount.balance}
+                  currency={selectedLoanAccount.currency || schedule.currency}
+                  loanReference={
+                    selectedLoanAccount.id === "overdraft"
+                      ? "OD-2026-00014"
+                      : "LN-2026-00087"
+                  }
+                  borrower={borrower}
+                  schedule={schedule}
+                  onOpenDetails={() => setDetailsOpen(true)}
+                  onOpenAccountInfo={() => setDetailsOpen(true)}
+                  onExportStatements={handleExportStatements}
+                  onPayNow={() => {
+                    showToast("info", {
+                      title: "Loan Repayment",
+                      message: "Proceeding to repayment...",
+                    });
+                  }}
+                />
+              </Grid>
 
-            <Grid size={12}>
-              <LoanTransactionsCard
-                key={selectedLoanAccount?.id ?? selectedLoanId}
-                transactions={selectedLoanDetails.transactions}
-              />
+              <Grid size={12}>
+                <LoanTransactionsCard
+                  key={selectedLoanAccount.id}
+                  transactions={selectedLoanDetails.transactions}
+                />
+              </Grid>
             </Grid>
-          </Grid>
+          )}
         </Grid>
       </Grid>
 

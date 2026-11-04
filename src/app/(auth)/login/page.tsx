@@ -29,22 +29,16 @@ export type LoginFormFields = {
 
 const PRESET_ACCOUNTS = [
   {
-    label: "selina.001",
+    label: "seavinh.001",
     role: "Corporate",
-    username: "selina.001",
-    password: "@STRONGPASSWORD",
+    username: "seavinh.001",
+    password: "@STRONGPASSWORd1",
   },
   {
-    label: "wesley.001",
+    label: "vattana.001",
     role: "Corporate",
-    username: "wesley.001",
-    password: "@STRONGPASSWORD",
-  },
-  {
-    label: "selina002",
-    role: "Corporate",
-    username: "selina002",
-    password: "@STRONGPASSW0Rd",
+    username: "vattana.001",
+    password: "@STRONGPASSWORd1",
   },
 ];
 

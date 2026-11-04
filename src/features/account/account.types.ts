@@ -31,6 +31,7 @@ export interface BankAccountListItem {
 
 /** Raw core account row, as returned inside `GET accounts`'s `data.accounts[]`. */
 export interface CoreAccountEntry {
+  id?: string;
   accountNumber: string;
   accountName: string;
   accountClass: string;
