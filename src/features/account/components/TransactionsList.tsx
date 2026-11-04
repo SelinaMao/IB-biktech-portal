@@ -15,8 +15,10 @@ import SectionCard from "@/features/dashboard/components/SectionCard";
 import type { BaseFilterValue } from "@core/components/BaseFilter";
 import { formatTransactionAmount, isIncomingTransaction } from "../account.slice";
 import type { TTransactionDetailResponse } from "../account.types";
-import { formatAccountNumber } from "@/utils";
-import { palette } from "@/theme/palette";
+import StatementDownloadDialog from "./StatementDownloadDialog";
+import { padding, palette } from "@/theme/palette";
+import { SectionCard } from "@/features/dashboard";
+import BaseSearchButton from "@/@core/components/BaseSearchButton";
 
 export interface TransactionsListProps {
   transactions: TTransactionDetailResponse[];
@@ -25,7 +27,7 @@ export interface TransactionsListProps {
   onSelectTransaction?: (transaction: TTransactionDetailResponse) => void;
   query: string;
   onQueryChange: (value: string) => void;
-  showDateFilter?: boolean;
+  // showDateFilter?: boolean;
   dateFilter: BaseFilterValue;
   onDateFilterChange: (value: BaseFilterValue) => void;
   page: number;
@@ -200,123 +202,137 @@ export default function TransactionsList({
   ];
 
   return (
-    <SectionCard
-      title="Transactions"
-      header={
-        showDownload ? (
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-            <BaseButton
-              title="Download Statements"
-              variant="contained"
-              onClick={() => setStatementDownloadOpen(true)}
-              startIcon={<Download size={16} />}
-               sx={{
-                  bgcolor: "#EBF3FA",
-                  color: "#0F172A",
-                  borderRadius: "999px",
-                  textTransform: "none",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  px: 4.5,
-                  py: 0.85,
-                  height: 38,
-                  boxShadow: "none",
-                  whiteSpace: "nowrap",
-                  "&:hover": { bgcolor: "#DFEAF6", boxShadow: "none" ,border  :"none"},
+    <>
+      <SectionCard
+        title="Transactions"
+        showBorder={false}
+      >
+        <Box
+          sx={{
+            width: `calc(100% + ${CARD_PADDING_PX * 2}px)`,
+            mx: `-${CARD_PADDING_PX}px`,
+            padding: "10px",
+          }}
+        >
+          <Box
+            sx={{
+              fontFamily: "var(--font-noto-khmer), sans-serif",
+              width: "100%",
+            }}
+          >
+            {/* Search and Download Row */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 2,
+              }}
+            >
+              <BaseSearchButton
+                value={query}
+                onChange={onQueryChange}
+                placeholder="Search transactions…"
+              />
+
+              {showDownload && (
+                <BaseButton
+                  title="Download Statements"
+                  variant="contained"
+                  startIcon={<Download size={16} />}
+                  onClick={() => setStatementOpen(true)}
+                  sx={{
+                    bgcolor: "#EBF3FA",
+                    color: "#0F172A",
+                    borderRadius: "999px",
+                    textTransform: "none",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    px: 3.5,
+                    py: 1,
+                    height: 40,
+                    boxShadow: "none",
+                    whiteSpace: "nowrap",
+                    "&:hover": {
+                      bgcolor: "#DCE8F5",
+                    },
+                  }}
+                />
+              )}
+            </Box>
+
+            {/* Filter Row: BaseSearchByDay */}
+            {/* {showDateFilter && (
+              <Box
+                sx={{
+                  mb: 3,
+                  mt: 6,
+                  borderTop: "1px solid",
+                  pt: 6,
+                  borderTopColor: palette.secondary[100],
                 }}
+              >
+                <BaseSearchByDay
+                  search={query}
+                  onSearchChange={(val) => {
+                    onQueryChange(val);
+                    onPageChange(0);
+                  }}
+                  dateFilter={filterByDayValue}
+                  onDateFilterChange={(filter) => {
+                    handleDayFilterChange(filter);
+                    onPageChange(0);
+                  }}
+                />
+              </Box>
+            )} */}
+
+            {/* Transactions Table */}
+            <BaseTable
+              columns={columns}
+              rows={transactions}
+              getRowKey={(t) => t.transactionId}
+              skeletonRows={rowsPerPage}
+              onRowClick={onSelectTransaction}
+              isLoading={isLoading}
+              headerBgColor="white"
+              headerBorderColor="#F1F5F9"
+              headerBorderTop={false}
+              rounded={false}
+              emptyTitle={
+                error
+                  ? "Could not load transactions."
+                  : "No transactions in this period."
+              }
+              emptyDescription={error ? "Please try again." : undefined}
+              pagination={
+                total > 0 && !error
+                  ? {
+                      count: total,
+                      page,
+                      rowsPerPage,
+                      onPageChange,
+                    }
+                  : undefined
+              }
+              paginationVariant="compact"
             />
+
+            {/* Statement Download Dialog */}
             <StatementDownloadDialog
-              open={statementDownloadOpen}
-              onClose={() => setStatementDownloadOpen(false)}
+              open={statementOpen}
+              onClose={() => setStatementOpen(false)}
               accountName={accountName}
               accountNumber={accountNumber}
-              onDownload={(value: BaseDownloadValue) => {
-                onDownload?.(value);
+              onDownload={(val) => {
+                onDownload?.(val);
               }}
               isDownloading={isDownloading}
             />
-          </Stack>
-        ) : null
-      }
-      showBorder={false}
-    >
-      <Box
-        sx={{
-          width: `calc(100% + ${CARD_PADDING_PX * 2}px)`,
-          mx: `-${CARD_PADDING_PX}px`,
-        }}
-      >
-        <Stack sx={{ px: 2.5, py: 1.5 }}>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "column", md: "row" },
-              justifyContent: "space-between",
-              alignItems: { xs: "stretch", sm: "center" },
-              gap: 1.5,
-              paddingTop: 6,
-              borderTop: "1px solid",
-              borderTopColor: palette.secondary[100],
-            }}
-          >
-            <BaseSearchButton
-              value={query}
-              onChange={(v) => {
-                onQueryChange(v);
-                onPageChange(0);
-              }}
-              placeholder="Search transactions…"
-              tooltip="Search"
-              width={240}
-            />
-            <BaseFilterByDay
-              value={filterByDayValue}
-              onChange={(v) => {
-                handleDayFilterChange(v);
-                onPageChange(0);
-              }}
-            />
           </Box>
-
-          <BaseTable
-            columns={columns}
-            rows={transactions}
-            getRowKey={(t) => t.transactionId}
-            skeletonRows={rowsPerPage}
-            onRowClick={onSelectTransaction}
-            isLoading={isLoading}
-            headerBgColor="#FFFFFF"
-            headerBorderColor="#E2E8F0"
-            headerTextColor={palette.slate[500]}
-            headerBorderTop={false}
-            rounded={false}
-            emptyTitle={error ? "Could not load transactions." : "No transactions in this period."}
-            emptyDescription={error ? "Please try again." : undefined}
-            getRowSx={() => ({
-              cursor: onSelectTransaction ? "pointer" : "default",
-              "& .MuiTableCell-root, & td": {
-                borderBottom: "none",
-                py: 3,
-              },
-            })}
-            pagination={
-              total > 0 && !error
-                ? {
-                  count: total,
-                  page,
-                  rowsPerPage,
-                  onPageChange,
-                }
-                : undefined
-            }
-            paginationSx={{
-              pr: `${CARD_PADDING_PX}px`,
-              pl: `${CARD_PADDING_PX}px`,
-            }}
-            paginationVariant="compact"
-          />
-        </Stack>
-      </Box>
-    </SectionCard>
+        </Box>
+      </SectionCard>
+    </>
   );
 }

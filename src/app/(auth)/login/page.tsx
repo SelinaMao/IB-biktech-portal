@@ -40,6 +40,19 @@ const PRESET_ACCOUNTS = [
     username: "vattana.001",
     password: "@STRONGPASSWORd1",
   },
+  {
+    label: "Jin",
+    role: "Corporate",
+    username: "jin.001",
+    password: "Jin12345678",
+  },
+  {
+    label: "ethan",
+    role: "Corporate",
+    username: "eb.502",
+    password: "Ethan12345678",
+  },
+
 ];
 
 export default function ClientLoginPage() {
@@ -156,6 +169,8 @@ export default function ClientLoginPage() {
         setPhone(result.data.user.phone ?? "");
         setSubmitting(false);
         otpDialog.openOtp(result.data?.resendSecondCount);
+
+        sessionStorage.setItem("token",result.data?.challengeToken ?? "");
       } else if (result.status === "success") {
         showToast("success", {
           title: t("loginSuccessTitle"),
@@ -184,7 +199,7 @@ export default function ClientLoginPage() {
     if (!pendingCredentials) return;
 
     return otpDialog.runVerify(async () => {
-      await verifyOtp({
+      const result = await verifyOtp({
         confirmCode: code,
         otpId,
       });
@@ -193,6 +208,7 @@ export default function ClientLoginPage() {
         otpDialog.closeOtp();
         router.push("/setupPassword");
       }, 900);
+      sessionStorage.setItem("verification",result?.verificationToken ?? "");
     });
   };
 

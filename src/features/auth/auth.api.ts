@@ -14,6 +14,8 @@ import type {
   ForgotPasswordResult,
   SessionInfo,
   RefreshSessionResult,
+  ConfirmCodeResult,
+  RequestConfirmOTP,
 } from "@core/types/auth";
 
 export type {
@@ -96,8 +98,9 @@ export const authApi = baseApi.injectEndpoints({
       query: (body) => ({ url: adminApi.AUTH.SIGNUP_REQUEST_CODE, method: "POST", body }),
     }),
 
-    signUpVerifyOtp: build.mutation<VerifyOtpResult, VerifyOtpRequest>({
-      query: (body) => ({ url: adminApi.AUTH.SIGNUP_VERIFY_OTP, method: "POST", body: { ...body, confirmationCode: body.confirmCode } }),
+
+    signUpVerifyOtp: build.mutation<ConfirmCodeResult, RequestConfirmOTP>({
+      query: (body) => ({ url: adminApi.AUTH.SIGNUP_VERIFY_OTP, method: "POST", body}),
     }),
 
     forgotPassword: build.mutation<ForgotPasswordResult, ForgotPasswordRequest>({

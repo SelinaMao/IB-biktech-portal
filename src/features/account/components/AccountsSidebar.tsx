@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 
 import BaseBlurText from "@core/components/BaseBlurText";
 import { formatCCY } from "@/utils/format-ccy";
 import { formatAccountNumber } from "@/utils/format-account-number";
-import type { CoreAccountEntry, CoreAccountsResponse } from "../account.types";
+import type {
+  CoreAccountEntry,
+  CoreAccountsResponse,
+} from "../account.types";
+import { font, palette } from "@/theme/palette";
 
 export interface AccountsSidebarProps {
   summary: CoreAccountsResponse["summary"] | null;
@@ -15,90 +18,27 @@ export interface AccountsSidebarProps {
   onSelect?: (id: string) => void;
 }
 
-const getAccountIndicatorColor = (
-  account: CoreAccountEntry,
-  index: number,
-  isDeposit: boolean,
-): string => {
-  if (account.color) return account.color;
-
-  const type = (account.accountType || account.type || "").toUpperCase();
-  const name = (account.accountName || "").toLowerCase();
-
-  if (isDeposit || type === "TD" || type === "FD" || name.includes("fixed") || name.includes("deposit")) {
-    return "#20A678"; // Green for Deposit / TD
-  }
-
-  if (type === "CA" || name.includes("shiiping") || name.includes("shipping") || index === 0) {
-    return "#1C64B4"; // Blue for Current / Shiiping
-  }
-
-  if (type === "SA" || name.includes("current") || name.includes("saving") || index === 1) {
-    return "#E88000"; // Orange
-  }
-
-  const fallbackColors = ["#1C64B4", "#E88000", "#20A678", "#8B5CF6"];
-  return fallbackColors[index % fallbackColors.length];
-};
-
-/** Formats dynamic amount as "KHR 120,293,000.00" or "USD 293,000.00" */
-function formatSummaryCurrency(
-  amount: number | string | undefined | null,
-  ccy: string,
-): string {
-  const num = Number(amount ?? 0);
-  const formatted = (isNaN(num) ? 0 : num).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return `${ccy} ${formatted}`;
-}
-
-const isDepositAccount = (account: CoreAccountEntry) => {
-  const type = (account.accountType || account.type || "").toUpperCase();
-  const cls = (account.accountClass || "").toUpperCase();
-  const desc = (account.accountClassDescription || "").toLowerCase();
-  const name = (account.accountName || "").toLowerCase();
-  return (
-    type === "TD" ||
-    type === "FD" ||
-    cls === "TD" ||
-    cls === "FD" ||
-    desc.includes("fixed") ||
-    desc.includes("deposit") ||
-    desc.includes("term") ||
-    name.includes("fixed") ||
-    name.includes("deposit")
-  );
-};
-
 export default function AccountsSidebar({
-  summary,
   accounts,
   selectedId,
   onSelect,
 }: AccountsSidebarProps) {
-  // Dynamic balances: prefer core summary totals, fallback to summing accounts list dynamically
-  const { totalBalanceKHR, totalBalanceUSD } = useMemo(() => {
-    const khr =
-      summary?.totalBalanceKHR !== undefined
-        ? summary.totalBalanceKHR
-        : accounts
-            .filter((a) => a.ccy === "KHR")
-            .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
-
-    const usd =
-      summary?.totalBalanceUSD !== undefined
-        ? summary.totalBalanceUSD
-        : accounts
-            .filter((a) => a.ccy === "USD" || !a.ccy)
-            .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
-
-    return {
-      totalBalanceKHR: khr,
-      totalBalanceUSD: usd,
-    };
-  }, [summary, accounts]);
+  // Group accounts by type
+  const accountsList = [
+    {
+      name: "Savings",
+      accounts: accounts.filter(
+        (account) =>
+          account.accountType === "SA" || account.accountType === "CA"
+      ),
+    },
+    {
+      name: "Fixed Deposit",
+      accounts: accounts.filter(
+        (account) => account.accountType === "FD"
+      ),
+    },
+  ];
 
   const savingsAccounts = useMemo(
     () => accounts.filter((a) => !isDepositAccount(a)),
@@ -255,76 +195,173 @@ export default function AccountsSidebar({
           Summary
         </Typography>
 
-        <Stack spacing={0.75}>
-          <Typography
-            sx={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#0F172A",
-              lineHeight: 1.35,
-            }}
-          >
-            <BaseBlurText>
-              {formatSummaryCurrency(totalBalanceKHR, "KHR")}
-            </BaseBlurText>
-          </Typography>
+        {/* White Summary Content */}
+        <Box
+          sx={{
+            bgcolor: "white",
+            borderRadius: "24px",
+            p: "16px",
+          }}
+        >
+          <Stack spacing={2}>
+            {/* Account Balances Summary */}
+            <Box
+              sx={{
+                p: "16px",
+                backgroundColor: "#2764A514",
+                borderRadius: "12px",
+              }}
+            >
+              <Typography
+                sx={{
+                  color: "#6B7685",
+                  mb: 1,
+                }}
+              >
+                Summary
+              </Typography>
 
-          <Typography
-            sx={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#0F172A",
-              lineHeight: 1.35,
-            }}
-          >
-            <BaseBlurText>
-              {formatSummaryCurrency(totalBalanceUSD, "USD")}
-            </BaseBlurText>
-          </Typography>
-        </Stack>
+              {accounts.map((account) => (
+                <Box
+                  key={account.accountNumber}
+                  sx={{
+                    display: "flex",
+                    gap: "5px",
+                    mb: 0.5,
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: palette.black30,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {account.ccy}
+                  </Typography>
+
+                  <Typography
+                    sx={{
+                      color: palette.black30,
+                    }}
+                  >
+                    {formatCCY(account.availableBalance)}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+
+            {/* Account Groups */}
+            {accountsList.map(
+              (accountGroup) =>
+                accountGroup.accounts.length > 0 && (
+                  <Stack
+                    key={accountGroup.name}
+                    spacing={1}
+                  >
+                    <Typography
+                      sx={{
+                        color: "#6B7685",
+                        fontSize: "15px",
+                        fontWeight: font.weight.semibold,
+                        py: "10px",
+                      }}
+                    >
+                      {accountGroup.name}
+                    </Typography>
+
+                    {accountGroup.accounts.map((account) => (
+                      <Box
+                        key={account.accountNumber}
+                        onClick={() =>
+                          onSelect?.(account.accountNumber)
+                        }
+                        sx={{
+                          cursor: onSelect ? "pointer" : "default",
+                          width: "100%",
+                          boxSizing: "border-box",
+                          backgroundColor: "white",
+                          borderRadius: "8px",
+                          border: "1px solid #2764A514",
+                          p: "16px",
+                          display: "flex",
+                          gap: "10px",
+                          alignItems: "center",
+                          "&:hover": onSelect
+                            ? { backgroundColor: "#F8FAFC" }
+                            : {},
+                        }}
+                      >
+                        {/* Account Indicator */}
+                        <Box
+                          sx={{
+                            backgroundColor:
+                              account.color || "#3391D0",
+                            width: "4px",
+                            height: "40px",
+                            borderRadius: "4px",
+                            flexShrink: 0,
+                          }}
+                        />
+
+                        {/* Account Information */}
+                        <Box
+                          sx={{
+                            flex: 1,
+                            minWidth: 0,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: "12px",
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                fontSize: "15px",
+                                color: palette.black30,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {account.accountName}
+                            </Typography>
+
+                            <Typography
+                              sx={{
+                                fontSize: "15px",
+                                color: palette.black30,
+                                fontWeight: 600,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {account.ccy}{" "}
+                              {formatCCY(account.availableBalance)}
+                            </Typography>
+                          </Box>
+
+                          <Typography
+                            sx={{
+                              fontSize: font.size.xs,
+                              color: palette.text.secondary,
+                              mt: 0.25,
+                            }}
+                          >
+                            {account.accountNumber}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Stack>
+                )
+            )}
+          </Stack>
+        </Box>
       </Box>
+      {/* ───────── End Summary Box ───────── */}
 
-      {/* ───────── Savings Section ───────── */}
-      {savingsAccounts.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Typography
-            sx={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#5A6B82",
-              lineHeight: 1.2,
-              mb: 1.5,
-              px: 0.5,
-            }}
-          >
-            Savings
-          </Typography>
-          <Stack spacing={1.5}>
-            {savingsAccounts.map((account, index) => renderAccountCard(account, index, false))}
-          </Stack>
-        </Box>
-      )}
-
-      {/* ───────── Deposit Section ───────── */}
-      {depositAccounts.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Typography
-            sx={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#5A6B82",
-              lineHeight: 1.2,
-              mb: 1.5,
-              px: 0.5,
-            }}
-          >
-            Deposit
-          </Typography>
-          <Stack spacing={1.5}>
-            {depositAccounts.map((account, index) => renderAccountCard(account, index, true))}
-          </Stack>
-        </Box>
-      )}
+     
     </Box>
   );
 }
