@@ -1,7 +1,6 @@
 "use client";
 
 import { Box, Stack, Typography } from "@mui/material";
-import { WalletCards } from "lucide-react";
 
 import BaseBlurText from "@core/components/BaseBlurText";
 import { formatCCY } from "@/utils/format-ccy";
@@ -41,12 +40,137 @@ export default function AccountsSidebar({
     },
   ];
 
+  const savingsAccounts = useMemo(
+    () => accounts.filter((a) => !isDepositAccount(a)),
+    [accounts],
+  );
+
+  const depositAccounts = useMemo(
+    () => accounts.filter((a) => isDepositAccount(a)),
+    [accounts],
+  );
+
+  const renderAccountCard = (
+    account: CoreAccountEntry,
+    index: number,
+    isDeposit: boolean,
+  ) => {
+    const key = account.id || `${account.accountNumber}-${account.accountType}`;
+    const active = Boolean(
+      selectedId &&
+        (account.id === selectedId ||
+          account.accountNumber === selectedId ||
+          `${account.accountNumber}-${account.accountType}` === selectedId),
+    );
+
+    const barColor = getAccountIndicatorColor(account, index, isDeposit);
+
+    return (
+      <Box
+        key={key}
+        role={onSelect ? "button" : undefined}
+        tabIndex={onSelect ? 0 : undefined}
+        onClick={() => onSelect?.(key)}
+        onKeyDown={(e) => {
+          if (!onSelect) return;
+          if (e.key === "Enter" || e.key === " ") onSelect(key);
+        }}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxSizing: "border-box",
+          width: "100%",
+          height: 72,
+          minWidth: 0,
+          overflow: "hidden",
+          p: "0 10px",
+          borderRadius: "16px",
+          cursor: onSelect ? "pointer" : "default",
+          bgcolor: active ? "#EDF4FC" : "#FFFFFF",
+          border: active ? "1.5px solid #85B7E8" : "1.5px solid #EDF2F7",
+          transition: "all 0.15s ease-in-out",
+          "&:hover": {
+            bgcolor: active ? "#EDF4FC" : "#F8FAFC",
+            borderColor: active ? "#73A8DC" : "#CBD5E1",
+          },
+        }}
+      >
+        {/* Left: Indicator Bar + Account Name & Number */}
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{ alignItems: "center", minWidth: 0, pr: 1 }}
+        >
+          <Box
+            sx={{
+              width: "4px",
+              height: "32px",
+              borderRadius: "4px",
+              bgcolor: barColor,
+              flexShrink: 0,
+            }}
+          />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography
+              sx={{
+                fontSize: 16,
+                fontWeight: 700,
+                color: "#0F172A",
+                lineHeight: 1.25,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {account.accountName}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: 13.5,
+                fontWeight: 400,
+                color: "#64748B",
+                mt: "4px",
+                lineHeight: 1.2,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {formatAccountNumber(account.accountNumber)}
+            </Typography>
+          </Box>
+        </Stack>
+
+        {/* Right: Balance */}
+        <Typography
+          sx={{
+            fontSize: 16,
+            fontWeight: 700,
+            color: "#0F172A",
+            textAlign: "right",
+            flexShrink: 0,
+            maxWidth: "55%",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            pl: 1,
+          }}
+        >
+          <BaseBlurText>
+            {formatCCY(account.availableBalance, account.ccy)}
+          </BaseBlurText>
+        </Typography>
+      </Box>
+    );
+  };
+
   return (
     <Box
       sx={{
         bgcolor: "#FFFFFF",
-        borderRadius: "16px",
-        p: { xs: 2, sm: 2.5 },
+        borderRadius: "24px",
+        p: { xs: 2.5, sm: "20px 15px" },
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
         border: "1px solid #EDF2F7",
       }}
@@ -55,7 +179,7 @@ export default function AccountsSidebar({
       <Box
         sx={{
           bgcolor: "#F4F7FB",
-          borderRadius: "18px",
+          borderRadius: "12px",
           p: "18px 20px",
         }}
       >

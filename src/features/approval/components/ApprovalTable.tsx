@@ -96,11 +96,18 @@ export default function ApprovalTable({
     }
   };
 
-  // Pagination parameters
-  const page = externalPage ?? pagination?.page ?? 0;
-  const rowsPerPage = externalRowsPerPage ?? pagination?.rowsPerPage ?? 10;
-  const handlePageChange = externalOnPageChange ?? pagination?.onPageChange ?? (() => {});
-  const effectiveTotal = totalCount ?? pagination?.count ?? entries.length;
+  // Pagination resolution (supports both direct props and nested pagination prop)
+  const effectiveTotal = pagination?.count ?? totalCount ?? 0;
+  const page = pagination?.page ?? externalPage ?? 0;
+  const ROWS_PER_PAGE = pagination?.rowsPerPage ?? externalRowsPerPage ?? 5;
+
+  const handlePageChange = (newPage: number) => {
+    if (pagination?.onPageChange) {
+      pagination.onPageChange(newPage);
+    } else if (externalOnPageChange) {
+      externalOnPageChange(newPage);
+    }
+  };
 
   const formatAmount = (amount: number, currency: string) => {
     if ((currency || "").toUpperCase() === "KHR") {
@@ -347,8 +354,8 @@ export default function ApprovalTable({
         })}
         pagination={{
           count: effectiveTotal,
-          page,
-          rowsPerPage,
+          page: page,
+          rowsPerPage: ROWS_PER_PAGE,
           onPageChange: handlePageChange,
         }}
         paginationVariant="compact"

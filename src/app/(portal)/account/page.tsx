@@ -21,6 +21,7 @@ import {
   selectAccountInfoDetail,
   selectFixedDepositDetail,
   selectAccountsResponse,
+  selectAccountSummaryResponse,
   selectTransactionsForAccount,
   selectAccountTransactions,
   useGetAccountDetailMutation,
@@ -28,7 +29,6 @@ import {
   useListAccountsMutation,
   useListTransactionsMutation,
   type TTransactionDetailResponse,
-  type CoreAccountEntry,
   type RolloverOption,
 } from "@/features/account";
 import { downloadBlob } from "@/utils/download-file";
@@ -101,9 +101,8 @@ export default function AccountPage() {
 
   const [pendingRolloverOption, setPendingRolloverOption] = useState<RolloverOption | null>(null);
   const [rolloverQrOpen, setRolloverQrOpen] = useState(false);
-  const selectedAccount = bankAccounts.find((account) => account.accountNumber === accountNumber);
   const accounType = selectedAccount?.accountType ?? "";
-  const isFixedDeposit = accounType === "TD";
+  const isFixedDeposit = accounType === "TD" || (selectedAccount?.accountName || "").toLowerCase().includes("fixed");
   const isSaving = accounType === "SA";
 
   const [getAccountDetail] = useGetAccountDetailMutation();
@@ -195,10 +194,22 @@ export default function AccountPage() {
 
   const apiTransactions = useAppSelector((state) => selectAccountTransactions(state, accountNumber, selectedAccount?.accountName));
   const transactionsStatus = transactionsResponse?.status ?? "loading";
-  const transactionsTotal = transactionsResponse?.total ?? 0;
+  const selectedTransactions = apiTransactions ?? [];
+  const transactionsTotal = transactionsResponse?.total ?? selectedTransactions.length;
 
-  const accountInfoDetail = useAppSelector((state) => selectAccountInfoDetail(state, accountNumber));
-  const fixedDepositDetail = useAppSelector((state) => selectFixedDepositDetail(state, accountNumber));
+  const accountInfoDetail = useAppSelector((state) =>
+    accountNumber ? selectAccountInfoDetail(state, accountNumber) : undefined,
+  );
+  const fixedDepositDetail = useAppSelector((state) =>
+    accountNumber ? selectFixedDepositDetail(state, accountNumber) : undefined,
+  );
+  const accountSummaryResponse = useAppSelector(selectAccountSummaryResponse);
+  const selectedAccountSummary = useMemo(() => {
+    if (!accountNumber || !accountSummaryResponse) return undefined;
+    return accountSummaryResponse.accountNumber === accountNumber
+      ? accountSummaryResponse.data
+      : undefined;
+  }, [accountNumber, accountSummaryResponse]);
 
   console.log(accountInfoDetail)
 
@@ -209,13 +220,17 @@ export default function AccountPage() {
     () =>
       accountInfoDetail
         ? {
-            name: accountInfoDetail.accountName,
-            accountNumber: accountInfoDetail.accountNumber,
-          }
+          name: accountInfoDetail.accountName,
+          accountNumber: accountInfoDetail.accountNumber,
+        }
+        : selectedAccount
+        ? {
+          name: selectedAccount.accountName,
+          accountNumber: selectedAccount.accountNumber,
+        }
         : undefined,
-    [accountInfoDetail],
+    [accountInfoDetail, selectedAccount],
   );
-  const selectedTransactions = apiTransactions ?? [];
 
   if (accountInformationDetail && accountInfoDetail) {
     return <AccountInformationDetail open={accountInformationDetail} onClose={() => setaccountInformationDetail(false)} info={accountInfoDetail} fixedDeposit={fixedDepositDetail} onDownloadCertificate={handleDownloadCertificate} />;
@@ -229,8 +244,8 @@ export default function AccountPage() {
           <AccountsSidebar
             summary={coreSummary}
             accounts={bankAccounts}
-            selectedId={accountNumber}
-            onSelect={(id) => setAccountNumber(id)}
+            selectedId={selectedAccountId}
+            onSelect={(id) => setSelectedAccountId(id)}
           />
         </Grid>
         {/* <Grid size={12}>

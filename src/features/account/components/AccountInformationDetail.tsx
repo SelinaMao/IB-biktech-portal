@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import dayjs from "dayjs";
 import {
   Box,
   Dialog,
@@ -33,12 +32,14 @@ function DetailRow({
   isCopyable = false,
   rawCopyValue,
   valueColor = "#0F172A",
+  multiline = false,
 }: {
   label: string;
   value: React.ReactNode;
   isCopyable?: boolean;
   rawCopyValue?: string;
   valueColor?: string;
+  multiline?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -56,20 +57,30 @@ function DetailRow({
       direction="row"
       sx={{
         justifyContent: "space-between",
-        alignItems: "center",
+        alignItems: multiline ? "flex-start" : "center",
         py: 1.5,
       }}
     >
-      <Typography sx={{ fontSize: 13, color: "#64748B", fontWeight: 400 }}>
+      <Typography sx={{ fontSize: 14, color: "#64748B", fontWeight: 400 }}>
         {label}
       </Typography>
-      <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+      <Stack
+        direction="row"
+        spacing={0.75}
+        sx={{
+          alignItems: "center",
+          maxWidth: "60%",
+          justifyContent: "flex-end",
+        }}
+      >
         <Typography
           sx={{
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 500,
             color: valueColor,
             textAlign: "right",
+            whiteSpace: multiline ? "pre-line" : "normal",
+            lineHeight: 1.35,
           }}
         >
           {value}
@@ -99,31 +110,66 @@ export default function AccountInformationDetail({
   selectedAccount,
 }: AccountDetailsProps) {
   const target = fixedDeposit || info;
-  const rawType = (target?.accountType || info?.accountType || selectedAccount?.accountType || "").toUpperCase();
+  const rawType = (
+    target?.accountType ||
+    info?.accountType ||
+    selectedAccount?.accountType ||
+    ""
+  ).toUpperCase();
   const desc = (target?.productDesc || info?.productDesc || "").toLowerCase();
-  const isTD = isFixedDeposit || rawType === "TD" || desc.includes("fixed") || desc.includes("deposit");
+  const isTD =
+    isFixedDeposit ||
+    rawType === "TD" ||
+    desc.includes("fixed") ||
+    desc.includes("deposit");
 
-  const currency = target?.currencyCode || info?.ccy || info?.currencyCode || selectedAccount?.ccy || "USD";
-  const rawAccNumber = target?.accountNumber || info?.accountNumber || selectedAccount?.accountNumber || "000067898";
-  const formattedAccNumber = formatAccountNumber(rawAccNumber) || rawAccNumber;
+  const currency =
+    target?.currencyCode ||
+    info?.ccy ||
+    info?.currencyCode ||
+    selectedAccount?.ccy ||
+    "USD";
+  const rawAccNumber =
+    target?.accountNumber ||
+    info?.accountNumber ||
+    selectedAccount?.accountNumber ||
+    "000190068";
+  const formattedAccNumber =
+    formatAccountNumber(rawAccNumber) || rawAccNumber;
 
-  const accountTitle = isTD
-    ? target?.accountName || info?.accountName || selectedAccount?.accountName || "Fixed Account"
-    : info?.accountName || selectedAccount?.accountName || "Shiping co., ltd.";
+  const accountTitle =
+    selectedAccount?.accountName ||
+    info?.accountName ||
+    target?.accountName ||
+    "Shiping co., ltd.";
 
   const accountTypeDisplay = (() => {
-    if (isTD) return "Fixed Deposit Account";
+    if (isTD) return "Fixed Deposit";
     if (rawType === "SA") return "Savings";
     if (rawType === "CA") return "Current";
     if (info?.productDesc) return info.productDesc;
     return "Savings";
   })();
 
-  const companyName = info?.fullName || info?.accountName || "Shiping co., ltd.";
-  const representativeName = info?.joinHolderDto?.[0]?.accountName || "Anna Smith";
-  const settlementAccount = target?.accountSettlementNumber
-    ? `Savings - ${formatAccountNumber(target.accountSettlementNumber)}`
-    : "Savings - 000 067 898";
+  const companyName =
+    info?.fullName ||
+    info?.accountName ||
+    selectedAccount?.accountName ||
+    "Shiping co., ltd.";
+  const representativeName =
+    info?.joinHolderDto?.[0]?.accountName || "Anna Smith";
+  const contactEmail =
+    (info as unknown as Record<string, string>)?.email ||
+    (info as unknown as Record<string, string>)?.contactEmail ||
+    "ops@shipingcoltd.com";
+  const phoneNumber =
+    (info as unknown as Record<string, string>)?.phone ||
+    (info as unknown as Record<string, string>)?.phoneNumber ||
+    "+1 (555) 234-5678";
+  const billingAddress =
+    (info as unknown as Record<string, string>)?.address ||
+    (info as unknown as Record<string, string>)?.billingAddress ||
+    "Suite 402, Maritime Tower,\nBoston MA";
 
   const dailyLimit =
     info?.transactionLimitPerDay !== undefined
@@ -133,18 +179,13 @@ export default function AccountInformationDetail({
         })} ${currency}`
       : `250,000.00 ${currency}`;
 
-  // Fixed Deposit Dates & Tenor
-  const openingDate = target?.openedDate
-    ? dayjs(target.openedDate).format("DD MMM YYYY")
-    : "15 Mar 2026";
-  const effectiveDate = target?.openedDate
-    ? dayjs(target.openedDate).format("DD MMM YYYY")
-    : "15 Mar 2026";
-  const maturityDate = target?.maturityDate
-    ? dayjs(target.maturityDate).format("DD MMM YYYY")
-    : "15 Mar 2027";
-  const tenor = target?.tenorMonths ? `${target.tenorMonths} months` : "12 months";
-  const interestRate = target?.interestRate ? `${target.interestRate}% p.a.` : "6.0% p.a.";
+  const notificationPreferences =
+    (info as unknown as Record<string, string>)?.notificationPreferences ||
+    "SMS & Email Alerts";
+
+  const settlementAccount = target?.accountSettlementNumber
+    ? `Savings - ${formatAccountNumber(target.accountSettlementNumber)}`
+    : "Savings - 000 067 898";
 
   return (
     <Dialog
@@ -157,34 +198,41 @@ export default function AccountInformationDetail({
         paper: {
           sx: {
             position: "fixed",
-            right: { xs: 8, sm: 20, md: 24 },
-            top: { xs: 8, sm: 20, md: 24 },
-            bottom: { xs: 8, sm: 20, md: 24 },
+            top: { xs: 8, sm: 8, md: 14 },
+            right: { xs: 8, sm: 8, md: 14 },
+            bottom: { xs: 8, sm: 8, md: 14 },
             m: 0,
-            width: { xs: "calc(100vw - 16px)", sm: 460, md: 480 },
-            height: { xs: "calc(100vh - 16px)", sm: "calc(100vh - 40px)", md: "calc(100vh - 48px)" },
-            maxHeight: "none",
-            borderRadius: "28px",
+            width: { xs: "calc(100vw - 16px)", sm: 429 },
+            maxWidth: 429,
+            height: {
+              xs: "calc(100vh - 16px)",
+              sm: "calc(100vh - 16px)",
+              md: "calc(100vh - 28px)",
+            },
+            maxHeight: 976,
+            borderRadius: "24px",
             bgcolor: "#FFFFFF",
-            p: { xs: 2.5, sm: 3.5, md: 4 },
+            p: { xs: 2.5, sm: "20px 20px" },
             boxSizing: "border-box",
-            overflowY: "auto",
+            overflow: "hidden", // "we can't scroll"
             boxShadow: "0px 20px 40px rgba(15, 23, 42, 0.16)",
           },
         },
       }}
     >
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: 0, overflow: "hidden" }}>
         {/* ───────── Header ───────── */}
         <Stack
           direction="row"
           sx={{
             justifyContent: "space-between",
             alignItems: "center",
-            mb: 3.5,
+            mb: 2,
           }}
         >
-          <Typography sx={{ fontSize: 20, fontWeight: 700, color: "#0F172A" }}>
+          <Typography
+            sx={{ fontSize: 20, fontWeight: 700, color: "#0F172A", lineHeight: 1.25 }}
+          >
             Account Information
           </Typography>
           <IconButton
@@ -202,113 +250,96 @@ export default function AccountInformationDetail({
           </IconButton>
         </Stack>
 
-        <Stack spacing={3}>
-          {/* ───────── Section 1: Account Overview ───────── */}
-          <Box>
-            <Stack
-              direction="row"
-              sx={{
-                justifyContent: "space-between",
-                alignItems: "center",
-                mb: 1.5,
-              }}
-            >
-              <Typography sx={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>
-                Account Overview
-              </Typography>
-              <Box
-                sx={{
-                  px: 1.5,
-                  py: 1.25,
-                  borderRadius: "999px",
-                  bgcolor: "#E0F4E7",
-                  color: "#166D35",
-                  fontSize: 12,
-                  fontWeight: 600,
-                }}
-              >
-                {info?.status || "Active"}
-              </Box>
-            </Stack>
+        <Divider sx={{ borderColor: "#F1F5F9", mb: 2.5 }} />
 
-            <Stack divider={<Divider sx={{ borderColor: "#F1F5F9" ,padding:1}} />}>
-              <DetailRow label="Account Name" value={accountTitle} />
-              <DetailRow
-                label="Account Number"
-                value={formattedAccNumber}
-                isCopyable
-                rawCopyValue={rawAccNumber}
-              />
-              {!isTD && <DetailRow label="Account Type" value={accountTypeDisplay} />}
-              <DetailRow label="Currency" value={currency} />
-            </Stack>
-          </Box>
-
-          {/* ───────── Section 2: Account Information (for Fixed Deposit) OR Account Holder Information ───────── */}
-          {isTD ? (
-            <Box>
-              <Typography sx={{ fontSize: 15, fontWeight: 700, color: "#0F172A", mb: 1.5 }}>
-                Account Information
-              </Typography>
-
-              <Stack divider={<Divider sx={{ borderColor: "#F1F5F9",padding:1 }} />}>
-                <DetailRow label="Account Type" value="Fixed Deposit Account" />
-                <DetailRow label="Opening Date" value={openingDate} />
-                <DetailRow label="Effective Date" value={effectiveDate} />
-                <DetailRow label="Maturity Date" value={maturityDate} />
-                <DetailRow label="Tenor" value={tenor} />
-                <DetailRow
-                  label="Interest Rate"
-                  value={interestRate}
-                  valueColor="#16A34A"
-                />
-              </Stack>
-            </Box>
-          ) : (
-            <Box>
-              <Typography sx={{ fontSize: 15, fontWeight: 700, color: "#0F172A", mb: 1.5 }}>
-                Account Holder Information
-              </Typography>
-
-              <Stack divider={<Divider sx={{ borderColor: "#F1F5F9" ,padding:1}} />}>
-                <DetailRow label="Company Name" value={companyName} />
-                <DetailRow label="Authorized Representative" value={representativeName} />
-                <DetailRow label="Contact Email" value="ops@shipingcoltd.com" />
-                <DetailRow label="Phone Number" value="+1 (555) 234-5678" />
-                <DetailRow label="Billing Address" value="Suite 402, Maritime Tower, Boston MA" />
-              </Stack>
-            </Box>
-          )}
-
-          {/* ───────── Section 3: Account Settings ───────── */}
-          <Box>
-            <Typography sx={{ fontSize: 15, fontWeight: 700, color: "#0F172A", mb: 1.5 }}>
-              Account Settings
+        {/* ───────── Section 1: Account Overview ───────── */}
+        <Box>
+          <Stack
+            direction="row"
+            sx={{
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 1.5,
+            }}
+          >
+            <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#0F172A" }}>
+              Account Overview
             </Typography>
-
-            <Stack divider={<Divider sx={{ borderColor: "#F1F5F9" ,padding:1}} />}>
-              <DetailRow label="Daily Transaction Limit" value={dailyLimit} />
-              <DetailRow label="Notification Preferences" value="SMS & Email Alerts" />
-              <DetailRow
-                label={isTD ? "Settlement Account" : "Linked Master Accounts"}
-                value={settlementAccount}
-              />
-            </Stack>
-
-            <Typography
+            <Box
               sx={{
-                fontSize: 13,
+                px: 1.5,
+                py: 1.35,
+                borderRadius: "999px",
+                bgcolor: "#E0F4E7",
+                color: "#166D35",
+                fontSize: 12,
                 fontWeight: 600,
-                color: "#64748B",
-                mt: 2.5,
-                cursor: "pointer",
-                "&:hover": { color: "#0F172A" },
               }}
             >
-              Quick Limit Update (Authorized Only)
-            </Typography>
-          </Box>
-        </Stack>
+              {info?.status || "Active"}
+            </Box>
+          </Stack>
+
+          <Stack divider={<Divider sx={{ borderColor: "#F1F5F9",mt:2 }} />}>
+            <DetailRow label="Account Name" value={accountTitle} />
+            <DetailRow
+              label="Account Number"
+              value={formattedAccNumber}
+              isCopyable
+              rawCopyValue={rawAccNumber}
+            />
+            <DetailRow label="Account Type" value={accountTypeDisplay} />
+            <DetailRow label="Currency" value={currency} />
+          </Stack>
+        </Box>
+
+        {/* ───────── Section 2: Account Holder Information ───────── */}
+        <Box sx={{ mt: 2 }}>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#0F172A", mb: 1.5 }}>
+            Account Holder Information
+          </Typography>
+
+          <Stack divider={<Divider sx={{ borderColor: "#F1F5F9",mt:2 }} />}>
+            <DetailRow label="Company Name" value={companyName} />
+            <DetailRow label="Authorized Representative" value={representativeName} />
+            <DetailRow label="Contact Email" value={contactEmail} />
+            <DetailRow label="Phone Number" value={phoneNumber} />
+            <DetailRow
+              label="Billing Address"
+              value={billingAddress}
+              multiline
+            />
+          </Stack>
+        </Box>
+
+        {/* ───────── Section 3: Account Settings ───────── */}
+        <Box sx={{ mt: 2 }}>
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#0F172A", mb: 1.5 }}>
+            Account Settings
+          </Typography>
+
+          <Stack divider={<Divider sx={{ borderColor: "#F1F5F9",mt:2 }} />}>
+            <DetailRow label="Daily Transaction Limit" value={dailyLimit} />
+            <DetailRow label="Notification Preferences" value={notificationPreferences} />
+            <DetailRow
+              label={isTD ? "Settlement Account" : "Linked Master Accounts"}
+              value={settlementAccount}
+            />
+          </Stack>
+
+          <Typography
+            sx={{
+              fontSize: 13.5,
+              fontWeight: 600,
+              color: "#5B6B82",
+              mt: 3,
+              cursor: "pointer",
+              "&:hover": { color: "#0F172A" },
+            }}
+          >
+            Quick Limit Update (Authorized Only)
+          </Typography>
+        </Box>
       </DialogContent>
     </Dialog>
   );

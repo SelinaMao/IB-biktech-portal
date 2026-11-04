@@ -1,18 +1,17 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import {
-  Box,
-  Stack,
-  Typography,
-} from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import { Download, MoveDownLeft, MoveUpRight } from "lucide-react";
 
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseButton from "@core/components/BaseButton";
-import BaseSearchByDay, { type BaseFilterByDayValue } from "@core/components/BaseSearchByDay";
-import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
+import StatementDownloadDialog from "./StatementDownloadDialog";
+import BaseSearchButton from "@core/components/BaseSearchButton";
+import BaseFilterByDay, { type BaseFilterByDayValue } from "@core/components/BaseFilterByDay";
+import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
+import SectionCard from "@/features/dashboard/components/SectionCard";
 import type { BaseFilterValue } from "@core/components/BaseFilter";
 import { formatTransactionAmount, isIncomingTransaction } from "../account.slice";
 import type { TTransactionDetailResponse } from "../account.types";
@@ -45,7 +44,7 @@ export interface TransactionsListProps {
   accountNumber?: string;
 }
 
-const CARD_PADDING_PX = 8;
+const CARD_PADDING_PX = 20;
 
 export default function TransactionsList({
   transactions,
@@ -64,10 +63,10 @@ export default function TransactionsList({
   isDownloading = false,
   onDownload,
   isFixedDeposit = false,
-  accountName = "Operating account",
+  accountName = "",
   accountNumber = "",
 }: TransactionsListProps) {
-  const [statementOpen, setStatementOpen] = useState(false);
+  const [statementDownloadOpen, setStatementDownloadOpen] = useState(false);
 
   // Map parent BaseFilterValue to BaseFilterByDayValue
   const filterByDayValue: BaseFilterByDayValue | null = useMemo(() => {
@@ -104,13 +103,12 @@ export default function TransactionsList({
     }
   };
 
-  // Table Columns
   const columns: BaseTableColumn<TTransactionDetailResponse>[] = [
     {
       key: "detail",
       header: isFixedDeposit ? "Reference" : "To/From",
-      headSx: { pl: `${CARD_PADDING_PX}px`, color: "#64748B", fontSize: 13, fontWeight: 500 },
-      cellSx: { pl: `${CARD_PADDING_PX}px`, py: 2 },
+      headSx: { pl: `${CARD_PADDING_PX}px`, py: 1.8 },
+      cellSx: { pl: `${CARD_PADDING_PX}px`, py: 3 },
       render: (t) => {
         const isIn = isIncomingTransaction(t);
         const isInterest = t.transactionDescription?.toLowerCase().includes("interest") || isIn;
@@ -134,12 +132,12 @@ export default function TransactionsList({
                 <MoveUpRight size={16} color="#EA580C" />
               )}
             </Box>
-            <Box>
+            <Box sx={{ minWidth: 0 }}>
               <Typography sx={{ fontWeight: 600, fontSize: 14, color: "#0F172A", lineHeight: 1.3 }}>
                 {t.transactionDescription}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "#94A3B8", mt: 0.25 }}>
-                Ref: {t.transactionReferenceCode || "2819700093P2429"}
+                Ref: {t.transactionReferenceCode || "-"}
               </Typography>
             </Box>
           </Stack>
@@ -149,10 +147,10 @@ export default function TransactionsList({
     {
       key: "date",
       header: "Transaction Date",
-      headSx: { color: "#64748B", fontSize: 13, fontWeight: 500 },
-      cellSx: { py: 2 },
+      headSx: { py: 1.8 },
+      cellSx: { py: 3 },
       render: (t) => (
-        <Typography sx={{ color: "#0F172A", fontSize: 13 }}>
+        <Typography sx={{ color: palette.slate[700], fontSize: 14 }}>
           {t.transactionDate}
         </Typography>
       ),
@@ -160,16 +158,16 @@ export default function TransactionsList({
     {
       key: "accountOrRemark",
       header: isFixedDeposit ? "Remark" : "Account",
-      headSx: { color: "#64748B", fontSize: 13, fontWeight: 500 },
-      cellSx: { py: 2 },
+      headSx: { py: 1.8 },
+      cellSx: { py: 3 },
       render: (t) => {
         const isIn = isIncomingTransaction(t);
         const isTax = t.transactionDescription?.toLowerCase().includes("tax") || !isIn;
         return (
-          <Typography sx={{ color: "#475569", fontSize: 13 }}>
+          <Typography sx={{ color: palette.slate[700], fontSize: 14 }}>
             {isFixedDeposit
-              ? t.transactionMemo || (isTax ? "6% tax on interest" : "Monthly interest - Oct")
-              : t.toAccountNumber || `Savings - ${accountNumber || "000 067 898"}`}
+              ? t.transactionMemo || "-"
+              : t.toAccountNumber || (accountNumber ? formatAccountNumber(accountNumber) : "-")}
           </Typography>
         );
       },
@@ -178,8 +176,8 @@ export default function TransactionsList({
       key: "amount",
       header: "Amount",
       align: "right",
-      headSx: { pr: `${CARD_PADDING_PX}px`, color: "#64748B", fontSize: 13, fontWeight: 500 },
-      cellSx: { pr: `${CARD_PADDING_PX}px`, py: 2 },
+      headSx: { pr: `${CARD_PADDING_PX}px`, py: 1.8 },
+      cellSx: { pr: `${CARD_PADDING_PX}px`, py: 3 },
       render: (t) => {
         const isIn = isIncomingTransaction(t);
         const isInterest = t.transactionDescription?.toLowerCase().includes("interest") || isIn;
@@ -188,7 +186,7 @@ export default function TransactionsList({
           <Typography
             sx={{
               fontWeight: 700,
-              fontSize: 14,
+              fontSize: 15,
               color: isCredit ? "#16A34A" : isFixedDeposit ? "#EA580C" : "#0F172A",
             }}
           >

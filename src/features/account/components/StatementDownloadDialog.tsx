@@ -38,8 +38,8 @@ interface PeriodOption {
 export default function StatementDownloadDialog({
   open,
   onClose,
-  accountName = "Operating account",
-  accountNumber = "000 190 068",
+  accountName = "",
+  accountNumber = "",
   onDownload,
   isDownloading = false,
 }: StatementDownloadDialogProps) {
@@ -107,8 +107,8 @@ export default function StatementDownloadDialog({
       slotProps={{
         paper: {
           sx: {
-            borderRadius: "16px",
-            p: 4.5,
+            borderRadius: "12px",
+            p: 5.5,
             bgcolor: "#FFFFFF",
             boxShadow: "0px 20px 30px rgba(15, 23, 42, 0.16)",
           },
@@ -128,9 +128,11 @@ export default function StatementDownloadDialog({
           <Typography sx={{ fontSize: 20, fontWeight: 700, color: "#0F172A", lineHeight: 1.3 }}>
             Statement
           </Typography>
-          <Typography sx={{ fontSize: 13, color: "#64748B", mt: 0.5 }}>
-            {accountName} &middot; {formatAccountNumber(accountNumber)}
-          </Typography>
+          {(accountName || accountNumber) && (
+            <Typography sx={{ fontSize: 13, color: "#64748B", mt: 0.5 }}>
+              {[accountName, accountNumber ? formatAccountNumber(accountNumber) : ""].filter(Boolean).join(" · ")}
+            </Typography>
+          )}
         </Box>
         <IconButton
           onClick={onClose}

@@ -15,6 +15,7 @@ import BaseFilterByDay, {
   type BaseFilterByDayValue,
   isDateWithinFilter,
 } from "@/@core/components/BaseFilterByDay";
+import { Download } from "lucide-react";
 
 const ROWS_PER_PAGE = 5;
 
@@ -202,8 +203,7 @@ export default function LoanTransactionsCard({
   transactions,
   showStatusToggle = false,
 }: LoanTransactionsCardProps) {
-  const dataSource =
-    transactions && transactions.length > 0 ? transactions : LOAN_TRANSACTIONS;
+  const dataSource = transactions ?? LOAN_TRANSACTIONS;
   const [status, setStatus] = useState<TxnStatus>(() =>
     dataSource.some((t) => t.status === "due") ? "due" : "upcoming",
   );
@@ -391,22 +391,24 @@ export default function LoanTransactionsCard({
       header={
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", flexWrap: "wrap" }}>
           <BaseButton
-            title="Export Schedule"
-            variant="outlined"
+            title="Download Statement"
+            variant="contained"
+            startIcon={<Download size={16} />}
             onClick={(e) => setDownloadAnchor(e.currentTarget)}
-            sx={{
-              color: "#ffffff",
-              bgcolor: "#2764A5",
-              padding: "6px 14px",
-              borderRadius: "50px",
-              fontSize: "13px",
-              fontWeight: 300,
-              textTransform: "none",
-              "&:hover": {
-                backgroundColor: "white",
-                color: "black",
-              },
-            }}
+             sx={{
+                  bgcolor: "#EBF3FA",
+                  color: "#0F172A",
+                  borderRadius: "999px",
+                  textTransform: "none",
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  px: 4.5,
+                  py: 0.85,
+                  height: 38,
+                  boxShadow: "none",
+                  whiteSpace: "nowrap",
+                  "&:hover": { bgcolor: "#DFEAF6", boxShadow: "none" ,border  :"none"},
+                }}
           />
           <BaseDownloadPanel
             anchorEl={downloadAnchor}

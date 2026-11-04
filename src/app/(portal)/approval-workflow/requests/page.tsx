@@ -38,7 +38,7 @@ import {
 import { font, palette } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
 
-const PAGE_SIZE = 10;
+const ROWS_PER_PAGE = 5;
 const OPEN_STATUSES: InstanceStatus[] = ["PENDING", "IN_PROGRESS", "ESCALATED"];
 
 export default function ApprovalRequestsPage() {
@@ -144,7 +144,7 @@ export default function ApprovalRequestsPage() {
   }, [sourceEntries, search, dateFilter]);
 
   const pagedEntries = useMemo(
-    () => filteredEntries.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+    () => filteredEntries.slice(page * ROWS_PER_PAGE, page * ROWS_PER_PAGE + ROWS_PER_PAGE),
     [filteredEntries, page],
   );
 
@@ -308,7 +308,7 @@ export default function ApprovalRequestsPage() {
         dateFilter={dateFilter}
         onDateFilterChange={handleDateFilterChange}
         page={page}
-        rowsPerPage={PAGE_SIZE}
+        rowsPerPage={ROWS_PER_PAGE}
         onPageChange={setPage}
         onRowClick={handleRowClick}
       />

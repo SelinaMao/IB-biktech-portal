@@ -1,4 +1,5 @@
 export * from "./date-time";
+export * from "./format-account-number";
 export * from "./format-ccy";
 export * from "./helper";
 export * from "./image-detect";

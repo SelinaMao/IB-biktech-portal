@@ -107,6 +107,7 @@ export const adminApi = {
     BAKONG_WALLET: "payment/transfers/bakong-wallet", // Body: {fromAccountNumber, bakongId, amount, currency, remark, isSaveTemplate, schedule}
     NEW_AUTHENTICATOR: "payment/transfers/{referenceId}/authenticator",
     BANKS: "payment/banks", // Bakong member banks a local bank transfer can pay
+    BILL: "payment/bills", // Body: {fromAccountNumber, billerCode, customerNumber, amount, currency, remark, schedule}
   },
   // Bulk transfer: the portal reads the file and sends its rows as JSON; no file is uploaded.
   BULK_TRANSFER: {

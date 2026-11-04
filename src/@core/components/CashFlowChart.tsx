@@ -116,7 +116,7 @@ export default function CashFlowChart({
       ? `-${formatCCY(totals.outflow, currency)}`
       : data.length > 0
       ? currency === "USD" ? "-$0.00" : "-៛ 0.00"
-      : currency === "USD" ? "-$20,200.00" : "-៛ 80,800,000.00");
+      : "-$0.00");
 
   const displayIncome =
     incomeAmount ??

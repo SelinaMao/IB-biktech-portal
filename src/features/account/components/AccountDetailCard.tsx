@@ -8,7 +8,11 @@ import { formatAccountNumber } from "@/utils/format-account-number";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseButton from "@core/components/BaseButton";
 import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
-import type { CoreAccountEntry, IAccountDetailResponses } from "../account.types";
+import type {
+  CoreAccountEntry,
+  CoreAccountSummaryEntry,
+  IAccountDetailResponses,
+} from "../account.types";
 import AccountDetails from "./AccountDetails";
 import BaseDownloadPanel from "@core/components/BaseDownloadPanel";
 import dayjs from "dayjs";
@@ -23,14 +27,15 @@ export interface AccountDetailsProps {
   fixedDeposit?: IAccountDetailResponses;
   isFixedDeposit?: boolean;
   isSaving?: boolean;
+  summary?: CoreAccountSummaryEntry;
   onOpenAccountInfo?: () => void;
   onOpenStatements?: (e?: React.MouseEvent<HTMLElement>) => void;
   onExportStatements?: (value: BaseDownloadValue) => void;
   onDownloadCertificate?: () => void | Promise<void>;
 }
 
-/** Formats dynamic amount as "USD 6,700,000.00" */
-function formatAmountPrefix(
+/** Formats amount as "USD 6,700,000.00" or "KHR 120,293,000.00" */
+function formatCurrencyPrefix(
   amount: number | string | undefined | null,
   ccy: string = "USD",
 ): string {
@@ -39,7 +44,7 @@ function formatAmountPrefix(
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${ccy} ${formatted}`;
+  return `${(ccy || "USD").toUpperCase()} ${formatted}`;
 }
 
 /** Formats as "6,700,000.00 USD" (suffix currency code) */
@@ -835,6 +840,17 @@ export default function AccountDetailsCard({ open = false, onClose, stats, info,
           onDownloadCertificate={onDownloadCertificate}
         />
       )}
+
+      {/* Statement download dialog */}
+      <StatementDownloadDialog
+        open={statementDialogOpen}
+        onClose={() => setStatementDialogOpen(false)}
+        accountName={accountTitleName}
+        accountNumber={rawAccountNumber}
+        onDownload={(val) => {
+          onExportStatements?.(val);
+        }}
+      />
     </Box>
   );
 }

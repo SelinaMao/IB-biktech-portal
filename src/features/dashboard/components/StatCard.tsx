@@ -14,6 +14,7 @@ import { toggleHideAmount } from "@/store/global/global.slice";
 import type { StatCardProps, StatTone } from "../dashboard.types";
 import BaseButton from "@/@core/components/BaseButton";
 import { SmartButton } from "@mui/icons-material";
+import { string } from "yup";
 
 export const toneMap: Record<StatTone, { fg: string; bg: string }> = {
   success: { fg: palette.success.main, bg: palette.success.bg },
@@ -38,13 +39,13 @@ export default function StatCard({
       ? sub
       : value?.includes("KHR")
       ? value
-      : "120,293,000.00 KHR";
+      : "0.00 KHR";
 
     const usdAmount = value?.includes("USD")
       ? value
       : sub?.includes("USD")
       ? sub
-      : "293,000.00 USD";
+      : "0.00 USD";
 
     return (
       <BaseCard
@@ -281,8 +282,8 @@ export default function StatCard({
 export const statCards: StatCardProps[] = [
   {
     label: "Available Balance",
-    value: "293,000.00 USD",
-    sub: "120,293,000.00 KHR",
+    value: "0.00 USD",
+    sub: "0.00 KHR",
     icon: <Wallet color="#16A34A" />,
     tone: "success",
     action: "View All",
