@@ -5,12 +5,11 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-
 import { formatCCY } from "@/utils/format-ccy";
 import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "./BaseBlurText";
 import BaseCard from "./BaseCard";
+import BaseFlowIcon from "./BaseFlowIcon";
 import CashFlowChartPanel, {
   type CashFlowPoint,
 } from "./CashFlowChartPanel";
@@ -115,16 +114,16 @@ export default function CashFlowChart({
     (totals.outflow > 0
       ? `-${formatCCY(totals.outflow, currency)}`
       : data.length > 0
-      ? currency === "USD" ? "-$0.00" : "-៛ 0.00"
-      : "-$0.00");
+        ? currency === "USD" ? "-$0.00" : "-៛ 0.00"
+        : "-$0.00");
 
   const displayIncome =
     incomeAmount ??
     (totals.inflow > 0
       ? formatCCY(totals.inflow, currency)
       : data.length > 0
-      ? currency === "USD" ? "$0.00" : "៛ 0.00"
-      : currency === "USD" ? "$28,100.00" : "៛ 112,400,000.00");
+        ? currency === "USD" ? "$0.00" : "៛ 0.00"
+        : currency === "USD" ? "$28,100.00" : "៛ 112,400,000.00");
 
   const content = (
     <Box sx={{ width: "100%" }}>
@@ -171,8 +170,8 @@ export default function CashFlowChart({
                     onCurrencyChange?.(ccy);
                   }}
                   sx={{
-                   px: 2.5,
-                  py: 1.4,
+                    px: 2.5,
+                    py: 1.4,
                     borderRadius: "999px",
                     border: "none",
                     bgcolor: isActive ? "#1E659E" : "transparent",
@@ -195,7 +194,7 @@ export default function CashFlowChart({
       {showStats && (
         <Box
           sx={{
-            mt:6,
+            mt: 6,
             display: "flex",
             alignItems: "center",
             gap: { xs: 15, sm: 20, md: 50 },
@@ -204,22 +203,7 @@ export default function CashFlowChart({
         >
           {/* Expense Stat */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Box
-              sx={{
-                 marginRight:"5px",
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                bgcolor: "#FEE8E8",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#E11D48",
-                flexShrink: 0,
-              }}
-            >
-              <ArrowUpRight size={18} strokeWidth={2} />
-            </Box>
+            <BaseFlowIcon direction="expense" sx={{ marginRight: "5px" }} />
             <Box>
               <Typography
                 sx={{
@@ -241,22 +225,7 @@ export default function CashFlowChart({
 
           {/* Income Stat */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Box
-              sx={{
-                marginRight:"5px",
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                bgcolor: "#E6F4EA",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#10B981",
-                flexShrink: 0,
-              }}
-            >
-              <ArrowDownRight size={18} strokeWidth={2} />
-            </Box>
+            <BaseFlowIcon direction="income" sx={{ marginRight: "5px" }} />
             <Box>
               <Typography
                 sx={{
