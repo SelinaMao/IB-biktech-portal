@@ -37,6 +37,7 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
   const [saveLimits, { isLoading: isSaving }] = useUpdateUserLimitsMutation();
   const [resetRow, { isLoading: isResetting }] = useResetUserLimitRowMutation();
   const [draft, setDraft] = useState<LimitDraft>({});
+
   const isDirty = Object.keys(draft).length > 0;
 
   // Stable identity: a new function each render would defeat the memo on LimitInputCell.

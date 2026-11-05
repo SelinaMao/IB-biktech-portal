@@ -14,8 +14,6 @@ import type {
   ForgotPasswordResult,
   SessionInfo,
   RefreshSessionResult,
-  ConfirmCodeResult,
-  RequestConfirmOTP,
 } from "@core/types/auth";
 
 export type {

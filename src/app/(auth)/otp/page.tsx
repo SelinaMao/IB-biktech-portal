@@ -4,7 +4,6 @@ import { useState, useRef, type KeyboardEvent } from "react";
 import { Box, Link, OutlinedInput, Stack, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { SwitchLanguageMenu } from "@core/components/SwitchLanguageMenu";
-import { RequestConfirmOTP } from "@/@core/types/auth";
 import { useAuth } from "@/features/auth";
 
 const FOOTER_LINKS = ["FAQs", "User Guide", "Contact Us", "Security", "Privacy Policy"];
