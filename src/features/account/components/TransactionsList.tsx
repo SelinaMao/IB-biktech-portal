@@ -17,6 +17,7 @@ import { formatTransactionAmount, isIncomingTransaction } from "../account.slice
 import type { TTransactionDetailResponse } from "../account.types";
 import { formatAccountNumber } from "@/utils";
 import { palette } from "@/theme/palette";
+import BaseFlowIcon from "@/@core/components/BaseFlowIcon";
 
 export interface TransactionsListProps {
   transactions: TTransactionDetailResponse[];
@@ -125,19 +126,9 @@ export default function TransactionsList({
               }}
             >
               {isCredit ? (
-                <Box
-                  component="img"
-                  src="/assets/icons/move-up-right.svg"
-                  alt="Transfer"
-                  sx={{ width: 18, height: 18 }}
-                />
+                <BaseFlowIcon direction="income" sx={{ marginRight: "5px" }} />
               ) : (
-                <Box
-                  component="img"
-                  src="/assets/icons/move-down-right.svg"
-                  alt="Transfer"
-                  sx={{ width: 18, height: 18 }}
-                />
+                 <BaseFlowIcon direction="expense" sx={{ marginRight: "5px" }} />
               )}
             </Box>
             <Box sx={{ minWidth: 0 }}>

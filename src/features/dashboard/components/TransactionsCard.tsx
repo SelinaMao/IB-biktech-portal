@@ -4,12 +4,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { Box, Button, Typography } from "@mui/material";
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
-import { ArrowDownLeft, ArrowUpRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { font, palette, radius, padding } from "@/theme/palette";
 import { useAppSelector } from "@/store/hooks";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
+import BaseFlowIcon from "@core/components/BaseFlowIcon";
 import {
   selectTransactionsResponse,
   useListTransactionsMutation,
@@ -249,36 +250,11 @@ export default function TransactionsCard({
         return (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
             {/* Circular arrow icon — out is debit-red, in is credit-green. */}
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                bgcolor: isNegative ? "#FEE8E8" : "#E6F4EA",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: isNegative ? "#E11D48" : "#16A34A",
-                flexShrink: 0,
-              }}
-            >
-              {isNegative ?  (
-                <Box
-                  component="img"
-                  src="/assets/icons/move-up-right.svg"
-                  alt="Transfer"
-                  sx={{ width: 24, height: 24 }}
-                />
-                // <MoveUpLeft />
-              ) : (
-                 <Box
-                  component="img"
-                  src="/assets/icons/move-down-right.svg"
-                  alt="Transfer"
-                  sx={{ width: 24, height: 24 }}
-                />
-              )}
-            </Box>
+            <BaseFlowIcon
+              direction={isNegative ? "expense" : "income"}
+              size={40}
+              iconSize={24}
+            />
 
             <Box>
               <Typography
