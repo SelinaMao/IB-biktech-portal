@@ -125,9 +125,19 @@ export default function TransactionsList({
               }}
             >
               {isCredit ? (
-                <MoveDownLeft size={16} color="#16A34A" />
+                <Box
+                  component="img"
+                  src="/assets/icons/move-up-right.svg"
+                  alt="Transfer"
+                  sx={{ width: 18, height: 18 }}
+                />
               ) : (
-                <MoveUpRight size={16} color="#EA580C" />
+                <Box
+                  component="img"
+                  src="/assets/icons/move-down-right.svg"
+                  alt="Transfer"
+                  sx={{ width: 18, height: 18 }}
+                />
               )}
             </Box>
             <Box sx={{ minWidth: 0 }}>
@@ -210,20 +220,20 @@ export default function TransactionsList({
               variant="contained"
               onClick={() => setStatementDownloadOpen(true)}
               startIcon={<Download size={16} />}
-               sx={{
-                  bgcolor: "#EBF3FA",
-                  color: "#0F172A",
-                  borderRadius: "999px",
-                  textTransform: "none",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  px: 4.5,
-                  py: 0.85,
-                  height: 38,
-                  boxShadow: "none",
-                  whiteSpace: "nowrap",
-                  "&:hover": { bgcolor: "#DFEAF6", boxShadow: "none" ,border  :"none"},
-                }}
+              sx={{
+                bgcolor: "#EBF3FA",
+                color: "#0F172A",
+                borderRadius: "999px",
+                textTransform: "none",
+                fontSize: 13.5,
+                fontWeight: 600,
+                px: 4.5,
+                py: 0.85,
+                height: 38,
+                boxShadow: "none",
+                whiteSpace: "nowrap",
+                "&:hover": { bgcolor: "#DFEAF6", boxShadow: "none", border: "none" },
+              }}
             />
             <StatementDownloadDialog
               open={statementDownloadOpen}

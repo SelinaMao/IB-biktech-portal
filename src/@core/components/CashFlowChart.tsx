@@ -218,7 +218,12 @@ export default function CashFlowChart({
                 flexShrink: 0,
               }}
             >
-              <ArrowUpRight size={18} strokeWidth={2} />
+              <Box
+                  component="img"
+                  src="/assets/icons/move-up-right.svg"
+                  alt="Transfer"
+                  sx={{ width: 18, height: 18 }}
+                />
             </Box>
             <Box>
               <Typography
@@ -255,7 +260,12 @@ export default function CashFlowChart({
                 flexShrink: 0,
               }}
             >
-              <ArrowDownRight size={18} strokeWidth={2} />
+               <Box
+                  component="img"
+                  src="/assets/icons/move-down-right.svg"
+                  alt="Transfer"
+                  sx={{ width: 18, height: 18 }}
+                />
             </Box>
             <Box>
               <Typography
