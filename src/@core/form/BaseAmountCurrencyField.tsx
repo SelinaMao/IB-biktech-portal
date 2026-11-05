@@ -3,16 +3,13 @@
 import React from "react";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import InputAdornment from "@mui/material/InputAdornment";
+import ButtonBase from "@mui/material/ButtonBase";
+import InputBase from "@mui/material/InputBase";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { ChevronDown } from "lucide-react";
-
-import BaseInput from "./BaseInput";
-import { palette, radius } from "@/theme/palette";
-import { ButtonBase } from "@mui/material";
 
 export type CurrencyOption = {
   value: string;
@@ -34,9 +31,8 @@ export type BaseAmountCurrencyFieldProps = {
 };
 
 /**
- * Single bordered "Amount" field with the currency picker embedded as an end
- * adornment (a dark pill that opens a flag/name/code menu), matching the
- * combined amount+currency input in the transfer dialogs' design.
+ * Modern combined amount input with teal currency dropdown badge on the left,
+ * matching the target design screenshot.
  */
 export default function BaseAmountCurrencyField({
   label = "Amount",
@@ -52,134 +48,73 @@ export default function BaseAmountCurrencyField({
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
 
   return (
-    <>
-      <BaseInput
-        label={label}
-        value={amount}
-        onChange={(e) => onAmountChange(e.target.value.replace(/[^0-9.,]/g, ""))}
-        placeholder="Enter amount"
-        inputMode="decimal"
-        disabled={disabled}
-        error={error}
-        helperText={helperText}
-        sx={{
-          "& .MuiOutlinedInput-root": {
-            bgcolor: "#F8FAFC",
-            borderRadius: "16px",
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: "transparent",
-            },
-            "&:hover .MuiOutlinedInput-notchedOutline": {
-              borderColor: "#E2E8F0",
-            },
-            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-              borderColor: "#CBD5E1",
-              borderWidth: 1.5,
-            },
-          },
-        }}
-        slotProps={{
-          htmlInput: {
-            style: {
-              fontSize: "20px",
-              fontWeight: 700,
-              color: "#0F172A",
-              padding: "12px 14px",
-            },
-          },
-          input: {
-            endAdornment: (
-              <InputAdornment position="end" sx={{ mr: 0.5 }}>
-                <Box
-                  role="radiogroup"
-                  sx={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 0.5,
-                    p: "3px",
-                    borderRadius: "999px",
-                    backgroundColor: "#EAECEF",
-                    flexShrink: 0,
-                    opacity: disabled ? 0.5 : 1,
-                  }}
-                >
-                  {options.map((option) => {
-                    const selected = option.value === currency;
-                    return (
-                      <ButtonBase
-                        key={option.value}
-                        role="radio"
-                        aria-checked={selected}
-                        aria-label={option.name}
-                        disabled={disabled}
-                        onClick={() => onCurrencyChange(option.value)}
-                        sx={{
-                          px: 2,
-                          py: 1.6,
-                          minWidth: 48,
-                          borderRadius: "999px",
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: selected ? "#FFFFFF" : "#0F172A",
-                          backgroundColor: selected ? "#2E937A" : "transparent",
-                          transition: "all .15s ease",
-                        }}
-                      >
-                        {option.value}
-                      </ButtonBase>
-                    );
-                  })}
-                </Box>
-              </InputAdornment>
-            ),
-          },
-        }}
+    <Box>
+      {typeof label === "string" ? (
+        <Typography sx={{ fontSize: 14, fontWeight: 600, color: "#0F172A", mb: 1 }}>
+          {label}
+        </Typography>
+      ) : (
+        label
+      )}
 
-      // slotProps={{
-      //   input: {
-      //     endAdornment: (
-      //       <InputAdornment position="end">
-      //         <Box
-      //           component="button"
-      //           type="button"
-      //           disabled={disabled}
-      //           onClick={(e) => setAnchorEl(e.currentTarget)}
-      //           sx={{
-      //             display: "flex",
-      //             alignItems: "center",
-      //             gap: 0.5,
-      //             bgcolor: palette.navy[800],
-      //             color: palette.white,
-      //             border: "none",
-      //             borderRadius: `${radius.pill}px`,
-      //             px: 3.5,
-      //             py: 1.2,
-      //             fontSize: 13,
-      //             fontWeight: 600,
-      //             cursor: "pointer",
-      //             flexShrink: 0,
-      //             "&:disabled": { opacity: 0.5, cursor: "default" },
-      //           }}
-      //         >
-      //           {currency}
-      //           <ChevronDown size={14} />
-      //         </Box>
-      //       </InputAdornment>
-      //     ),
-      //   },
-      // }}
-      />
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={() => setAnchorEl(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ paper: { sx: { minWidth: 220, mt: 0.5 } } }}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          bgcolor: "#FFFFFF",
+          borderRadius: "12px",
+          border: error ? "1.5px solid #EF4444" : "1px solid #E2E8F0",
+          px: 1.5,
+          py: 1,
+          minHeight: 52,
+          transition: "border-color 0.15s ease",
+          "&:hover": {
+            borderColor: error ? "#EF4444" : "#CBD5E1",
+          },
+          "&:focus-within": {
+            borderColor: error ? "#EF4444" : "#2764A5",
+            borderWidth: 1.5,
+          },
+        }}
       >
-        {options.map((option, index) => {
-          const showBorder = index < options.length - 1;
-          return (
+        {/* Teal Currency Button */}
+        <ButtonBase
+          disabled={disabled}
+          onClick={(e) => setAnchorEl(e.currentTarget)}
+          sx={{
+            bgcolor: "#2E937A",
+            color: "#FFFFFF",
+            borderRadius: "8px",
+            px: 1.5,
+            py: 0.65,
+            fontSize: 14,
+            fontWeight: 600,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 0.5,
+            flexShrink: 0,
+            "&:hover": {
+              bgcolor: "#267C67",
+            },
+            "&:disabled": {
+              opacity: 0.6,
+            },
+          }}
+        >
+          {currency}
+          <ChevronDown size={14} color="#FFFFFF" />
+        </ButtonBase>
+
+        {/* Currency Dropdown Menu */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+          transformOrigin={{ vertical: "top", horizontal: "left" }}
+          slotProps={{ paper: { sx: { minWidth: 160, mt: 0.5, borderRadius: "12px" } } }}
+        >
+          {options.map((option) => (
             <MenuItem
               key={option.value}
               selected={option.value === currency}
@@ -188,28 +123,52 @@ export default function BaseAmountCurrencyField({
                 setAnchorEl(null);
               }}
             >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1.5,
-                  width: "100%",
-                  pb: showBorder ? 1.25 : 0,
-                  borderBottom: showBorder ? `1px solid ${palette.slate[200]}` : "none",
-                }}
-              >
-                <Avatar src={option.flag} sx={{ width: 26, height: 26 }} />
-                <Stack spacing={0}>
-                  <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{option.name}</Typography>
-                  <Typography variant="caption" sx={{ color: palette.slate[400] }}>
-                    {option.value}
-                  </Typography>
-                </Stack>
-              </Box>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                {option.flag && <Avatar src={option.flag} sx={{ width: 22, height: 22 }} />}
+                <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{option.value}</Typography>
+                <Typography sx={{ fontSize: 13, color: "#64748B" }}>{option.name}</Typography>
+              </Stack>
             </MenuItem>
-          );
-        })}
-      </Menu>
-    </>
+          ))}
+        </Menu>
+
+        {/* Amount Input */}
+        <InputBase
+          value={amount}
+          onChange={(e) => onAmountChange(e.target.value.replace(/[^0-9.,]/g, ""))}
+          placeholder="0.00"
+          inputMode="decimal"
+          disabled={disabled}
+          sx={{
+            ml: 1.5,
+            flex: 1,
+            fontSize: "20px",
+            fontWeight: 700,
+            color: "#0F172A",
+            "& input": {
+              p: 0,
+              fontWeight: 700,
+              color: "#0F172A",
+            },
+            "& input::placeholder": {
+              color: "#64748B",
+              opacity: 1,
+              fontWeight: 700,
+            },
+          }}
+        />
+      </Box>
+
+      <Typography
+        sx={{
+          fontSize: 12.5,
+          color: error ? "#EF4444" : "#64748B",
+          mt: 1,
+          px: 0.5,
+        }}
+      >
+        {helperText ?? `Daily limit ${currency} 5,000.00 · Remaining ${currency} 4,750.00`}
+      </Typography>
+    </Box>
   );
 }

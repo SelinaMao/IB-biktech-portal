@@ -18,8 +18,6 @@ import { useListUsersQuery } from "@/features/user";
 import {
   ApprovalTable,
   ApprovalDetailDialog,
-  ApprovalSummaryCards,
-  approvalSummary,
   pendingApprovalEntries as initialPendingApprovalEntries,
   nonFinancialApprovalEntries as initialNonFinancialEntries,
   approvalHistoryEntries as initialApprovalHistoryEntries,
@@ -164,15 +162,7 @@ export default function ApprovalPage() {
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* 1. Top 3 Summary Cards with dynamic API entries & events */}
-      <ApprovalSummaryCards
-        entries={category === "financial" ? pendingEntries : nonFinancialEntries}
-        isLoading={tasksLoading}
-        onBreakdownItemClick={(item) => {
-          setSearch(item.label);
-          setPage(0);
-        }}
-      />
+
 
       {/* 2. Category Tabs: Financial & Non-financial */}
       <Box sx={{ borderBottom: `1px solid ${palette.slate[200]}`, mt: 4, mb: 2.5 }}>
@@ -265,36 +255,70 @@ export default function ApprovalPage() {
         </Stack>
       </Box>
 
-      {/* 3. Sub-filter switch: Pending (5) & History */}
-      <Box sx={{ mb: 3 }}>
-        <BaseSwitch
-          options={[
-            {
-              value: "pending",
-              label: `Pending (${category === "financial" ? pendingEntries.length : nonFinancialEntries.length})`,
-            },
-            { value: "history", label: "History" },
-          ]}
-          value={tab}
-          onChange={(val) => {
-            setTab(val);
+      {/* 3. Folder-style Tabs: Pending (5) & History */}
+      <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-end", mb: 0 }}>
+        <Box
+          component="button"
+          type="button"
+          onClick={() => {
+            setTab("pending");
             setPage(0);
           }}
-          activeBgcolor="#2764A5"
-          activeColor="#FFFFFF"
-          sx={{ bgcolor: "#EDF0F4", borderRadius: "8px", p: 0.5 }}
-          itemSx={{
-            borderRadius: "6px !important",
-            fontSize: "13px",
-            fontWeight: 600,
-            py: 0.6,
-            px: 1.75,
+          sx={{
+            border: "none",
+            outline: "none",
+            cursor: "pointer",
+            px: 3,
+            py: 1.35,
+            borderRadius: "14px 14px 0 0",
+            bgcolor: tab === "pending" ? "#2764A5" : "transparent",
+            color: tab === "pending" ? "#FFFFFF" : "#64748B",
+            fontSize: 14.5,
+            fontWeight: tab === "pending" ? 600 : 500,
+            transition: "all 0.15s ease",
+            display: "inline-flex",
+            alignItems: "center",
+            "&:hover": {
+              color: tab === "pending" ? "#FFFFFF" : "#0F172A",
+            },
           }}
-        />
-      </Box>
+        >
+          {`Pending (${category === "financial" ? pendingEntries.length : nonFinancialEntries.length})`}
+        </Box>
+
+        <Box
+          component="button"
+          type="button"
+          onClick={() => {
+            setTab("history");
+            setPage(0);
+          }}
+          sx={{
+            border: "none",
+            outline: "none",
+            cursor: "pointer",
+            px: 3,
+            py: 1.35,
+            borderRadius: "14px 14px 0 0",
+            bgcolor: tab === "history" ? "#2764A5" : "transparent",
+            color: tab === "history" ? "#FFFFFF" : "#64748B",
+            fontSize: 14.5,
+            fontWeight: tab === "history" ? 600 : 500,
+            transition: "all 0.15s ease",
+            display: "inline-flex",
+            alignItems: "center",
+            "&:hover": {
+              color: tab === "history" ? "#FFFFFF" : "#0F172A",
+            },
+          }}
+        >
+          History
+        </Box>
+      </Stack>
 
       {/* 4. Transactions Card & Table using BaseSearchButton, BaseFilterByDay, and BasePagination */}
       <ApprovalTable
+        sx={{ borderTopLeftRadius: tab === "pending" ? 0 : "16px" }}
         entries={entries}
         isLoading={tasksLoading}
         totalCount={filteredEntries.length}

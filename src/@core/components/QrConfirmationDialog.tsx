@@ -75,7 +75,7 @@ export default function QrConfirmationDialog({
           borderRadius: "28px",
           px: { xs: 3, sm: 6 },
           pt: { xs: 5, sm: 6.5 },
-          pb: { xs: 4, sm: 5.5 },
+          pb: { xs: 4, sm: 9.5 },
           position: "relative",
           bgcolor: "#FFFFFF",
           boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.12)",

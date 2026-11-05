@@ -123,7 +123,7 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
       icon={<Landmark size={18} />}
       fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
       toAccount={{
-        name: toAccountName || "Sarah Jenkins",
+        name: toAccountName || values.toAccountNumber || "Sokha Chan",
         accountNumber: values.toAccountNumber,
       }}
       topSection={
@@ -149,25 +149,25 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
     >
       <Stack spacing={3}>
         <Box>
-          <Typography sx={{ fontWeight: 600, fontSize: 15, color: "#0F172A", mb: 1 }}>
-            To Account
+          <Typography sx={{ fontWeight: 600, fontSize: 14, color: "#0F172A", mb: 1 }}>
+            Beneficiary name
           </Typography>
           <ControlledBaseInput
             name="toAccountNumber"
             control={control}
-            placeholder="Enter Account Number"
+            placeholder="Sokha Chan"
             sx={{
               "& .MuiOutlinedInput-root": {
-                bgcolor: "#F8FAFC",
-                borderRadius: "16px",
+                bgcolor: "#FFFFFF",
+                borderRadius: "12px",
                 "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "transparent",
-                },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#E2E8F0",
                 },
-                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                "&:hover .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#CBD5E1",
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#2764A5",
                   borderWidth: 1.5,
                 },
               },
@@ -190,11 +190,9 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
               },
             }}
           />
-          {toAccountName && (
-            <Typography sx={{ fontSize: 13, fontWeight: 500, color: "#64748B", mt: 0.75, px: 0.5 }}>
-              {toAccountName} | {currency}
-            </Typography>
-          )}
+          <Typography sx={{ fontSize: 12.5, color: "#64748B", mt: 1, px: 0.5 }}>
+            {toAccountName ? `${toAccountName} | ${currency}` : "As shown on their bank account"}
+          </Typography>
         </Box>
 
         <Box>
@@ -231,20 +229,20 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
           <ControlledBaseTextArea
             name="remark"
             control={control}
-            placeholder="Pay good service"
-            minRows={2}
+            placeholder="Input remark"
+            minRows={1}
             sx={{
               "& .MuiOutlinedInput-root": {
-                bgcolor: "#F8FAFC",
-                borderRadius: "16px",
+                bgcolor: "#FFFFFF",
+                borderRadius: "12px",
                 "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "transparent",
-                },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#E2E8F0",
                 },
-                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                "&:hover .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#CBD5E1",
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#2764A5",
                   borderWidth: 1.5,
                 },
               },
@@ -258,8 +256,8 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
               },
             }}
           />
-          <Typography sx={{ fontSize: 13, color: "#94A3B8", mt: 0.75, px: 0.5 }}>
-            Shown on both account statements.
+          <Typography sx={{ fontSize: 12.5, color: "#64748B", mt: 1, px: 0.5 }}>
+            Show on both accounts
           </Typography>
         </Box>
       </Stack>

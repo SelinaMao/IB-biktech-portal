@@ -12,6 +12,7 @@ import {
   useResendOtpMutation,
   useSetPasswordMutation,
   useRequestSignupCodeMutation,
+  useSignUpVerifyOtpMutation,
   useForgotPasswordMutation,
   type LoginResult,
   type SetPasswordResult,
@@ -22,7 +23,7 @@ import {
   type VerifyOtpResult,
   type ResendOtpRequest,
   type ResendOtpResult,
-  useSignUpVerifyOtpMutation,
+  type ConfirmCodeOtpRequest,
 } from "./auth.api";
 import { clearSession, setSession, type SessionUser } from "./auth.slice";
 import { toAuthError } from "./auth.error";
@@ -35,6 +36,7 @@ export function useAuth() {
   const router = useRouter();
   const [loginMutation] = useLoginMutation();
   const [verifyOtpMutation] = useVerifyOtpMutation();
+  const [signUpVerifyOtpMutation] = useSignUpVerifyOtpMutation();
   const [resendOtpMutation] = useResendOtpMutation();
   const [setPasswordMutation] = useSetPasswordMutation();
   const [logoutMutation] = useLogoutMutation();
@@ -86,6 +88,17 @@ export function useAuth() {
       }
     },
     [verifyOtpMutation],
+  );
+
+  const confirmCodeOtp = useCallback(
+    async (request: ConfirmCodeOtpRequest): Promise<VerifyOtpResult> => {
+      try {
+        return await signUpVerifyOtpMutation(request).unwrap();
+      } catch (error) {
+        throw toAuthError(error);
+      }
+    },
+    [signUpVerifyOtpMutation],
   );
 
   const resendOtp = useCallback(
@@ -176,27 +189,18 @@ export function useAuth() {
     [dispatch, logoutMutation],
   );
 
-  const confirmCodeOtp = useCallback(
-    async (body: RequestConfirmOTP): Promise<ConfirmCodeResult> => {
-      try {
-        return await confirmCodeMutation(body).unwrap();
-      } catch (error) {
-        throw toAuthError(error);
-      }
-    },
-    [confirmCodeMutation],
-  );
+
 
   return {
     beginSession,
     login,
     verifyOtp,
+    confirmCodeOtp,
     resendOtp,
     setPassword,
     resetPassword,
     logout,
     signUp,
-    confirmCodeOtp,
     forgotPassword,
   };
 }

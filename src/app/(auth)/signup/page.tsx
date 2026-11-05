@@ -94,7 +94,9 @@ export default function ClientSignUpPage() {
       const response = await signUp({ body });
 
       // Save OTP information
-      sessionStorage.setItem("signupOtpId",response?.data?.otpId );
+      if (response?.data?.otpId) {
+        sessionStorage.setItem("signupOtpId", response.data.otpId);
+      }
 
       router.push("/otp");
     } catch (error) {

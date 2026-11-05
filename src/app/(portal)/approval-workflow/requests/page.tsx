@@ -15,8 +15,6 @@ import BaseSwitch from "@core/form/BaseSwitch";
 import {
   ApprovalTable,
   ApprovalDetailDialog,
-  ApprovalSummaryCards,
-  approvalSummary,
   pendingApprovalEntries as initialPendingApprovalEntries,
   nonFinancialApprovalEntries as initialNonFinancialEntries,
   approvalHistoryEntries as initialApprovalHistoryEntries,
@@ -262,45 +260,74 @@ export default function ApprovalRequestsPage() {
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* 1. Top 3 Summary Cards */}
-      <ApprovalSummaryCards
-        pendingCount={financialPending.length}
-        entries={financialPending}
-        summary={approvalSummary}
-      />
+
 
    
 
-      {/* 3. Sub-filter switch: Pending (5) & History */}
-      <Box sx={{ mb: 6 ,mt:6}}>
-        <BaseSwitch
-          options={[
-            {
-              value: "pending",
-              label: `Pending (${category === "financial" ? financialPending.length : localNonFinancialEntries.length})`,
-            },
-            { value: "history", label: "History" },
-          ]}
-          value={subTab}
-          onChange={(val) => {
-            setSubTab(val);
+      {/* 3. Folder-style Tabs: Pending (5) & History */}
+      <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-end", mb: 0, mt: 4 }}>
+        <Box
+          component="button"
+          type="button"
+          onClick={() => {
+            setSubTab("pending");
             setPage(0);
           }}
-          activeBgcolor="#2764A5"
-          activeColor="#FFFFFF"
-          sx={{ bgcolor: "#EDF0F4", borderRadius: "10px", px:1.2,py:1 }}
-          itemSx={{
-            borderRadius: "8px !important",
-            fontSize: "13px",
-            fontWeight: font.weight.regular,
-            py: 1.6,
-            px: 1.75,
+          sx={{
+            border: "none",
+            outline: "none",
+            cursor: "pointer",
+            px: 3,
+            py: 1.35,
+            borderRadius: "14px 14px 0 0",
+            bgcolor: subTab === "pending" ? "#2764A5" : "transparent",
+            color: subTab === "pending" ? "#FFFFFF" : "#64748B",
+            fontSize: 14.5,
+            fontWeight: subTab === "pending" ? 600 : 500,
+            transition: "all 0.15s ease",
+            display: "inline-flex",
+            alignItems: "center",
+            "&:hover": {
+              color: subTab === "pending" ? "#FFFFFF" : "#0F172A",
+            },
           }}
-        />
-      </Box>
+        >
+          {`Pending (${category === "financial" ? financialPending.length : localNonFinancialEntries.length})`}
+        </Box>
+
+        <Box
+          component="button"
+          type="button"
+          onClick={() => {
+            setSubTab("history");
+            setPage(0);
+          }}
+          sx={{
+            border: "none",
+            outline: "none",
+            cursor: "pointer",
+            px: 3,
+            py: 1.35,
+            borderRadius: "14px 14px 0 0",
+            bgcolor: subTab === "history" ? "#2764A5" : "transparent",
+            color: subTab === "history" ? "#FFFFFF" : "#64748B",
+            fontSize: 14.5,
+            fontWeight: subTab === "history" ? 600 : 500,
+            transition: "all 0.15s ease",
+            display: "inline-flex",
+            alignItems: "center",
+            "&:hover": {
+              color: subTab === "history" ? "#FFFFFF" : "#0F172A",
+            },
+          }}
+        >
+          History
+        </Box>
+      </Stack>
 
       {/* 4. Transactions Card & Table matching new UI with BaseSearchButton, BaseFilterByDay, and BasePagination */}
       <ApprovalTable
+        sx={{ borderTopLeftRadius: subTab === "pending" ? 0 : "16px" }}
         entries={pagedEntries}
         totalCount={filteredEntries.length}
         search={search}
