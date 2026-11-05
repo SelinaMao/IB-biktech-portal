@@ -50,16 +50,16 @@ const ONE_ACCOUNT_MESSAGE = "You need a second account to transfer between your 
 
 const fieldSx = {
   "& .MuiOutlinedInput-root": {
-    bgcolor: "#F8FAFC",
-    borderRadius: "16px",
+    bgcolor: "#FFFFFF",
+    borderRadius: "12px",
     "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: "transparent",
-    },
-    "&:hover .MuiOutlinedInput-notchedOutline": {
       borderColor: "#E2E8F0",
     },
-    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+    "&:hover .MuiOutlinedInput-notchedOutline": {
       borderColor: "#CBD5E1",
+    },
+    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+      borderColor: "#2764A5",
       borderWidth: 1.5,
     },
   },
@@ -263,12 +263,12 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
           <BaseTextArea
             value={values.remark}
             onChange={(e) => set("remark", e.target.value)}
-            placeholder="Pay good service"
-            minRows={2}
+            placeholder="Input remark"
+            minRows={1}
             sx={fieldSx}
           />
-          <Typography sx={{ fontSize: 13, color: "#94A3B8", mt: 0.75, px: 0.5 }}>
-            Shown on both account statements.
+          <Typography sx={{ fontSize: 12.5, color: "#64748B", mt: 1, px: 0.5 }}>
+            Show on both accounts
           </Typography>
         </Box>
       </Stack>

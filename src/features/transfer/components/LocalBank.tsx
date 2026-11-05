@@ -131,6 +131,8 @@ export default function LocalBank({ open, onClose }: LocalBankProps) {
           label="Beneficiary Name"
           value={values.beneficiaryName}
           onChange={(e) => set("beneficiaryName", e.target.value)}
+          placeholder="Enter beneficiary name"
+          helperText="As shown on their bank account"
         />
 
         <Box>
@@ -165,7 +167,9 @@ export default function LocalBank({ open, onClose }: LocalBankProps) {
           label="Remark"
           value={values.remark}
           onChange={(e) => set("remark", e.target.value)}
-          placeholder="Optional note"
+          placeholder="Input remark"
+          helperText="Show on both accounts"
+          minRows={1}
         />
       </Stack>
     </PreviewTransfer>

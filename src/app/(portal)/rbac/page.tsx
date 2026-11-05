@@ -20,7 +20,7 @@ import { palette } from "@/theme/palette";
 import {
   DeleteRoleDialog,
   RolesTable,
-  RoleFormDialog,
+  RoleForm,
   RoleDetailForm,
   useListRolesQuery,
   type Role,
@@ -83,6 +83,16 @@ export default function RolesPage() {
 
   if (!canView) {
     return <Alert severity="error">You do not have permission to view roles.</Alert>;
+  }
+
+  if ((canCreate && createOpen) || (canEdit && Boolean(editTarget))) {
+    return (
+      <RoleForm
+        role={editTarget}
+        onCancel={closeWizard}
+        onSuccess={closeWizard}
+      />
+    );
   }
 
   return (
@@ -236,11 +246,6 @@ export default function RolesPage() {
         open={canDelete && Boolean(deleteTarget)}
         role={deleteTarget}
         onClose={() => setDeleteTarget(null)}
-      />
-      <RoleFormDialog
-        open={(canCreate && createOpen) || (canEdit && Boolean(editTarget))}
-        role={editTarget}
-        onClose={closeWizard}
       />
       <RoleDetailForm
         open={Boolean(detailTarget)}
