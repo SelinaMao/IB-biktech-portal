@@ -319,9 +319,9 @@ export default function ScheduleTransactionsTable({
               aria-label={t.status === "Active" ? "Pause schedule" : "Resume schedule"}
             >
               {t.status === "Active" ? (
-                <CirclePause size={18} strokeWidth={2} />
+                <CirclePause size={18} strokeWidth={1} />
               ) : (
-                <CirclePlay size={18} strokeWidth={2} />
+                <CirclePlay size={18} strokeWidth={1} />
               )}
             </IconButton>
           </Tooltip>
@@ -429,13 +429,7 @@ export default function ScheduleTransactionsTable({
             alignSelf: { xs: "flex-end", sm: "center" },
           }}
         >
-          <BaseFilterByDay
-            value={dateFilter}
-            onChange={(filter) => {
-              setDateFilter(filter);
-              setPage(0);
-            }}
-          />
+         
 
           <Button
             variant="outlined"

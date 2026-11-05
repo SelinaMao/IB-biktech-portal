@@ -12,5 +12,6 @@ export {
 } from "./rbac.api";
 export { default as RolesTable } from "./components/RolesTable";
 export { default as RoleFormDialog } from "./components/RoleFormDialog";
+export { default as RoleForm } from "./components/RoleForm";
 export { default as RoleDetailForm } from "./components/RoleDetailForm";
 export { default as DeleteRoleDialog } from "./components/DeleteRoleDialog";

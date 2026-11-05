@@ -10,6 +10,7 @@ export {
   type SignupRequestCodeData,
   type VerifyOtpRequest,
   type ResendOtpRequest,
+  type ConfirmCodeOtpRequest,
 } from "./auth.api";
 export { default as SessionProvider } from "./SessionProvider";
 export {

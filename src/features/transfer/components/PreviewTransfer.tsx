@@ -316,7 +316,6 @@ export default function PreviewTransfer({
                 fullWidth
                 disabled={!canSubmit}
                 onClick={goToReview}
-                endIcon={<ArrowRight size={18} />}
                 sx={{
                     height: 52,
                     borderRadius: "999px",
@@ -485,6 +484,7 @@ export default function PreviewTransfer({
                             maxWidth: "100%",
                             bgcolor: "#FFFFFF",
                             borderRadius: "20px",
+                            border: "1px solid #EDEDEC",
                             p: { xs: 2.5, md: 3 },
                             boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                         }}
@@ -497,9 +497,10 @@ export default function PreviewTransfer({
                 {step === 0 && (
                     <Box
                         sx={{
-                            mt: 2.5,
+                            mt: 2,
                             bgcolor: "#FFFFFF",
                             borderRadius: "20px",
+                            border: "1px solid #EDEDEC",
                             p: { xs: 3, md: 3.5 },
                             width: { xs: "100%", sm: 500, md: 520 },
                             maxWidth: "100%",

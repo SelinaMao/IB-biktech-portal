@@ -34,6 +34,12 @@ export type {
   RefreshSessionResult,
 } from "@core/types/auth";
 
+export type ConfirmCodeOtpRequest = {
+  otpId?: string | null;
+  confirmationCode?: string;
+  confirmCode?: string;
+};
+
 /**
  * Auth endpoints, injected into the single root `baseApi` (one cache, one
  * middleware — see src/store/baseApi.ts). Every feature follows this pattern:
@@ -96,8 +102,19 @@ export const authApi = baseApi.injectEndpoints({
       query: (body) => ({ url: adminApi.AUTH.SIGNUP_REQUEST_CODE, method: "POST", body }),
     }),
 
-    signUpVerifyOtp: build.mutation<VerifyOtpResult, VerifyOtpRequest>({
-      query: (body) => ({ url: adminApi.AUTH.SIGNUP_VERIFY_OTP, method: "POST", body: { ...body, confirmationCode: body.confirmCode } }),
+    signUpVerifyOtp: build.mutation<VerifyOtpResult, VerifyOtpRequest | ConfirmCodeOtpRequest>({
+      query: (body) => {
+        const code = (body as any).confirmationCode ?? (body as any).confirmCode;
+        return {
+          url: adminApi.AUTH.SIGNUP_VERIFY_OTP,
+          method: "POST",
+          body: {
+            ...body,
+            confirmationCode: code,
+            confirmCode: code,
+          },
+        };
+      },
     }),
 
     forgotPassword: build.mutation<ForgotPasswordResult, ForgotPasswordRequest>({
