@@ -1,8 +1,8 @@
 import type { CashFlowPoint } from "@core/components/CashFlowChartPanel";
 import type {
   AccountBalances,
-  BankAccountListItem,
   CompanyProfile,
+  CoreAccountEntry,
   IAccountDetailResponses,
   RolloverOption,
   RolloverOptionCode,
@@ -59,7 +59,6 @@ export function matchRolloverOptionCode(label: string): RolloverOptionCode | und
   return undefined;
 }
 
-
 export interface AccountDetails {
   company: CompanyProfile;
   stats: AccountBalances;
@@ -69,3 +68,88 @@ export interface AccountDetails {
   fixedDeposit?: IAccountDetailResponses;
 }
 
+/** Mock Deposit Account (Term Deposit / Fixed Deposit) */
+export const MOCK_DEPOSIT_ACCOUNT: CoreAccountEntry = {
+  id: "mock-td-account-001",
+  accountNumber: "101200000905",
+  accountName: "BIKTECH SOLUTION CO., LTD.",
+  accountClass: "TD",
+  accountClassDescription: "Term Deposit",
+  ccy: "USD",
+  status: "active",
+  accountType: "TD",
+  availableBalance: 50000,
+  type: "TD",
+};
+
+/** Mock Detail data for Term Deposit */
+export const MOCK_DEPOSIT_DETAIL: IAccountDetailResponses = {
+  accountNumber: "101200000905",
+  accountName: "BIKTECH SOLUTION CO., LTD.",
+  accountType: "TD",
+  ownershipType: "individual",
+  signatureType: null,
+  currencyCode: "USD",
+  ccy: "USD",
+  status: "active",
+  branchCode: "001",
+  openedDate: "2026-01-15",
+  availableBalance: 50000,
+  currentBalance: 50000,
+  ledgerBalance: 50000,
+  interestRate: 6.5,
+  productCode: "TD01",
+  productDesc: "Fixed Deposit Account",
+  placementAmt: 50000,
+  tenorMonths: 12,
+  maturityDate: "2027-01-15",
+  renewalOption: "Principal & Interest Rollover",
+  interestAmount: 3250,
+  interestType: "Fixed Rate",
+  taxRate: 6,
+  taxAmount: 195,
+  totalAmountToReceive: 53055,
+  accountSettlementNumber: "101200000903",
+  settlementAccountName: "BIKTECH SOLUTION CO., LTD.",
+  currencySettlementCode: "USD",
+  onGoingMaturityDays: 140,
+  totalMaturityDays: 365,
+};
+
+/** Mock Transactions for the Term Deposit account */
+export const MOCK_DEPOSIT_TRANSACTIONS: TTransactionDetailResponse[] = [
+  {
+    transactionId: "TXN-TD-001",
+    transactionCode: "INT_CREDIT",
+    transactionType: "C",
+    transactionAmount: 270.83,
+    transactionCurrency: "USD",
+    transactionDate: "2026-06-15",
+    transactionTime: "10:00:00",
+    transactionDescription: "Monthly Interest Accrual",
+    transactionReferenceCode: "REF-TD-INT-001",
+    fromAccountName: "Bakong Settlement",
+    fromAccountNumber: "000190001",
+    toAccountName: "BIKTECH SOLUTION CO., LTD.",
+    toAccountNumber: "101200000905",
+    amountBalance: 50270.83,
+    fields: [],
+  },
+  {
+    transactionId: "TXN-TD-000",
+    transactionCode: "DEP_PLACEMENT",
+    transactionType: "C",
+    transactionAmount: 50000.0,
+    transactionCurrency: "USD",
+    transactionDate: "2026-01-15",
+    transactionTime: "09:30:00",
+    transactionDescription: "Term Deposit Placement",
+    transactionReferenceCode: "REF-TD-PLACE-000",
+    fromAccountName: "BIKTECH SOLUTION CO., LTD.",
+    fromAccountNumber: "101200000903",
+    toAccountName: "BIKTECH SOLUTION CO., LTD.",
+    toAccountNumber: "101200000905",
+    amountBalance: 50000.0,
+    fields: [],
+  },
+];

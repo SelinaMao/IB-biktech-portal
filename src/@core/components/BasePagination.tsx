@@ -217,10 +217,10 @@ export default function BasePagination({
           boundaryCount={1}
           sx={{
             "& .MuiPaginationItem-root.Mui-selected": {
-              bgcolor: palette.navy[800],
+              bgcolor: palette.primary.main,
               color: palette.white,
               fontWeight: 600,
-              "&:hover": { bgcolor: palette.primary[800] },
+              "&:hover": { bgcolor: palette.primary.dark },
             },
           }}
         />

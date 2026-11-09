@@ -10,6 +10,7 @@ import { showToast } from "@core/components/AppToast";
 import { useAppSelector } from "@/store/hooks";
 import {
   AccountsSidebar,
+  getAccountIndicatorColor,
   ChangeRolloverOptionDialog,
   NewAccountDialog,
   TransactionDetailsPanel,
@@ -30,6 +31,12 @@ import {
   useListTransactionsMutation,
   type TTransactionDetailResponse,
   type RolloverOption,
+  type CoreAccountEntry,
+  type IAccountDetailResponses,
+  MOCK_DEPOSIT_ACCOUNT,
+  MOCK_DEPOSIT_DETAIL,
+  MOCK_DEPOSIT_TRANSACTIONS,
+  ROLLOVER_OPTIONS,
 } from "@/features/account";
 import { downloadBlob } from "@/utils/download-file";
 import AccountDetailsCard from "@/features/account/components/AccountDetailCard";
@@ -54,10 +61,52 @@ export default function AccountPage() {
   }, [listAccounts]);
   const accountsResponse = useAppSelector(selectAccountsResponse);
 
-  const bankAccounts = accountsResponse?.accounts ?? [];
+  const rawBankAccounts = useMemo(() => accountsResponse?.accounts ?? [], [accountsResponse?.accounts]);
   const coreSummary = accountsResponse?.summary ?? null;
 
+  // Injects mock deposit account if no deposit / fixed deposit account is present in backend response
+  const bankAccounts = useMemo(() => {
+    const hasDeposit = rawBankAccounts.some(
+      (a) =>
+        a.accountType === "TD" ||
+        a.accountType === "FD" ||
+        (a.accountName || "").toLowerCase().includes("fixed") ||
+        (a.accountClassDescription || "").toLowerCase().includes("deposit"),
+    );
+
+    if (!hasDeposit) {
+      const companyName = rawBankAccounts[0]?.accountName || "BIKTECH SOLUTION CO., LTD.";
+      const depositAccount: CoreAccountEntry = {
+        ...MOCK_DEPOSIT_ACCOUNT,
+        accountName: companyName,
+      };
+      return [...rawBankAccounts, depositAccount];
+    }
+
+    return rawBankAccounts;
+  }, [rawBankAccounts]);
+
+  const effectiveSummary = useMemo(() => {
+    if (!coreSummary) return null;
+    const isMockDepositAdded = bankAccounts.some(
+      (a) => a.accountNumber === MOCK_DEPOSIT_ACCOUNT.accountNumber,
+    );
+    return {
+      totalBalanceKHR: coreSummary.totalBalanceKHR,
+      totalBalanceUSD:
+        coreSummary.totalBalanceUSD +
+        (isMockDepositAdded ? MOCK_DEPOSIT_ACCOUNT.availableBalance : 0),
+    };
+  }, [coreSummary, bankAccounts]);
+
   const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (!selectedAccountId && bankAccounts.length > 0) {
+      const first = bankAccounts[0];
+      setSelectedAccountId(first.id || `${first.accountNumber}-${first.accountType}`);
+    }
+  }, [bankAccounts, selectedAccountId]);
 
   const selectedAccount = useMemo(() => {
     if (!selectedAccountId) return undefined;
@@ -69,7 +118,24 @@ export default function AccountPage() {
     );
   }, [bankAccounts, selectedAccountId]);
 
+  const selectedIndex = useMemo(() => {
+    if (!selectedAccountId) return 0;
+    const idx = bankAccounts.findIndex(
+      (account) =>
+        account.id === selectedAccountId ||
+        `${account.accountNumber}-${account.accountType}` === selectedAccountId ||
+        account.accountNumber === selectedAccountId,
+    );
+    return idx >= 0 ? idx : 0;
+  }, [bankAccounts, selectedAccountId]);
+
+  const selectedAccountColor = useMemo(() => {
+    if (!selectedAccount) return "#8DD4BE";
+    return getAccountIndicatorColor(selectedAccount, selectedIndex);
+  }, [selectedAccount, selectedIndex]);
+
   const accountNumber = selectedAccount?.accountNumber;
+  const isMockDeposit = selectedAccount?.accountNumber === MOCK_DEPOSIT_ACCOUNT.accountNumber;
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [accountInformationDetail, setaccountInformationDetail] = useState(false);
@@ -103,14 +169,18 @@ export default function AccountPage() {
   const [getAccountDetail] = useGetAccountDetailMutation();
 
   useEffect(() => {
-    if (accountNumber) getAccountDetail({ accountNumber, type: accounType });
-  }, [accountNumber, accounType, getAccountDetail]);
+    if (accountNumber && !isMockDeposit) {
+      getAccountDetail({ accountNumber, type: accounType });
+    }
+  }, [accountNumber, accounType, isMockDeposit, getAccountDetail]);
 
   const [getAccountSummary] = useGetAccountSummaryMutation();
 
   useEffect(() => {
-    if (accountNumber) getAccountSummary({ accountNumber, type: accounType });
-  }, [accountNumber, accounType, getAccountSummary]);
+    if (accountNumber && !isMockDeposit) {
+      getAccountSummary({ accountNumber, type: accounType });
+    }
+  }, [accountNumber, accounType, isMockDeposit, getAccountSummary]);
 
   const [listTransactions] = useListTransactionsMutation();
 
@@ -118,7 +188,7 @@ export default function AccountPage() {
   const [isDownloadingStatement, setIsDownloadingStatement] = useState(false);
 
   useEffect(() => {
-    if (!accountNumber) return;
+    if (!accountNumber || isMockDeposit) return;
     const range = resolveBaseFilterRange(txnFilter);
     listTransactions({
       accountNumber,
@@ -129,7 +199,7 @@ export default function AccountPage() {
       offset: txnPage * TRANSACTIONS_PAGE_SIZE,
       search: debouncedTxnQuery || undefined,
     });
-  }, [accountNumber, accounType, txnFilter, debouncedTxnQuery, txnPage, listTransactions]);
+  }, [accountNumber, accounType, txnFilter, debouncedTxnQuery, txnPage, isMockDeposit, listTransactions]);
 
   const handleDownloadCertificate = async () => {
     if (!accountNumber) return;
@@ -174,11 +244,11 @@ export default function AccountPage() {
     setIsDownloadingTransaction(true);
     try {
       const blob = await generateTransactionReceiptPdf(transaction);
-      downloadBlob(blob, `${transaction.transactionId}-receipt.pdf`);
+      downloadBlob(blob, `transaction-${transaction.transactionId}.pdf`);
     } catch {
       showToast("error", {
         title: "Download failed",
-        message: "Could not download the transaction receipt. Please try again.",
+        message: "Could not generate transaction receipt.",
       });
     } finally {
       setIsDownloadingTransaction(false);
@@ -208,12 +278,25 @@ export default function AccountPage() {
       : undefined;
   }, [accountNumber, accountSummaryResponse]);
 
+  const mockDepositDetail: IAccountDetailResponses = useMemo(() => ({
+    ...MOCK_DEPOSIT_DETAIL,
+    accountName: selectedAccount?.accountName || "BIKTECH SOLUTION CO., LTD.",
+    accountSettlementNumber: bankAccounts[0]?.accountNumber || "101200000903",
+    settlementAccountName: selectedAccount?.accountName || "BIKTECH SOLUTION CO., LTD.",
+  }), [selectedAccount, bankAccounts]);
+
+  const effectiveInfo = isMockDeposit ? mockDepositDetail : accountInfoDetail;
+  const effectiveFixedDeposit = isMockDeposit ? mockDepositDetail : fixedDepositDetail;
+  const effectiveTransactions = isMockDeposit ? MOCK_DEPOSIT_TRANSACTIONS : selectedTransactions;
+  const effectiveTxnStatus = isMockDeposit ? "loaded" : transactionsStatus;
+  const effectiveTxnTotal = isMockDeposit ? MOCK_DEPOSIT_TRANSACTIONS.length : transactionsTotal;
+
   const selectedCompany = useMemo(
     () =>
-      accountInfoDetail
+      effectiveInfo
         ? {
-          name: accountInfoDetail.accountName,
-          accountNumber: accountInfoDetail.accountNumber,
+          name: effectiveInfo.accountName,
+          accountNumber: effectiveInfo.accountNumber,
         }
         : selectedAccount
         ? {
@@ -221,7 +304,7 @@ export default function AccountPage() {
           accountNumber: selectedAccount.accountNumber,
         }
         : undefined,
-    [accountInfoDetail, selectedAccount],
+    [effectiveInfo, selectedAccount],
   );
 
   return (
@@ -230,7 +313,7 @@ export default function AccountPage() {
         {/* Left Column: Accounts Sidebar */}
         <Grid size={{ xs: 12, lg: 3 }}>
           <AccountsSidebar
-            summary={coreSummary}
+            summary={effectiveSummary}
             accounts={bankAccounts}
             selectedId={selectedAccountId}
             onSelect={(id) => setSelectedAccountId(id)}
@@ -247,13 +330,14 @@ export default function AccountPage() {
                   key={selectedAccount.id || `${selectedAccount.accountNumber}-${selectedAccount.accountType}`}
                   accounts={bankAccounts}
                   selectedAccount={selectedAccount}
+                  accentColor={selectedAccountColor}
                   open={detailsOpen}
                   onClose={() => setDetailsOpen(false)}
-                  info={accountInfoDetail}
-                  stats={accountInfoDetail}
+                  info={effectiveInfo}
+                  stats={effectiveInfo}
                   isFixedDeposit={isFixedDeposit}
                   isSaving={isSaving}
-                  fixedDeposit={fixedDepositDetail}
+                  fixedDeposit={effectiveFixedDeposit}
                   summary={selectedAccountSummary}
                   onOpenAccountInfo={() => setaccountInformationDetail(true)}
                   onExportStatements={handleDownloadStatement}
@@ -265,9 +349,9 @@ export default function AccountPage() {
               <Grid size={12}>
                 <TransactionsList
                   key={selectedAccount.id || `${selectedAccount.accountNumber}-${selectedAccount.accountType}`}
-                  transactions={selectedTransactions}
-                  isLoading={transactionsStatus === "loading"}
-                  error={transactionsStatus === "failed"}
+                  transactions={effectiveTransactions}
+                  isLoading={effectiveTxnStatus === "loading"}
+                  error={effectiveTxnStatus === "failed"}
                   query={txnQuery}
                   onQueryChange={setTxnQuery}
                   showDateFilter
@@ -277,7 +361,7 @@ export default function AccountPage() {
                     setTxnPage(0);
                   }}
                   page={txnPage}
-                  total={transactionsTotal}
+                  total={effectiveTxnTotal}
                   rowsPerPage={TRANSACTIONS_PAGE_SIZE}
                   onPageChange={setTxnPage}
                   showDownload
@@ -285,7 +369,7 @@ export default function AccountPage() {
                   onDownload={handleDownloadStatement}
                   onSelectTransaction={setSelectedTransaction}
                   isFixedDeposit={isFixedDeposit}
-                  accountName={selectedAccount.accountName || accountInfoDetail?.accountName}
+                  accountName={selectedAccount.accountName || effectiveInfo?.accountName}
                   accountNumber={selectedAccount.accountNumber}
                   onViewCertificate={() => { }}
                   onDownloadCertificate={() => { }}
@@ -296,16 +380,25 @@ export default function AccountPage() {
         </Grid>
       </Grid>
 
-      {/* Account Information Drawer (for when button is clicked) */}
-      {selectedAccount && (accountInfoDetail || selectedAccount) && (
+            {/* Account Information Drawer (for when button is clicked) */}
+      {selectedAccount && (effectiveInfo || selectedAccount) && (
         <AccountInformationDetail
           open={accountInformationDetail}
           onClose={() => setaccountInformationDetail(false)}
-          info={accountInfoDetail}
-          fixedDeposit={fixedDepositDetail}
+          info={effectiveInfo}
+          fixedDeposit={effectiveFixedDeposit}
           isFixedDeposit={isFixedDeposit}
           selectedAccount={selectedAccount}
           onDownloadCertificate={handleDownloadCertificate}
+          onChangeRollover={() => {
+            const currentOption =
+              ROLLOVER_OPTIONS.find(
+                (o: RolloverOption) =>
+                  o.label.toLowerCase() ===
+                  (effectiveFixedDeposit?.renewalOption || "").toLowerCase(),
+              ) ?? ROLLOVER_OPTIONS[0];
+            setPendingRolloverOption(currentOption);
+          }}
         />
       )}
 
@@ -320,14 +413,14 @@ export default function AccountPage() {
 
       <NewAccountDialog open={newAccountOpen} onClose={() => setNewAccountOpen(false)} />
 
-      {fixedDepositDetail && pendingRolloverOption && (
+      {effectiveFixedDeposit && pendingRolloverOption && (
         <ChangeRolloverOptionDialog
           open={Boolean(pendingRolloverOption)}
           onClose={() => setPendingRolloverOption(null)}
           companyName={selectedCompany?.name}
           accountNumber={selectedCompany?.accountNumber}
-          currentOptionLabel="-"
-          maturityDate={fixedDepositDetail.maturityDate ?? ""}
+          currentOptionLabel={effectiveFixedDeposit.renewalOption || "Principal & Interest Rollover"}
+          maturityDate={effectiveFixedDeposit.maturityDate ?? ""}
           initialOption={pendingRolloverOption}
           onSave={() => setRolloverQrOpen(true)}
         />

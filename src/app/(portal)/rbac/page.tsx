@@ -233,6 +233,7 @@ export default function RolesPage() {
           canEdit={canEdit}
           canDelete={canDelete}
           onRowClick={setDetailTarget}
+          selectedRoleId={detailTarget?.id}
           pagination={{
             count: matches.length,
             page,

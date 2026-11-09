@@ -15,30 +15,98 @@ export interface AccountsSidebarProps {
   onSelect?: (id: string) => void;
 }
 
-const getAccountIndicatorColor = (
-  account: CoreAccountEntry,
-  index: number,
-  isDeposit: boolean,
-): string => {
-  if (account.color) return account.color;
+/** Converts any hex or rgb color to rgba with custom alpha for soft gradients */
+export function colorWithAlpha(color: string, alpha: number): string {
+  if (!color) return `rgba(141, 212, 190, ${alpha})`;
+  const trimmed = color.trim();
+  if (trimmed.startsWith("#")) {
+    let hex = trimmed.slice(1);
+    if (hex.length === 3) {
+      hex = hex.split("").map((c) => c + c).join("");
+    }
+    if (hex.length >= 6) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+  }
+  if (trimmed.startsWith("rgb")) {
+    const parts = trimmed.match(/\d+(\.\d+)?/g);
+    if (parts && parts.length >= 3) {
+      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+    }
+  }
+  return trimmed;
+}
 
-  const type = (account.accountType || account.type || "").toUpperCase();
+/** Formats account type name (e.g. "Current Account", "Savings Account", "Term Deposit") */
+export function getAccountTypeName(account: CoreAccountEntry): string {
+  const rawType = (account.accountType || account.type || "").toUpperCase();
+  const desc = (account.accountClassDescription || "").trim();
   const name = (account.accountName || "").toLowerCase();
 
-  if (isDeposit || type === "TD" || type === "FD" || name.includes("fixed") || name.includes("deposit")) {
-    return "#20A678"; // Green for Deposit / TD
+  if (desc) {
+    if (desc === desc.toUpperCase() && desc.length > 2) {
+      return desc
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+    return desc;
   }
 
-  if (type === "CA" || name.includes("shiiping") || name.includes("shipping") || index === 0) {
-    return "#1C64B4"; // Blue for Current / Shiiping
+  if (
+    rawType === "TD" ||
+    rawType === "FD" ||
+    name.includes("fixed") ||
+    name.includes("deposit") ||
+    name.includes("term")
+  ) {
+    return "Term Deposit";
   }
 
-  if (type === "SA" || name.includes("current") || name.includes("saving") || index === 1) {
-    return "#E88000"; // Orange
+  if (
+    rawType === "CA" ||
+    name.includes("current") ||
+    name.includes("shipping") ||
+    name.includes("shiiping")
+  ) {
+    return "Current Account";
   }
 
-  const fallbackColors = ["#1C64B4", "#E88000", "#20A678", "#8B5CF6"];
-  return fallbackColors[index % fallbackColors.length];
+  if (rawType === "SA" || name.includes("saving")) {
+    return "Savings Account";
+  }
+
+  if (rawType === "CL" || name.includes("loan")) {
+    return "Loan Account";
+  }
+
+  return rawType || "Current Account";
+}
+
+/**
+ * Returns the indicator / theme color for each account.
+ * Follows the Figma design color sequence:
+ * Index 0: Sky Blue, Index 1: Warm Orange, Index 2: Sage Green, Index 3: Mint Teal, etc.
+ */
+export const getAccountIndicatorColor = (
+  account?: CoreAccountEntry | null,
+  index: number = 0,
+): string => {
+  if (account?.color) return account.color;
+
+  const palette = [
+    "#5CAFE4", // Sky Blue (Card 1 in Figma: #65BEFA / #5CAFE4)
+    "#F1B96E", // Warm Orange (Card 2 in Figma: #F1B96E)
+    "#74C0A8", // Sage Green (Card 3 in Figma: #74C0A8)
+    "#8DD4BE", // Mint Teal (Card 4 in Figma: #8DD4BE)
+    "#A78BFA", // Purple
+    "#F472B6", // Pink
+    "#38BDF8", // Cyan
+  ];
+
+  return palette[index % palette.length];
 };
 
 /** Formats dynamic amount as "KHR 120,293,000.00" or "USD 293,000.00" */
@@ -53,24 +121,6 @@ function formatSummaryCurrency(
   });
   return `${ccy} ${formatted}`;
 }
-
-const isDepositAccount = (account: CoreAccountEntry) => {
-  const type = (account.accountType || account.type || "").toUpperCase();
-  const cls = (account.accountClass || "").toUpperCase();
-  const desc = (account.accountClassDescription || "").toLowerCase();
-  const name = (account.accountName || "").toLowerCase();
-  return (
-    type === "TD" ||
-    type === "FD" ||
-    cls === "TD" ||
-    cls === "FD" ||
-    desc.includes("fixed") ||
-    desc.includes("deposit") ||
-    desc.includes("term") ||
-    name.includes("fixed") ||
-    name.includes("deposit")
-  );
-};
 
 export default function AccountsSidebar({
   summary,
@@ -100,20 +150,9 @@ export default function AccountsSidebar({
     };
   }, [summary, accounts]);
 
-  const savingsAccounts = useMemo(
-    () => accounts.filter((a) => !isDepositAccount(a)),
-    [accounts],
-  );
-
-  const depositAccounts = useMemo(
-    () => accounts.filter((a) => isDepositAccount(a)),
-    [accounts],
-  );
-
   const renderAccountCard = (
     account: CoreAccountEntry,
     index: number,
-    isDeposit: boolean,
   ) => {
     const key = account.id || `${account.accountNumber}-${account.accountType}`;
     const active = Boolean(
@@ -123,7 +162,8 @@ export default function AccountsSidebar({
           `${account.accountNumber}-${account.accountType}` === selectedId),
     );
 
-    const barColor = getAccountIndicatorColor(account, index, isDeposit);
+    const barColor = getAccountIndicatorColor(account, index);
+    const accountTypeName = getAccountTypeName(account);
 
     return (
       <Box
@@ -133,114 +173,144 @@ export default function AccountsSidebar({
         onClick={() => onSelect?.(key)}
         onKeyDown={(e) => {
           if (!onSelect) return;
-          if (e.key === "Enter" || e.key === " ") onSelect(key);
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(key);
+          }
         }}
         sx={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          boxSizing: "border-box",
+          alignItems: "stretch",
           width: "100%",
-          height: 72,
-          minWidth: 0,
-          overflow: "hidden",
-          p: "0 10px",
-          borderRadius: "16px",
           cursor: onSelect ? "pointer" : "default",
-          bgcolor: active ? "#EDF4FC" : "#FFFFFF",
-          border: active ? "1.5px solid #85B7E8" : "1.5px solid #EDF2F7",
-          transition: "all 0.15s ease-in-out",
-          "&:hover": {
-            bgcolor: active ? "#EDF4FC" : "#F8FAFC",
-            borderColor: active ? "#73A8DC" : "#CBD5E1",
-          },
+          outline: "none",
+          userSelect: "none",
         }}
       >
-        {/* Left: Indicator Bar + Account Name & Number */}
-        <Stack
-          direction="row"
-          spacing={1.5}
-          sx={{ alignItems: "center", minWidth: 0, pr: 1 }}
-        >
-          <Box
-            sx={{
-              width: "4px",
-              height: "32px",
-              borderRadius: "4px",
-              bgcolor: barColor,
-              flexShrink: 0,
-            }}
-          />
-          <Box sx={{ minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontSize: 16,
-                fontWeight: 700,
-                color: "#0F172A",
-                lineHeight: 1.25,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {account.accountName}
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: 13.5,
-                fontWeight: 400,
-                color: "#64748B",
-                mt: "4px",
-                lineHeight: 1.2,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {formatAccountNumber(account.accountNumber)}
-            </Typography>
-          </Box>
-        </Stack>
-
-        {/* Right: Balance */}
-        <Typography
+        {/* Unselected: Left Vertical Curved Tapered Indicator (hides smoothly when active) */}
+        <Box
           sx={{
-            fontSize: 16,
-            fontWeight: 700,
-            color: "#0F172A",
-            textAlign: "right",
+            width: active ? 0 : "6px",
+            opacity: active ? 0 : 1,
+            mr: active ? 0 : "4px",
             flexShrink: 0,
-            maxWidth: "55%",
+            display: "flex",
+            alignItems: "stretch",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
             overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            pl: 1,
           }}
         >
-          <BaseBlurText>
-            {formatCCY(account.availableBalance, account.ccy)}
-          </BaseBlurText>
-        </Typography>
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 10 100"
+            preserveAspectRatio="none"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ overflow: "visible", display: "block" }}
+          >
+            <path
+              d="M 9.2 0.5 C 9.0 2.5, 8.2 4.5, 7.0 6.5 L 7.0 93.5 C 8.2 95.5, 9.0 97.5, 9.2 99.5 C 7.0 99.0, 2.5 97.5, 0.5 93.5 L 0.5 6.5 C 2.5 2.5, 7.0 1.0, 9.2 0.5 Z"
+              fill={barColor}
+            />
+          </svg>
+        </Box>
+
+        {/* Account Card Box */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            boxSizing: "border-box",
+            borderRadius: "16px",
+            bgcolor: "#FFFFFF",
+            border: active ? `2px solid ${barColor}` : "1.5px solid #EDF2F7",
+            backgroundImage: active
+              ? `linear-gradient(90deg, ${colorWithAlpha(barColor, 0.35)} 0%, ${colorWithAlpha(barColor, 0.12)} 22%, ${colorWithAlpha(barColor, 0.04)} 38%, rgba(255, 255, 255, 0) 50%, #FFFFFF 100%)`
+              : "none",
+            boxShadow: active
+              ? `0px 2px 8px ${colorWithAlpha(barColor, 0.14)}`
+              : "0px 1px 3px rgba(15, 23, 42, 0.03)",
+            p: "10px 14px",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            "&:hover": {
+              ...(active
+                ? {}
+                : {
+                    bgcolor: "#F8FAFC",
+                    borderColor: "#CBD5E1",
+                  }),
+            },
+            "&:focus-visible": {
+              outline: "2px solid #3B82F6",
+              outlineOffset: 2,
+            },
+          }}
+        >
+          {/* Line 1: Account Name */}
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: "#0F172A",
+              lineHeight: 1.25,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {account.accountName}
+          </Typography>
+
+          {/* Line 2: Account Number | Account Type */}
+          <Typography
+            sx={{
+              fontSize: 11.5,
+              fontWeight: 400,
+              color: "#64748B",
+              mt: "3px",
+              lineHeight: 1.25,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {formatAccountNumber(account.accountNumber)}
+            {" | "}
+            {accountTypeName}
+          </Typography>
+
+          {/* Line 3: Balance */}
+          <Typography
+            sx={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#0F172A",
+              mt: "8px",
+              lineHeight: 1.2,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            <BaseBlurText>
+              {formatCCY(account.availableBalance, account.ccy)}
+            </BaseBlurText>
+          </Typography>
+        </Box>
       </Box>
     );
   };
 
   return (
-    <Box
-      sx={{
-        bgcolor: "#FFFFFF",
-        borderRadius: "24px",
-        p: { xs: 2.5, sm: "20px 15px" },
-        boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
-        border: "1px solid #EDF2F7",
-      }}
-    >
-      {/* ───────── Top: Summary Box ───────── */}
+    <Box sx={{ width: "100%" }}>
+      {/* ───────── Dynamic Summary Box ───────── */}
       <Box
         sx={{
           bgcolor: "#F4F7FB",
-          borderRadius: "12px",
+          borderRadius: "16px",
           p: "18px 20px",
+          border: "1px solid #EDF2F7",
         }}
       >
         <Typography
@@ -284,12 +354,12 @@ export default function AccountsSidebar({
         </Stack>
       </Box>
 
-      {/* ───────── Savings Section ───────── */}
-      {savingsAccounts.length > 0 && (
+      {/* ───────── Account List Section ───────── */}
+      {accounts.length > 0 && (
         <Box sx={{ mt: 3 }}>
           <Typography
             sx={{
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: 700,
               color: "#5A6B82",
               lineHeight: 1.2,
@@ -297,31 +367,10 @@ export default function AccountsSidebar({
               px: 0.5,
             }}
           >
-            Savings
+            Account List
           </Typography>
           <Stack spacing={1.5}>
-            {savingsAccounts.map((account, index) => renderAccountCard(account, index, false))}
-          </Stack>
-        </Box>
-      )}
-
-      {/* ───────── Deposit Section ───────── */}
-      {depositAccounts.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Typography
-            sx={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#5A6B82",
-              lineHeight: 1.2,
-              mb: 1.5,
-              px: 0.5,
-            }}
-          >
-            Deposit
-          </Typography>
-          <Stack spacing={1.5}>
-            {depositAccounts.map((account, index) => renderAccountCard(account, index, true))}
+            {accounts.map((account, index) => renderAccountCard(account, index))}
           </Stack>
         </Box>
       )}

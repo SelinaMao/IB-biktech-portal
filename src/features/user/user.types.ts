@@ -64,7 +64,7 @@ export const USER_STATUS_META: Record<
   { label: string; color: ChipColor }
 > = {
   ACTIVE: { label: "Active", color: "success" },
-  PENDING_ACTIVATION: { label: "Pending activation", color: "warning" },
+  PENDING_ACTIVATION: { label: "Pending activation", color: "info" },
   INACTIVE: { label: "Inactive", color: "default" },
   DEACTIVATED: { label: "Deactivated", color: "error" },
   LOCKED: { label: "Locked", color: "error" },

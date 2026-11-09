@@ -2,12 +2,10 @@
 
 import { useMemo } from "react";
 import { Box, Stack, Typography } from "@mui/material";
-import { WalletCards } from "lucide-react";
 
 import BaseBlurText from "@core/components/BaseBlurText";
 import { formatCCY } from "@/utils/format-ccy";
 import { formatAccountNumber } from "@/utils/format-account-number";
-import { loanAccounts } from "../loan.data";
 
 export interface LoanEntry {
   id: string;
@@ -16,6 +14,7 @@ export interface LoanEntry {
   type?: string;
   balance: number;
   currency: string; // "USD" | "KHR"
+  color?: string;
 }
 
 export interface LoansSidebarProps {
@@ -26,25 +25,82 @@ export interface LoansSidebarProps {
   onSelect?: (id: string) => void;
 }
 
-const getLoanIndicatorColor = (loan: LoanEntry, index: number = 0): string => {
-  const name = (loan.name || "").toLowerCase();
-  const type = (loan.type || "").toLowerCase();
+/** Converts any hex or rgb color to rgba with custom alpha for soft gradients */
+export function colorWithAlpha(color: string, alpha: number): string {
+  if (!color) return `rgba(92, 175, 228, ${alpha})`;
+  const trimmed = color.trim();
+  if (trimmed.startsWith("#")) {
+    let hex = trimmed.slice(1);
+    if (hex.length === 3) {
+      hex = hex.split("").map((c) => c + c).join("");
+    }
+    if (hex.length >= 6) {
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+  }
+  if (trimmed.startsWith("rgb")) {
+    const parts = trimmed.match(/\d+(\.\d+)?/g);
+    if (parts && parts.length >= 3) {
+      return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+    }
+  }
+  return trimmed;
+}
+
+export const getLoanIndicatorColor = (
+  loan?: LoanEntry | null,
+  index: number = 0,
+): string => {
+  if (loan?.color) return loan.color;
+  const name = (loan?.name || "").toLowerCase();
+  const type = (loan?.type || "").toLowerCase();
   if (name.includes("housing") || name.includes("home") || type.includes("housing")) {
-    return "#20A678"; // Green
+    return "#74C0A8"; // Sage Green
   }
   if (name.includes("car") || name.includes("auto") || type.includes("car")) {
-    return "#1C64B4"; // Blue
+    return "#5CAFE4"; // Sky Blue
   }
   if (name.includes("sme") || name.includes("business") || type.includes("sme")) {
-    return "#E88000"; // Orange
+    return "#F1B96E"; // Warm Orange
   }
   if (name.includes("overdraft") || type.includes("overdraft")) {
-    return "#8B5CF6"; // Purple
+    return "#A78BFA"; // Purple
   }
 
-  const fallbackColors = ["#20A678", "#1C64B4", "#E88000", "#8B5CF6", "#0EA5E9"];
-  return fallbackColors[index % fallbackColors.length];
+  const palette = [
+    "#5CAFE4", // Sky Blue
+    "#F1B96E", // Warm Orange
+    "#74C0A8", // Sage Green
+    "#8DD4BE", // Mint Teal
+    "#A78BFA", // Purple
+    "#F472B6", // Pink
+    "#38BDF8", // Cyan
+  ];
+
+  return palette[index % palette.length];
 };
+
+export function getLoanTypeName(loan: LoanEntry): string {
+  const type = (loan.type || "").trim();
+  const name = (loan.name || "").toLowerCase();
+
+  if (type) {
+    if (type.toLowerCase().includes("loan") || type.toLowerCase().includes("facility")) {
+      return type;
+    }
+    return `${type} Loan`;
+  }
+
+  if (name.includes("car") || name.includes("auto")) return "Car Loan";
+  if (name.includes("housing") || name.includes("home")) return "Housing Loan";
+  if (name.includes("sme") || name.includes("business")) return "SME Loan";
+  if (name.includes("overdraft")) return "Overdraft Facility";
+
+  return "Loan Account";
+}
 
 /** Formats amount as "KHR 120,293,000.00" or "USD 293,000.00" */
 function formatSummaryCurrency(
@@ -85,22 +141,161 @@ export default function LoansSidebar({
     return { totalKHR: khr, totalUSD: usd };
   }, [outstandingKhr, outstandingUsd, loans]);
 
+  const renderLoanCard = (loan: LoanEntry, index: number) => {
+    const key = `${loan.id}-${loan.currency}`;
+    const active = Boolean(
+      selectedId && (loan.id === selectedId || loan.number === selectedId),
+    );
+
+    const barColor = getLoanIndicatorColor(loan, index);
+    const loanTypeName = getLoanTypeName(loan);
+
+    return (
+      <Box
+        key={key}
+        role={onSelect ? "button" : undefined}
+        tabIndex={onSelect ? 0 : undefined}
+        onClick={() => onSelect?.(loan.id)}
+        onKeyDown={(e) => {
+          if (!onSelect) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(loan.id);
+          }
+        }}
+        sx={{
+          display: "flex",
+          alignItems: "stretch",
+          width: "100%",
+          cursor: onSelect ? "pointer" : "default",
+          outline: "none",
+          userSelect: "none",
+        }}
+      >
+        {/* Unselected: Left Vertical Curved Tapered Indicator (hides smoothly when active) */}
+        <Box
+          sx={{
+            width: active ? 0 : "6px",
+            opacity: active ? 0 : 1,
+            mr: active ? 0 : "4px",
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "stretch",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            overflow: "hidden",
+          }}
+        >
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 10 100"
+            preserveAspectRatio="none"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ overflow: "visible", display: "block" }}
+          >
+            <path
+              d="M 9.2 0.5 C 9.0 2.5, 8.2 4.5, 7.0 6.5 L 7.0 93.5 C 8.2 95.5, 9.0 97.5, 9.2 99.5 C 7.0 99.0, 2.5 97.5, 0.5 93.5 L 0.5 6.5 C 2.5 2.5, 7.0 1.0, 9.2 0.5 Z"
+              fill={barColor}
+            />
+          </svg>
+        </Box>
+
+        {/* Loan Card Box */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            boxSizing: "border-box",
+            borderRadius: "16px",
+            bgcolor: "#FFFFFF",
+            border: active ? `2px solid ${barColor}` : "1.5px solid #EDF2F7",
+            backgroundImage: active
+              ? `linear-gradient(90deg, ${colorWithAlpha(barColor, 0.35)} 0%, ${colorWithAlpha(barColor, 0.12)} 22%, ${colorWithAlpha(barColor, 0.04)} 38%, rgba(255, 255, 255, 0) 50%, #FFFFFF 100%)`
+              : "none",
+            boxShadow: active
+              ? `0px 2px 8px ${colorWithAlpha(barColor, 0.14)}`
+              : "0px 1px 3px rgba(15, 23, 42, 0.03)",
+            p: "10px 14px",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            "&:hover": {
+              ...(active
+                ? {}
+                : {
+                    bgcolor: "#F8FAFC",
+                    borderColor: "#CBD5E1",
+                  }),
+            },
+            "&:focus-visible": {
+              outline: "2px solid #3B82F6",
+              outlineOffset: 2,
+            },
+          }}
+        >
+          {/* Line 1: Loan Name */}
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: "#0F172A",
+              lineHeight: 1.25,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {loan.name}
+          </Typography>
+
+          {/* Line 2: Loan Number | Loan Type */}
+          <Typography
+            sx={{
+              fontSize: 11.5,
+              fontWeight: 400,
+              color: "#64748B",
+              mt: "3px",
+              lineHeight: 1.25,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {formatAccountNumber(loan.number)}
+            {" | "}
+            {loanTypeName}
+          </Typography>
+
+          {/* Line 3: Balance */}
+          <Typography
+            sx={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#0F172A",
+              mt: "8px",
+              lineHeight: 1.2,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            <BaseBlurText>
+              {formatCCY(loan.balance, loan.currency)}
+            </BaseBlurText>
+          </Typography>
+        </Box>
+      </Box>
+    );
+  };
+
   return (
-    <Box
-      sx={{
-        bgcolor: "#FFFFFF",
-        borderRadius: "24px",
-        p: { xs: 2.5, sm: "20px 15px" },
-        boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
-        border: "1px solid #EDF2F7",
-      }}
-    >
+    <Box sx={{ width: "100%" }}>
       {/* ───────── Top: Summary Box ───────── */}
       <Box
         sx={{
           bgcolor: "#F4F7FB",
-          borderRadius: "12px",
+          borderRadius: "16px",
           p: "18px 20px",
+          border: "1px solid #EDF2F7",
         }}
       >
         <Typography
@@ -140,136 +335,26 @@ export default function LoansSidebar({
         </Stack>
       </Box>
 
-      {/* ───────── Middle: Loans List Header ───────── */}
-      <Stack
-        direction="row"
-        spacing={1.25}
-        sx={{
-          alignItems: "center",
-          mt: 3,
-          mb: 2,
-          px: 0.5,
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: 16,
-            fontWeight: 700,
-            color: "#5A6B82",
-            lineHeight: 1.2,
-          }}
-        >
-          Loan Accounts
-        </Typography>
-      </Stack>
-
-      {/* ───────── Bottom: Loan Cards List ───────── */}
-      <Stack spacing={1.5}>
-        {loans.map((loan, index) => {
-          const active = Boolean(
-            selectedId && (loan.id === selectedId || loan.number === selectedId),
-          );
-
-          return (
-            <Box
-              key={`${loan.id}-${loan.currency}`}
-              role={onSelect ? "button" : undefined}
-              tabIndex={onSelect ? 0 : undefined}
-              onClick={() => onSelect?.(loan.id)}
-              onKeyDown={(e) => {
-                if (!onSelect) return;
-                if (e.key === "Enter" || e.key === " ") onSelect(loan.id);
-              }}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                boxSizing: "border-box",
-                width: "100%",
-                height: 72,            // fixed height
-                minWidth: 0,
-                overflow: "hidden",    // nothing can push the card bigger
-                p: "0 10px",           // vertical centering is handled by alignItems
-                borderRadius: "16px",
-                cursor: onSelect ? "pointer" : "default",
-                bgcolor: active ? "#EDF4FC" : "#FFFFFF",
-                border: active ? "1.5px solid #85B7E8" : "1.5px solid #EDF2F7",
-                transition: "all 0.15s ease-in-out",
-                "&:hover": {
-                  bgcolor: active ? "#EDF4FC" : "#F8FAFC",
-                  borderColor: active ? "#73A8DC" : "#CBD5E1",
-                },
-              }}
-            >
-              {/* Left: Indicator Bar + Loan Name & Number */}
-              <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{ alignItems: "center", minWidth: 0, pr: 1 }}
-              >
-                <Box
-                  sx={{
-                    width: "4px",
-                    height: "32px",
-                    borderRadius: "4px",
-                    bgcolor: getLoanIndicatorColor(loan, index),
-                    flexShrink: 0,
-                  }}
-                />
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    sx={{
-                      fontSize: 16,
-                      fontWeight: 700,
-                      color: "#0F172A",
-                      lineHeight: 1.25,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {loan.name}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontSize: 13.5,
-                      fontWeight: 400,
-                      color: "#64748B",
-                      mt: "4px",
-                      lineHeight: 1.2,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {formatAccountNumber(loan.number)}
-                  </Typography>
-                </Box>
-              </Stack>
-
-              {/* Right: Balance */}
-              <Typography
-                sx={{
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: "#0F172A",
-                  textAlign: "right",
-                  flexShrink: 0,       // balance never gets squeezed
-                  maxWidth: "55%",     // but can't take over the whole card
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  pl: 1,
-                }}
-              >
-                <BaseBlurText>
-                  {formatCCY(loan.balance, loan.currency)}
-                </BaseBlurText>
-              </Typography>
-            </Box>
-          );
-        })}
-      </Stack>
+      {/* ───────── Loan Accounts List Section ───────── */}
+      {loans.length > 0 && (
+        <Box sx={{ mt: 3 }}>
+          <Typography
+            sx={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#5A6B82",
+              lineHeight: 1.2,
+              mb: 1.5,
+              px: 0.5,
+            }}
+          >
+            Loan Accounts
+          </Typography>
+          <Stack spacing={1.5}>
+            {loans.map((loan, index) => renderLoanCard(loan, index))}
+          </Stack>
+        </Box>
+      )}
     </Box>
   );
 }

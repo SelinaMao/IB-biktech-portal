@@ -36,9 +36,12 @@ export {
   matchRolloverOptionCode,
   TRANSACTION_DATE_RANGE_DAYS,
   TRANSACTION_DATE_RANGES,
+  MOCK_DEPOSIT_ACCOUNT,
+  MOCK_DEPOSIT_DETAIL,
+  MOCK_DEPOSIT_TRANSACTIONS,
 } from "./account.data";
 
-export { default as AccountsSidebar } from "./components/AccountsSidebar";
+export { default as AccountsSidebar, getAccountIndicatorColor } from "./components/AccountsSidebar";
 export { default as AccountOverviewCard } from "./components/AccountOverviewCard";
 export { default as AccountOverviewCardSkeleton } from "./components/AccountOverviewCardSkeleton";
 export { default as TDAccountOverviewCard } from "./components/TDAccountOverviewCard";

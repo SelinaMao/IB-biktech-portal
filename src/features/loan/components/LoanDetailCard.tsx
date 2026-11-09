@@ -20,6 +20,7 @@ export interface LoanDetailCardProps {
   loanType?: string;
   outstandingAmount?: number;
   currency?: string;
+  accentColor?: string;
   nextPaymentAmount?: number;
   nextPaymentDate?: string;
   interestRatePct?: number;
@@ -35,8 +36,8 @@ export interface LoanDetailCardProps {
   onExportStatements?: (value: BaseDownloadValue) => void;
 }
 
-/** Formats as "6,700,000.00 USD" (suffix currency code) */
-function formatAmountSuffix(
+/** Formats amount as "USD 6,700,000.00" or "KHR 120,293,000.00" */
+function formatCurrencyPrefix(
   amount: number | string | undefined | null,
   ccy: string = "USD",
 ): string {
@@ -45,7 +46,7 @@ function formatAmountSuffix(
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${formatted} ${ccy}`;
+  return `${(ccy || "USD").toUpperCase()} ${formatted}`;
 }
 
 function formatMaturityDate(dateStr?: string): string {
@@ -62,11 +63,13 @@ export default function LoanDetailCard({
   loanType,
   outstandingAmount,
   currency = "USD",
+  accentColor,
   maturityDate,
   onOpenDetails,
   onOpenAccountInfo,
 }: LoanDetailCardProps) {
   const [copied, setCopied] = useState(false);
+  const cardAccentColor = accentColor || "#5CAFE4";
 
   // Resolve data from props and borrower/schedule
   const name = loanName || borrower?.name || "Car Loan";
@@ -98,8 +101,11 @@ export default function LoanDetailCard({
       sx={{
         bgcolor: "#FFFFFF",
         borderRadius: "24px",
-         p: { xs: 2.5, sm: "16px 16px" },
+        p: { xs: 2.5, sm: "16px 16px" },
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
+        border: "1px solid #EDF2F7",
+        borderLeft: `4px solid ${cardAccentColor}`,
+        transition: "border-left-color 0.2s ease-in-out",
       }}
     >
       <Stack
@@ -124,7 +130,7 @@ export default function LoanDetailCard({
           <Box>
             <Typography
               sx={{
-                fontSize: { xs: 20, md: 22 },
+                fontSize: { xs: 20, md: 24 },
                 fontWeight: 700,
                 color: "#0F172A",
                 lineHeight: 1.25,
@@ -133,14 +139,18 @@ export default function LoanDetailCard({
               {name}
             </Typography>
 
-            {/* Account Number + Copy */}
             <Stack
               direction="row"
               spacing={1}
               sx={{ alignItems: "center", mt: 3 }}
             >
               <Typography
-                sx={{ fontSize: 14, color: "#334155", fontWeight: 500 }}
+                sx={{
+                  fontSize: 14,
+                  color: "#334155",
+                  fontWeight: 500,
+                  letterSpacing: "0.01em",
+                }}
               >
                 {formattedAccNumber}
               </Typography>
@@ -150,42 +160,60 @@ export default function LoanDetailCard({
                   onClick={handleCopyAccount}
                   sx={{
                     p: 1.25,
-                    color: copied ? "#166D35" : "#475569",
+                    color: copied ? "#166D35" : "#64748B",
                     "&:hover": { color: "#0F172A" },
                   }}
                 >
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                  {copied ? <Check size={15} /> : <Copy size={15} />}
                 </IconButton>
               </Tooltip>
             </Stack>
 
-            <Typography sx={{ fontSize: 13, color: "#64748B", mt: 3 }}>
+            <Typography
+              sx={{
+                fontSize: 13.5,
+                color: "#64748B",
+                mt: 3,
+                fontWeight: 400,
+              }}
+            >
               {accountTypeSubtitle}
             </Typography>
           </Box>
 
-          {/* Bottom Button: Account Information */}
           <Box sx={{ mt: { xs: 4.5, md: 5.5 } }}>
-            <BaseButton
-              title="Account Information"
-              variant="contained"
-              startIcon={<Info size={16} />}
-              onClick={onOpenAccountInfo || onOpenDetails}
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={2.5}
               sx={{
-                bgcolor: "#EBF3FA",
-                color: "#0F172A",
-                borderRadius: "999px",
-                textTransform: "none",
-                fontSize: 13,
-                fontWeight: 600,
-                px: 4.5,
-                py: 0.9,
-                height: 38,
-                boxShadow: "none",
-                whiteSpace: "nowrap",
-                "&:hover": { bgcolor: "#DCE8F5" },
+                alignItems: { xs: "flex-start", sm: "center" },
+                flexWrap: "wrap",
               }}
-            />
+            >
+              <BaseButton
+                title="Account Information"
+                variant="contained"
+                startIcon={<Info size={16} />}
+                onClick={onOpenDetails || onOpenAccountInfo}
+                sx={{
+                  bgcolor: "#EBF3FA",
+                  color: "#0F172A",
+                  borderRadius: "999px",
+                  textTransform: "none",
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  px: 4.5,
+                  py: 0.85,
+                  height: 38,
+                  boxShadow: "none",
+                  whiteSpace: "nowrap",
+                  "&:hover": {
+                    bgcolor: "#DFEAF6",
+                    boxShadow: "none",
+                  },
+                }}
+              />
+            </Stack>
           </Box>
         </Box>
 
@@ -198,7 +226,7 @@ export default function LoanDetailCard({
           }}
         >
           <Stack spacing={4}>
-            {/* Outstanding Balance */}
+            {/* Metric 1: Outstanding Amount */}
             <Box
               sx={{
                 bgcolor: "#F4F7FB",
@@ -215,7 +243,7 @@ export default function LoanDetailCard({
                   lineHeight: 1.2,
                 }}
               >
-                Outstanding Balance
+                Outstanding amount
               </Typography>
               <Typography
                 sx={{
@@ -223,16 +251,15 @@ export default function LoanDetailCard({
                   fontWeight: 600,
                   color: "#0D4984",
                   lineHeight: 1.3,
-                  fontfamily: "latin",
                 }}
               >
                 <BaseBlurText>
-                  {formatAmountSuffix(outstanding, ccy)}
+                  {formatCurrencyPrefix(outstanding, ccy)}
                 </BaseBlurText>
               </Typography>
             </Box>
 
-            {/* Maturity Date */}
+            {/* Metric 2: Maturity Date */}
             <Box
               sx={{
                 bgcolor: "#F4F7FB",
@@ -241,17 +268,18 @@ export default function LoanDetailCard({
               }}
             >
               <Typography
-                 sx={{
+                sx={{
                   fontSize: 14,
                   color: "#64748B",
                   fontWeight: 400,
                   mb: 0.5,
                   lineHeight: 1.2,
-                }}              >
+                }}
+              >
                 Maturity Date
               </Typography>
               <Typography
-                 sx={{
+                sx={{
                   fontSize: 16,
                   fontWeight: 500,
                   color: "#0F172A",

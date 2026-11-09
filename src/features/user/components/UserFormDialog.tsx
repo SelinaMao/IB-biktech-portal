@@ -199,7 +199,27 @@ export default function UserFormDialog({
           ) : step === 0 ? (
             <Stack spacing={1.5}>
               {unlockButton}
-              <BaseButton title="Next" type="submit" form={USER_FORM_ID} variant="contained" fullWidth />
+              <BaseButton
+                title="Next"
+                type="submit"
+                form={USER_FORM_ID}
+                variant="contained"
+                fullWidth
+                sx={{
+                  bgcolor: "#1B5299",
+                  color: "#FFFFFF",
+                  borderRadius: "10px",
+                  height: 40,
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  boxShadow: "none",
+                  "&:hover": {
+                    bgcolor: "#15427C",
+                    boxShadow: "none",
+                  },
+                }}
+              />
             </Stack>
           ) : (
             <Stack spacing={1.5}>
@@ -211,12 +231,18 @@ export default function UserFormDialog({
                   fullWidth
                   onClick={() => setStep(0)}
                   sx={{
-                    backgroundColor: "#DFDFDE",
-                    borderColor: "#DFDFDE",
-                    color: palette.text.primary,
+                    bgcolor: palette.white,
+                    borderColor: palette.slate[200],
+                    color: "#0F172A",
+                    borderRadius: "10px",
+                    height: 40,
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    textTransform: "none",
                     "&:hover": {
-                      backgroundColor: "#DFDFDE",
-                      borderColor: "#DFDFDE",
+                      borderColor: palette.slate[300],
+                      bgcolor: palette.slate[50],
+
                     },
                   }}
                 />
@@ -226,6 +252,20 @@ export default function UserFormDialog({
                   fullWidth
                   onClick={handleSaveUser}
                   isLoading={isSubmitting}
+                  sx={{
+                    bgcolor: "#1B5299",
+                    color: "#FFFFFF",
+                    borderRadius: "10px",
+                    height: 40,
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    boxShadow: "none",
+                    "&:hover": {
+                      bgcolor: "#15427C",
+                      boxShadow: "none",
+                    },
+                  }}
                 />
               </Stack>
             </Stack>
@@ -297,7 +337,7 @@ export default function UserFormDialog({
                     right: 0,
                     borderTopWidth: 2,
                     borderTopStyle: "dashed",
-                    borderTopColor: palette.navy[800],
+                    borderTopColor: "#1B5299",
                     transform: "translateY(-50%)",
                   }}
                 />
@@ -311,7 +351,7 @@ export default function UserFormDialog({
                     height: 0,
                     borderTop: "4px solid transparent",
                     borderBottom: "4px solid transparent",
-                    borderLeft: `6px solid ${palette.navy[800]}`,
+                    borderLeft: "6px solid #1B5299",
                   }}
                 />
               </Box>
@@ -340,8 +380,8 @@ function IconChip({ icon }: { icon: React.ReactNode }) {
         width: 48,
         height: 48,
         borderRadius: `${radius.lg}px`,
-        bgcolor: palette.info[50],
-        color: palette.primary[50],
+        bgcolor: "#EBF3FC",
+        color: "#1B5299",
         display: "grid",
         placeItems: "center",
         flexShrink: 0,

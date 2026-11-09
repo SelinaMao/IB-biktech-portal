@@ -46,11 +46,25 @@ const formatCompactNumber = (v: number) => {
   return Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(v);
 };
 
-/** 5 evenly-spaced y-axis ticks (0, 1000, 2000, 3000, 4000) */
+/** 5 evenly-spaced y-axis ticks that adapt dynamically to any value scale */
 function getNiceAxisTicks(max: number) {
   if (max <= 0) return [0, 1000, 2000, 3000, 4000];
-  const step = Math.ceil(max / 4000) * 1000;
-  return [0, step, step * 2, step * 3, step * 4];
+  if (max <= 4000) {
+    if (max <= 100) return [0, 25, 50, 75, 100];
+    if (max <= 500) return [0, 125, 250, 375, 500];
+    return [0, 1000, 2000, 3000, 4000];
+  }
+  const roughStep = max / 4;
+  const power = Math.pow(10, Math.floor(Math.log10(roughStep)));
+  const norm = roughStep / power;
+  let niceStep = power;
+  if (norm <= 1) niceStep = power;
+  else if (norm <= 2) niceStep = 2 * power;
+  else if (norm <= 2.5) niceStep = 2.5 * power;
+  else if (norm <= 5) niceStep = 5 * power;
+  else niceStep = 10 * power;
+
+  return [0, niceStep, niceStep * 2, niceStep * 3, niceStep * 4];
 }
 
 function CashFlowYAxisTick({ y, payload }: { y?: number; payload?: { value: number } }) {
@@ -218,7 +232,7 @@ export default function CashFlowChartPanel({
                 <YAxis
                   tickLine={false}
                   axisLine={false}
-                  width={35}
+                  width={Math.max(35, Math.max(...yTicks.map((t) => formatCompactNumber(t).length)) * 8 + 6)}
                   domain={[0, yTicks[yTicks.length - 1]]}
                   ticks={yTicks}
                   interval={0}
