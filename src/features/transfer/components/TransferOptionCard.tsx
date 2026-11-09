@@ -28,7 +28,7 @@ export default function TransferOptionCard({
         display: "block",
         width: "100%",
         border: `1px solid ${palette.slate[200]}`,
-        borderRadius: `${radius.lg}px`,
+        borderRadius: `${radius.xl}px`,
         font: "inherit",
         textDecoration: "none",
         textAlign: "left",
