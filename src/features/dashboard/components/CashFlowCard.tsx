@@ -123,7 +123,7 @@ export default function CashFlowCard({
 
   const accountsResponse = useAppSelector(selectAccountsResponse);
   const bankAccounts = accountsResponse?.accounts ?? [];
-
+  const found = bankAccounts.find((a) => a.accountNumber === propAccountNumber);
   // Match the active account for the selected currency (prioritize Current Account "CA")
   const activeAccount = useMemo(() => {
     if (propAccountNumber) {

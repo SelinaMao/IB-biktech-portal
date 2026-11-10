@@ -2,67 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { NorthEastRounded } from "@mui/icons-material";
-import Image from "next/image";
 
-import { font, palette, radius } from "@/theme/palette";
+import { font, palette } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseButton from "@core/components/BaseButton";
 import BaseDialog from "@core/components/BaseDialog";
-import BaseSideDialog from "@core/components/BaseSideDialog";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import BaseTextArea from "@core/form/BaseTextArea";
-import { formatDate } from "@/utils/date-time";
 import { approvalStatusMeta, type ApprovalEntry } from "../approval.types";
-
-const STATUS_TEXT_COLOR: Record<string, string> = {
-  success: palette.success.main,
-  warning: palette.warning.main,
-  error: palette.danger.main,
-  info: palette.info.main,
-  default: palette.slate[400],
-};
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  if (!value) return null;
-  return (
-    <Stack
-      direction="row"
-      sx={{
-        justifyContent: "space-between",
-        py: 1.5,
-        borderBottom: `1px solid ${palette.slate[100]}`,
-        gap: 2,
-      }}
-    >
-      <Typography variant="body2" sx={{ color: palette.slate[400], flexShrink: 0 }}>
-        {label}
-      </Typography>
-      <Typography sx={{ fontWeight: 600, fontSize: 14, textAlign: "right" }}>{value}</Typography>
-    </Stack>
-  );
-}
-
-function PartyCard({ label, name, account }: { label: string; name: string; account: string }) {
-  return (
-    <Stack spacing={1}>
-      <Typography variant="body2" sx={{ color: palette.slate[400] }}>
-        {label}
-      </Typography>
-      <Box sx={{ bgcolor: palette.slate[50], borderRadius: `${radius.lg}px`, px: 2, py: 1.5 }}>
-        <Typography sx={{ fontWeight: 700, fontSize: 14.5 }}>{name}</Typography>
-        <Typography variant="body2" sx={{ color: palette.slate[400], mt: 0.25 }}>
-          {account}
-        </Typography>
-      </Box>
-    </Stack>
-  );
-}
-
-const formatAmount = (amount: number, currency: string) =>
-  `${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 
 export type ApprovalDetailDialogProps = {
   open: boolean;
@@ -74,9 +25,12 @@ export type ApprovalDetailDialogProps = {
   isRejecting?: boolean;
 };
 
-/** Slide-over triggered by clicking an Approval Lists row — transaction
- *  summary up front, then From/To parties and reference fields, then the
- *  Approve action for entries still pending review. */
+function formatLast4(acc?: string | null) {
+  if (!acc) return "";
+  const cleaned = acc.replace(/\D/g, "");
+  return cleaned.length >= 4 ? `•••• ${cleaned.slice(-4)}` : acc;
+}
+
 export default function ApprovalDetailDialog({
   open,
   onClose,
@@ -86,19 +40,15 @@ export default function ApprovalDetailDialog({
   isApproving = false,
   isRejecting = false,
 }: ApprovalDetailDialogProps) {
-  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectTouched, setRejectTouched] = useState(false);
   const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
-  const [approveSuccess, setApproveSuccess] = useState(false);
 
-  // Drawer instance is reused across entries — clear the approve flow so a
-  // freshly opened entry doesn't inherit the previous one's success screen.
   useEffect(() => {
     if (!open) {
       setApproveConfirmOpen(false);
-      setApproveSuccess(false);
+      setRejectDialogOpen(false);
     }
   }, [open]);
 
@@ -106,22 +56,22 @@ export default function ApprovalDetailDialog({
 
   const statusMeta = approvalStatusMeta(entry.status);
   const isPending = entry.status === "PENDING";
-  const amountLabel = formatAmount(entry.amount, entry.currency);
 
-  // Closing a pending entry drops the reviewer out of the approval flow —
-  // confirm first so a stray click on the backdrop/X doesn't lose the review.
-  const requestClose = () => {
-    if (isPending) {
-      setConfirmCloseOpen(true);
-    } else {
-      onClose();
-    }
-  };
+  const formattedAmount =
+    entry.currency === "USD"
+      ? `$${entry.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : `${entry.currency} ${entry.amount.toLocaleString("en-US")}`;
 
-  const handleConfirmClose = () => {
-    setConfirmCloseOpen(false);
-    onClose();
-  };
+  const fromDisplay = entry.sourceAccountNo
+    ? `${entry.sourceAccountName || "Operating"} ${formatLast4(entry.sourceAccountNo)}`
+    : entry.sourceAccountName || "Operating •••• 4821";
+
+  const toDisplay =
+    entry.payToAccountNo && entry.payToAccountNo !== "Bakong"
+      ? `${entry.payToName} ${formatLast4(entry.payToAccountNo)}`
+      : entry.payToName || "—";
+
+  const referenceDisplay = entry.refNo || entry.transactionId || "INV-2026-0912";
 
   const requestReject = () => {
     setRejectReason("");
@@ -136,74 +86,234 @@ export default function ApprovalDetailDialog({
     }
     onReject?.(entry, rejectReason.trim());
     setRejectDialogOpen(false);
+    onClose();
   };
 
   const rejectReasonInvalid = rejectTouched && !rejectReason.trim();
 
-  // Approve goes through the same mobile-app QR confirmation as other
-  // dual-control actions before the entry is actually marked approved.
   const requestApprove = () => {
     setApproveConfirmOpen(true);
   };
 
   const handleQrApprove = () => {
     setApproveConfirmOpen(false);
-    setApproveSuccess(true);
-  };
-
-  const handleDoneApprove = () => {
     onApprove?.(entry);
+    onClose();
   };
 
   return (
-    <BaseSideDialog
-      open={open}
-      onClose={requestClose}
-      title={approveSuccess ? "Approved" : "Transaction Details"}
-      width={500}
-      footer={
-        isPending ? (
-          approveSuccess ? (
-            <BaseButton title="Done" fullWidth onClick={handleDoneApprove} />
-          ) : (
-            <Stack direction="row" spacing={1.5}>
-              <BaseButton
-                title="Reject"
-                variant="contained"
-                fullWidth
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        PaperProps={{
+          sx: {
+            width: "440px",
+            maxWidth: "440px",
+            height: "357px",
+            maxHeight: "357px",
+            borderRadius: "16px",
+            p: "24px 28px",
+            boxSizing: "border-box",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            bgcolor: "#FFFFFF",
+            boxShadow:
+              "0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 8px 10px -6px rgba(0, 0, 0, 0.1)",
+            overflow: "hidden",
+            m: 2,
+          },
+        }}
+      >
+        {/* Header */}
+        <Box>
+          <Stack
+            direction="row"
+            sx={{ alignItems: "center", justifyContent: "space-between" }}
+          >
+            <Typography
+              sx={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: "#111827",
+                lineHeight: 1.3,
+              }}
+            >
+              {entry.transactionType || "Outgoing transfer"}
+            </Typography>
+            <Box
+              sx={{
+                bgcolor: isPending
+                  ? "#E28800"
+                  : statusMeta.color === "success"
+                    ? "#16A34A"
+                    : "#6B7280",
+                color: "#000000",
+                fontSize: 11,
+                fontWeight: 500,
+                px: 1.5,
+                py: 1,
+                borderRadius: "6px",
+                letterSpacing: "0.2px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {isPending ? "Awaiting approval" : statusMeta.label}
+            </Box>
+          </Stack>
+          <Typography sx={{ fontSize: 13, color: "#6B7280", mt: 1.5 }}>
+            Requested by Dara Kim · 10 min ago
+          </Typography>
+        </Box>
+
+        {/* Amount Section */}
+        <Box sx={{ mt: 3 }}>
+          <Typography sx={{ fontSize: 12, color: "#6B7280", fontWeight: 400, mb: 0.5 }}>
+            Amount
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: 32,
+              fontWeight: 700,
+              color: "#111827",
+              letterSpacing: "-0.5px",
+              lineHeight: 1.1,
+            }}
+          >
+            <BaseBlurText>{formattedAmount}</BaseBlurText>
+          </Typography>
+        </Box>
+
+        {/* Detail Rows */}
+        <Stack spacing={2.5} sx={{ mt: 5 }}>
+          <Stack
+            direction="row"
+            sx={{ justifyContent: "space-between", alignItems: "center" }}
+          >
+            <Typography sx={{ fontSize: 13, color: "#6B7280", fontWeight: 400 }}>
+              From
+            </Typography>
+            <Typography
+              sx={{ fontSize: 13, color: "#111827", fontWeight: 600, textAlign: "right" }}
+            >
+              {fromDisplay}
+            </Typography>
+          </Stack>
+
+          <Stack
+            direction="row"
+            sx={{ justifyContent: "space-between", alignItems: "center" }}
+          >
+            <Typography sx={{ fontSize: 13, color: "#6B7280", fontWeight: 400 }}>
+              To
+            </Typography>
+            <Typography
+              sx={{ fontSize: 13, color: "#111827", fontWeight: 600, textAlign: "right" }}
+            >
+              {toDisplay}
+            </Typography>
+          </Stack>
+
+          <Stack
+            direction="row"
+            sx={{ justifyContent: "space-between", alignItems: "center" }}
+          >
+            <Typography sx={{ fontSize: 13, color: "#6B7280", fontWeight: 400 }}>
+              Reference
+            </Typography>
+            <Typography
+              sx={{ fontSize: 13, color: "#111827", fontWeight: 600, textAlign: "right" }}
+            >
+              {referenceDisplay}
+            </Typography>
+          </Stack>
+        </Stack>
+
+        {/* Action Buttons */}
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{ justifyContent: "flex-end", mt: "auto", pt: 1 }}
+        >
+          {isPending ? (
+            <>
+              <Button
+                variant="outlined"
                 onClick={requestReject}
                 disabled={isApproving || isRejecting}
                 sx={{
-                  backgroundColor: palette.danger.main,
-                  "&:hover": { backgroundColor: palette.danger[600] },
+                  minWidth: 80,
+                  height: 38,
+                  px: 2.5,
+                  borderColor: "#D1D5DB",
+                  color: "#1F2937",
+                  bgcolor: "#FFFFFF",
+                  borderRadius: "8px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  textTransform: "none",
+                  boxShadow: "none",
+                  "&:hover": {
+                    borderColor: "#9CA3AF",
+                    bgcolor: "#F9FAFB",
+                  },
                 }}
-              />
-              <BaseButton
-                title="Approved"
-                fullWidth
+              >
+                Reject
+              </Button>
+              <Button
+                variant="contained"
                 onClick={requestApprove}
-                isLoading={isApproving}
-                disabled={isRejecting}
-              />
-            </Stack>
-          )
-        ) : undefined
-      }
-    >
-      <BaseDialog
-        open={confirmCloseOpen}
-        onClose={() => setConfirmCloseOpen(false)}
-        title="Close without approving?"
-        confirmTitle="Close"
-        confirmColor="error"
-        cancelTitle="Keep reviewing"
-        onConfirm={handleConfirmClose}
-      >
-        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          This transaction is still pending. Are you sure you want to close without approving it?
-        </Typography>
-      </BaseDialog>
+                disabled={isApproving || isRejecting}
+                sx={{
+                  minWidth: 90,
+                  height: 38,
+                  px: 2.5,
+                  bgcolor: "#2764A5",
+                  color: "#FFFFFF",
+                  borderRadius: "8px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  textTransform: "none",
+                  boxShadow: "none",
+                  "&:hover": {
+                    bgcolor: "#1E5186",
+                  },
+                }}
+              >
+                Approve
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="outlined"
+              onClick={onClose}
+              sx={{
+                minWidth: 80,
+                height: 38,
+                px: 2.5,
+                borderColor: "#D1D5DB",
+                color: "#1F2937",
+                bgcolor: "#FFFFFF",
+                borderRadius: "8px",
+                fontSize: 14,
+                fontWeight: 600,
+                textTransform: "none",
+                boxShadow: "none",
+                "&:hover": {
+                  borderColor: "#9CA3AF",
+                  bgcolor: "#F9FAFB",
+                },
+              }}
+            >
+              Close
+            </Button>
+          )}
+        </Stack>
+      </Dialog>
 
+      {/* Reject Reason Dialog */}
       <BaseDialog
         open={rejectDialogOpen}
         onClose={() => setRejectDialogOpen(false)}
@@ -255,131 +365,8 @@ export default function ApprovalDetailDialog({
         </Stack>
       </BaseDialog>
 
+      {/* QR Confirmation for Approve */}
       <QrConfirmationDialog open={approveConfirmOpen} onApprove={handleQrApprove} />
-
-      {approveSuccess ? (
-        <Stack spacing={2} sx={{ alignItems: "center", textAlign: "center", py: 3 }}>
-          <Image src="/assets/icons/Ico.svg" alt="Success" width={40} height={40} />
-          <Typography sx={{ fontWeight: 600, fontSize: 14, color: palette.slate[500] }}>
-            Submitted
-          </Typography>
-
-          <Stack
-            direction="row"
-            sx={{ alignItems: "center", justifyContent: "center", width: "100%", py: 1 }}
-          >
-            <IconChip
-              icon={<Image src="/assets/icons/send-to-mobile.svg" alt="" width={28} height={28} />}
-            />
-            <Box sx={{ position: "relative", flex: 1, maxWidth: 72, mx: 1.5 }}>
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: "50%",
-                  left: 0,
-                  right: 0,
-                  borderTopWidth: 2,
-                  borderTopStyle: "dashed",
-                  borderTopColor: palette.navy[800],
-                  transform: "translateY(-50%)",
-                }}
-              />
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: "50%",
-                  right: -1,
-                  transform: "translateY(-50%)",
-                  width: 0,
-                  height: 0,
-                  borderTop: "4px solid transparent",
-                  borderBottom: "4px solid transparent",
-                  borderLeft: `6px solid ${palette.navy[800]}`,
-                }}
-              />
-            </Box>
-            <IconChip
-              icon={<Image src="/assets/icons/wallet-cards.svg" alt="" width={28} height={28} />}
-            />
-          </Stack>
-
-          <Typography variant="h6">Submitted and pending to be authorized</Typography>
-          <Typography variant="body2" sx={{ color: palette.slate[400] }}>
-            This instruction has been successfully submitted and put in a queue for authorization.
-          </Typography>
-        </Stack>
-      ) : (
-        <Stack spacing={3}>
-          <Stack spacing={1} sx={{ alignItems: "center", textAlign: "center", py: 2 }}>
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: "12px",
-                display: "grid",
-                placeItems: "center",
-                bgcolor: palette.danger.bg,
-                color: palette.danger.main,
-              }}
-            >
-              <NorthEastRounded sx={{ fontSize: 22 }} />
-            </Box>
-
-            <Typography sx={{ fontSize: 14, fontWeight: 600, color: palette.slate[400] }}>
-              {entry.transactionType}
-            </Typography>
-
-            <Typography sx={{ fontSize: 26, fontWeight: 700 }}>
-              <BaseBlurText>{amountLabel}</BaseBlurText>
-            </Typography>
-
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <Typography variant="body2" sx={{ color: palette.slate[400] }}>
-                {formatDate(entry.creationDate, "DD MMM YYYY, hh:mm A")}
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: STATUS_TEXT_COLOR[statusMeta.color] ?? STATUS_TEXT_COLOR.default,
-                }}
-              >
-                {statusMeta.label}
-              </Typography>
-            </Stack>
-          </Stack>
-
-          <PartyCard label="From" name={entry.sourceAccountName} account={entry.sourceAccountNo} />
-          <PartyCard label="To" name={entry.payToName} account={entry.payToAccountNo} />
-
-          <Stack spacing={0.5}>
-            <Row label="Transaction ID" value={entry.transactionId} />
-            <Row label="Reference No." value={entry.refNo} />
-            <Row label="Remark" value={entry.transactionType} />
-            <Row label="Debit From Account" value={<BaseBlurText>{amountLabel}</BaseBlurText>} />
-            <Row label="Rejection Reason" value={entry.rejectReason} />
-          </Stack>
-        </Stack>
-      )}
-    </BaseSideDialog>
-  );
-}
-
-function IconChip({ icon }: { icon: React.ReactNode }) {
-  return (
-    <Box
-      sx={{
-        width: 48,
-        height: 48,
-        borderRadius: `${radius.lg}px`,
-        bgcolor: palette.info[50],
-        color: palette.primary[50],
-        display: "grid",
-        placeItems: "center",
-        flexShrink: 0,
-      }}
-    >
-      {icon}
-    </Box>
+    </>
   );
 }
