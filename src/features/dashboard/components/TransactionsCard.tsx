@@ -372,14 +372,7 @@ export default function TransactionsCard({
   ];
 
   return (
-    <BaseCard
-      sx={{
-        p: `${padding.xxl}px`,
-        borderRadius: `${radius.xl}px`,
-        border: `1px solid ${palette.slate[200]}`,
-        bgcolor: "#FFFFFF",
-      }}
-    >
+    <BaseCard >
       {/* ---------- Header Row: title + status pills + search + date filter ---------- */}
       <Box
         sx={{

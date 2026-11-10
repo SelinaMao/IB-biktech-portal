@@ -13,6 +13,7 @@ export type BaseCardProps<
 const baseStyles: SxProps<Theme> = {
   p: `${padding.xxl}px`,
   gap: 2,
+  // py: 6
 };
 
 const BaseCard = forwardRef<HTMLDivElement, CardProps>(function BaseCard(

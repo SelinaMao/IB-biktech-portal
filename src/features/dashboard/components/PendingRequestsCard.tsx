@@ -72,78 +72,37 @@ export default function PendingRequestsCard({
     totalBadge ?? items.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <BaseCard
-      sx={{
-        p: `${padding.xxl}px`,
-        borderRadius: `${radius.xl}px`,
-        border: `1px solid ${palette.slate[200]}`,
-        bgcolor: palette.white,
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography
-            sx={{
-              fontSize: { xs: 18, sm: 20 },
+    <BaseCard>
 
-              fontWeight: font.weight.bold,
-              color: palette.slate[900],
-              lineHeight: 1.2,
-            }}
-          >
-            Pending Request
-          </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 5, }}>
+        <Typography
+          sx={{
+            fontSize: { xs: 18, sm: 20 },
+            fontWeight: font.weight.bold,
+            color: palette.slate[900],
+            lineHeight: 1.2,
+          }}
+        >
+          Pending Request
+        </Typography>
 
-          {/* Badge */}
-          <Box
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 24,
-              height: 24,
-              borderRadius: "50%",
-              bgcolor: palette.orange,
-              color: palette.white,
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
-            {totalCount}
-          </Box>
-        </Box>
-
-        {/* External Link Icon */}
-        {/* <Box
-          component={Link}
-          href={viewAllHref}
-          aria-label="View all scheduled items"
+        {/* Badge */}
+        <Box
           sx={{
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            color: palette.slate[900],
-            p: 1,
-            backgroundColor: palette.slate[100],
+            width: 24,
+            height: 24,
             borderRadius: "50%",
-            transition: "opacity 0.15s ease",
-            "&:hover": {
-              opacity: 0.7,
-            },
+            bgcolor: palette.orange,
+            color: palette.white,
+            fontSize: 12,
+            fontWeight: 700,
           }}
         >
-          <SquareArrowOutUpRight size={20} />
-        </Box> */}
+          {totalCount}
+        </Box>
       </Box>
 
       {/* Request Items List */}
