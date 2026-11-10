@@ -371,6 +371,7 @@ export default function AccountPage() {
                   isFixedDeposit={isFixedDeposit}
                   accountName={selectedAccount.accountName || effectiveInfo?.accountName}
                   accountNumber={selectedAccount.accountNumber}
+                  accountType={selectedAccount.accountType}
                   onViewCertificate={() => { }}
                   onDownloadCertificate={() => { }}
                 />

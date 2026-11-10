@@ -8,10 +8,12 @@ import {
   DialogContent,
   Divider,
   IconButton,
+  Slide,
   Stack,
   Tooltip,
   Typography,
 } from "@mui/material";
+import type { TransitionProps } from "@mui/material/transitions";
 import { Check, Copy, Download, Settings, X } from "lucide-react";
 
 import { formatAccountNumber } from "@/utils/format-account-number";
@@ -103,6 +105,15 @@ function DetailRow({
     </Stack>
   );
 }
+
+const Transition = React.forwardRef(function Transition(
+  props: TransitionProps & {
+    children: React.ReactElement<any, any>;
+  },
+  ref: React.Ref<unknown>,
+) {
+  return <Slide direction="left" ref={ref} {...props} />;
+});
 
 export default function AccountInformationDetail({
   open,
@@ -230,17 +241,28 @@ export default function AccountInformationDetail({
     <Dialog
       open={open}
       onClose={onClose}
+      TransitionComponent={Transition}
       slotProps={{
         backdrop: {
           sx: { bgcolor: "rgba(15, 23, 42, 0.4)" },
         },
         paper: {
           sx: {
-            borderRadius: "20px",
+            position: "fixed",
+            top: { xs: 8, sm: 8, md: 14 },
+            right: { xs: 8, sm: 8, md: 14 },
+            bottom: { xs: 8, sm: 8, md: 14 },
+            m: 0,
+            width: { xs: "calc(100vw - 16px)", sm: 429 },
+            maxWidth: 429,
+            height: {
+              xs: "calc(100vh - 16px)",
+              sm: "calc(100vh - 16px)",
+              md: "calc(100vh - 28px)",
+            },
+            maxHeight: 976,
+            borderRadius: "24px",
             bgcolor: "#FFFFFF",
-            width: { xs: "calc(100vw - 32px)", sm: 420 },
-            maxWidth: 440,
-            maxHeight: "calc(100vh - 32px)",
             p: { xs: 2.5, sm: "24px 20px" },
             boxSizing: "border-box",
             boxShadow: "0px 20px 40px rgba(15, 23, 42, 0.16)",
