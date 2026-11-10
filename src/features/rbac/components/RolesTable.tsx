@@ -21,6 +21,8 @@ export type RolesTableProps = {
   pagination?: BaseTablePagination;
   /** Opens the read-only detail panel for the clicked row. */
   onRowClick?: (role: Role) => void;
+  /** ID of the currently selected role (e.g. when detail side panel is open). */
+  selectedRoleId?: string;
 };
 
 /**
@@ -36,6 +38,7 @@ export default function RolesTable({
   canDelete = false,
   pagination,
   onRowClick,
+  selectedRoleId,
 }: RolesTableProps) {
   const headSx = {
     color: palette.slate[400],
@@ -177,6 +180,11 @@ export default function RolesTable({
       paginationVariant="compact"
       onRowClick={onRowClick}
       rounded={false}
+      getRowSx={(role) =>
+        selectedRoleId && role.id === selectedRoleId
+          ? { bgcolor: "#F0F7FF", "&:hover": { bgcolor: "#E2EDF9" } }
+          : {}
+      }
       headerBgColor="transparent"
       headerBorderColor={palette.slate[200]}
       headerTextColor={palette.slate[400]}

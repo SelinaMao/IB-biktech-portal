@@ -36,6 +36,8 @@ export type UsersTableProps = {
   canDeactivate?: boolean;
   /** Gates the Delete action. Defaults to true. */
   canDelete?: boolean;
+  /** ID of the currently selected user (e.g. when detail side panel is open). */
+  selectedUserId?: string;
 };
 
 /** The row's "⋮" menu — styled with the same bordered rounded icon button. */
@@ -64,7 +66,7 @@ function RowActionsMenu({
           border: `1px solid ${palette.slate[200]}`,
           padding: "8px",
           color: palette.icon.default,
-          "&:hover": { backgroundColor: palette.primary[100] },
+          "&:hover": { backgroundColor: palette.slate[100] },
         }}
       >
         <MoreVertical size={font.size.md} />
@@ -128,6 +130,7 @@ export default function UsersTable({
   canActivate = true,
   canDeactivate = true,
   canDelete = true,
+  selectedUserId,
 }: UsersTableProps) {
   const headSx = {
     color: palette.slate[400],
@@ -223,14 +226,14 @@ export default function UsersTable({
               bgcolor: isActive
                 ? "#0E7054"
                 : user.status === "PENDING_ACTIVATION"
-                  ? "#FEF3C7"
+                  ? "#EBF3FC"
                   : user.status === "DEACTIVATED" || user.status === "LOCKED"
                     ? "#FEE2E2"
                     : "#F1F5F9",
               color: isActive
                 ? "#FFFFFF"
                 : user.status === "PENDING_ACTIVATION"
-                  ? "#92400E"
+                  ? "#1B5299"
                   : user.status === "DEACTIVATED" || user.status === "LOCKED"
                     ? "#991B1B"
                     : "#475569",
@@ -296,6 +299,11 @@ export default function UsersTable({
       paginationVariant="compact"
       onRowClick={onRowClick}
       rounded={false}
+      getRowSx={(entry) =>
+        selectedUserId && entry.user.id === selectedUserId
+          ? { bgcolor: "#F0F7FF", "&:hover": { bgcolor: "#E2EDF9" } }
+          : {}
+      }
       headerBgColor="transparent"
       headerBorderColor={palette.slate[200]}
       headerTextColor={palette.slate[400]}

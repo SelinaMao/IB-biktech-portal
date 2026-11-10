@@ -21,13 +21,13 @@ export const createAppTheme = () =>
         main: palette.primary.main,
         light: palette.primary.light,
         dark: palette.primary.dark,
-        contrastText: palette.primary[950],
+        contrastText: palette.white,
       },
       secondary: {
         main: palette.secondary.main,
         light: palette.secondary.light,
         dark: palette.secondary.dark,
-        contrastText: palette.primary[950],
+        contrastText: palette.white,
       },
       info: {
         main: palette.info.main,
@@ -39,7 +39,7 @@ export const createAppTheme = () =>
         main: palette.success.main,
         light: palette.success[300],
         dark: palette.success[700],
-        contrastText: palette.success[950],
+        contrastText: palette.white,
       },
       warning: {
         main: palette.warning.main,
@@ -138,19 +138,20 @@ export const createAppTheme = () =>
             textTransform: "none",
             "&.Mui-disabled": {
               color: palette.slate[400],
-              backgroundColor: palette.primary[50],
+              backgroundColor: palette.slate[100],
             },
           },
           sizeLarge: { paddingTop: 12, paddingBottom: 12 },
           contained: {
             "&.Mui-disabled": {
-              backgroundColor: palette.primary[50],
+              backgroundColor: palette.slate[100],
               color: palette.slate[400],
             },
           },
           containedPrimary: {
             color: palette.white,
-            "&:hover": { backgroundColor: palette.primary[600] },
+            backgroundColor: palette.primary.main,
+            "&:hover": { backgroundColor: palette.primary.dark },
           },
           containedSecondary: {
             color: palette.white,
@@ -233,7 +234,7 @@ export const createAppTheme = () =>
         styleOverrides: {
           root: {
             color: palette.slate[500],
-            "&.Mui-focused": { color: palette.primary.dark },
+            "&.Mui-focused": { color: palette.primary.main },
             "&.Mui-error": { color: palette.danger.main },
           },
         },
@@ -243,7 +244,7 @@ export const createAppTheme = () =>
           root: {
             color: palette.slate[700],
             fontWeight: font.weight.medium,
-            "&.Mui-focused": { color: palette.primary.dark },
+            "&.Mui-focused": { color: palette.primary.main },
             "&.Mui-error": { color: palette.danger.main },
           },
         },
@@ -300,10 +301,15 @@ export const createAppTheme = () =>
       MuiMenuItem: {
         styleOverrides: {
           root: {
+            fontSize: font.size.md,
+            borderRadius: radius.md,
             "&.Mui-selected": {
-              backgroundColor: palette.slate[100],
-              "&:hover": { backgroundColor: palette.primary[100] },
+              backgroundColor: "#EBF3FC",
+              color: palette.primary.main,
+              fontWeight: 600,
+              "&:hover": { backgroundColor: "#E2EDF9" },
             },
+            "&:hover": { backgroundColor: palette.slate[100] },
           },
         },
       },
@@ -347,7 +353,7 @@ export const createAppTheme = () =>
         defaultProps: { underline: "hover" },
         styleOverrides: {
           root: {
-            color: palette.primary.dark,
+            color: palette.primary.main,
             fontWeight: font.weight.semibold,
           },
         },
@@ -400,6 +406,16 @@ export const createAppTheme = () =>
           },
         },
       },
+      MuiTableRow: {
+        styleOverrides: {
+          root: {
+            "&.Mui-selected": {
+              backgroundColor: "#F0F7FF !important",
+              "&:hover": { backgroundColor: "#E2EDF9 !important" },
+            },
+          },
+        },
+      },
       MuiDivider: {
         styleOverrides: {
           root: { borderColor: palette.slate[200] },
@@ -409,7 +425,7 @@ export const createAppTheme = () =>
       MuiTabs: {
         styleOverrides: {
           root: { minHeight: 40, borderBottom: `1px solid ${palette.slate[200]}` },
-          indicator: { height: 2, borderRadius: "2px 2px 0 0" },
+          indicator: { height: 2, borderRadius: "2px 2px 0 0", backgroundColor: palette.primary.main },
         },
       },
       MuiTab: {
@@ -425,7 +441,7 @@ export const createAppTheme = () =>
             fontWeight: font.weight.medium,
             color: palette.slate[500],
             "&:hover": { color: palette.slate[900] },
-            "&.Mui-selected": { color: palette.primary[600], fontWeight: font.weight.semibold },
+            "&.Mui-selected": { color: palette.primary.main, fontWeight: font.weight.semibold },
           },
         },
       },

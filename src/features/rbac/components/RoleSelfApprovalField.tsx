@@ -88,7 +88,7 @@ export default function RoleSelfApprovalField({
                 sx={{
                   fontSize: 13,
                   fontWeight: 600,
-                  color: field.value ? palette.warning.main : palette.slate[400],
+                  color: field.value ? "#1B5299" : palette.slate[400],
                 }}
               >
                 {field.value ? "Allowed" : "Not allowed"}

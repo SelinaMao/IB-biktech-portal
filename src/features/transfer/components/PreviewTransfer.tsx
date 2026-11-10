@@ -157,7 +157,10 @@ export default function PreviewTransfer({
     });
     const fromField = previewFields.find((f) => /^from/i.test(f.label));
     const toField = previewFields.find((f) => /^(to|beneficiary|recipient)/i.test(f.label));
-    const scheduleField = previewFields.find((f) => /schedule|frequency|date/i.test(f.label));
+    const explicitScheduleField = previewFields.find((f) => /^schedule$/i.test(f.label));
+    const frequencyField = previewFields.find((f) => /^frequency$/i.test(f.label));
+    const dateField = previewFields.find((f) => /(start\s*)?date/i.test(f.label));
+    const scheduleField = explicitScheduleField || frequencyField || dateField;
     const remarkField = previewFields.find((f) => /remark|note|purpose/i.test(f.label));
 
     const resolvedFromAccount: TransferParty = fromAccount ?? {
@@ -591,7 +594,13 @@ export default function PreviewTransfer({
                                     <ReviewRow
                                         field={{
                                             label: "Schedule",
-                                            value: scheduleField?.value ?? "Immediately",
+                                            value: explicitScheduleField?.value
+                                                ? explicitScheduleField.value
+                                                : frequencyField?.value
+                                                ? dateField?.value && dateField.value !== "-" && dateField.value !== "Immediately"
+                                                    ? `${frequencyField.value} • ${dateField.value}`
+                                                    : frequencyField.value
+                                                : dateField?.value ?? "Immediately",
                                         }}
                                     />
                                     <ReviewRow

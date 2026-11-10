@@ -1,21 +1,21 @@
 export const palette = {
   primary: {
-    40:"#2766B1",
-    50: "#fbf7f1",
-    100: "#f5eddf",
-    200: "#ead8be",
-    300: "#dcbd95",
-    400: "#cc9966",
-    500: "#c3834c",
-    600: "#b56e41",
-    700: "#965838",
-    800: "#794833",
-    900: "#633c2b",
-    950: "#351e15",
+    40: "#2766B1",
+    50: "#F0F7FF",
+    100: "#E2EDF9",
+    200: "#C7DBF2",
+    300: "#90BAE5",
+    400: "#2764A5",
+    500: "#1B5299",
+    600: "#15427C",
+    700: "#103463",
+    800: "#0B264A",
+    900: "#061830",
+    950: "#030C18",
     1000: "#363635",
-    main: "#cc9966",
-    dark: "#b56e41",
-    light: "#ead8be",
+    main: "#1B5299",
+    dark: "#15427C",
+    light: "#EBF3FC",
   },
   hover:{
     10:"#E2E8F0"
@@ -121,7 +121,7 @@ export const palette = {
   },
   link :"#0969DA",
   // Text — warm near-blacks. `heading` is the brand-tinted dark; `primary` is the neutral body colour.
-  text: { primary: "#0a0a0a", heading: "#351e15", label: "#ffffff", secondary: "#676766" },
+  text: { primary: "#0a0a0a", heading: "#0F172A", label: "#ffffff", secondary: "#676766" },
 
   // Icons — warm near-black for select/dropdown chevrons.
   icon: { default: "#363635" },

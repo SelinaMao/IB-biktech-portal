@@ -230,6 +230,7 @@ export default function UsersPage() {
           canEdit={canEdit}
           canActivate={canActivate}
           canDeactivate={canDeactivate}
+          selectedUserId={detailTarget?.id}
           pagination={{
             count: data?.totalElements ?? 0,
             page,

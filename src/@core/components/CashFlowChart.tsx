@@ -123,7 +123,7 @@ export default function CashFlowChart({
       ? formatCCY(totals.inflow, currency)
       : data.length > 0
         ? currency === "USD" ? "$0.00" : "៛ 0.00"
-        : currency === "USD" ? "$28,100.00" : "៛ 112,400,000.00");
+        : currency === "USD" ? "$0.00" : "៛ 0.00");
 
   const content = (
     <Box sx={{ width: "100%" }}>

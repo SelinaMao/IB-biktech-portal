@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
-import { Check, Copy, FileText, Info } from "lucide-react";
+import { Check, Copy, Info } from "lucide-react";
 
 import { formatAccountNumber } from "@/utils/format-account-number";
 import BaseBlurText from "@core/components/BaseBlurText";
@@ -15,11 +15,13 @@ import type {
 } from "../account.types";
 import AccountDetails from "./AccountDetails";
 import StatementDownloadDialog from "./StatementDownloadDialog";
+import { getAccountIndicatorColor } from "./AccountsSidebar";
 
 export interface AccountDetailsProps {
   open?: boolean;
   accounts?: CoreAccountEntry[];
   selectedAccount?: CoreAccountEntry;
+  accentColor?: string;
   stats?: IAccountDetailResponses;
   onClose?: () => void;
   info?: IAccountDetailResponses;
@@ -50,6 +52,7 @@ export default function AccountDetailCard({
   open = false,
   onClose,
   selectedAccount,
+  accentColor,
   stats,
   info,
   fixedDeposit,
@@ -63,6 +66,8 @@ export default function AccountDetailCard({
   const [copied, setCopied] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [statementDialogOpen, setStatementDialogOpen] = useState(false);
+
+  const cardAccentColor = accentColor || (selectedAccount ? getAccountIndicatorColor(selectedAccount, 0) : "#8DD4BE");
 
   const target = fixedDeposit || info;
   const ccy = (
@@ -238,6 +243,8 @@ export default function AccountDetailCard({
         p: { xs: 2.5, sm: "16px 16px" },
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
         border: "1px solid #EDF2F7",
+        borderLeft: `4px solid ${cardAccentColor}`,
+        transition: "border-left-color 0.2s ease-in-out",
       }}
     >
       <Stack
@@ -348,7 +355,7 @@ export default function AccountDetailCard({
               />
 
               {/* Segmented Progress Bar directly beside Account Information for Fixed Deposit */}
-              {isTD && maturityAmount > 0 && (
+              {/* {isTD && maturityAmount > 0 && (
                 <Box
                   sx={{
                     minWidth: 200,
@@ -397,7 +404,7 @@ export default function AccountDetailCard({
                     </Typography>
                   </Stack>
                 </Box>
-              )}
+              )} */}
             </Stack>
           </Box>
         </Box>

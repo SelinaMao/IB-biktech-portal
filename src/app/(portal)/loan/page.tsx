@@ -19,6 +19,7 @@ import {
   LoanDetailsPanel,
   LoanDetailCard,
   LoansSidebar,
+  getLoanIndicatorColor,
   loanDetailsById,
   loanAccounts as mockLoanAccounts,
   loanSummary as mockLoanSummary,
@@ -107,12 +108,31 @@ export default function LoanPage() {
   const [selectedLoanId, setSelectedLoanId] = useState<string | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
+  useEffect(() => {
+    if (!selectedLoanId && loanAccounts.length > 0) {
+      setSelectedLoanId(loanAccounts[0].id);
+    }
+  }, [loanAccounts, selectedLoanId]);
+
   const selectedLoanAccount = useMemo(() => {
     if (!selectedLoanId) return undefined;
     return loanAccounts.find(
       (l) => l.id === selectedLoanId || l.number === selectedLoanId,
     );
   }, [loanAccounts, selectedLoanId]);
+
+  const selectedIndex = useMemo(() => {
+    if (!selectedLoanAccount) return 0;
+    const idx = loanAccounts.findIndex(
+      (l) => l.id === selectedLoanAccount.id || l.number === selectedLoanAccount.number,
+    );
+    return idx >= 0 ? idx : 0;
+  }, [loanAccounts, selectedLoanAccount]);
+
+  const selectedLoanColor = useMemo(() => {
+    if (!selectedLoanAccount) return "#5CAFE4";
+    return getLoanIndicatorColor(selectedLoanAccount, selectedIndex);
+  }, [selectedLoanAccount, selectedIndex]);
 
   const selectedLoanDetails = useMemo(() => {
     if (selectedLoanId && loanDetailsById[selectedLoanId]) {
@@ -234,6 +254,7 @@ export default function LoanPage() {
                   loanType={selectedLoanAccount.type || schedule.accountType}
                   outstandingAmount={selectedLoanAccount.balance}
                   currency={selectedLoanAccount.currency || schedule.currency}
+                  accentColor={selectedLoanColor}
                   loanReference={
                     selectedLoanAccount.id === "overdraft"
                       ? "OD-2026-00014"
