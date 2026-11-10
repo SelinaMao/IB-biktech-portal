@@ -205,7 +205,7 @@ export default function CashFlowChart({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Box
               sx={{
-                 marginRight:"5px",
+                marginRight: "5px",
                 width: 36,
                 height: 36,
                 borderRadius: "50%",
@@ -217,12 +217,11 @@ export default function CashFlowChart({
                 flexShrink: 0,
               }}
             >
-              <Box
-                  component="img"
-                  src="/assets/icons/move-up-right.svg"
-                  alt="Transfer"
-                  sx={{ width: 18, height: 18 }}
-                />
+              <BaseFlowIcon
+                direction={"expense"}
+                size={40}
+                iconSize={24}
+              />
             </Box>
             <Box>
               <Typography
@@ -247,7 +246,7 @@ export default function CashFlowChart({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Box
               sx={{
-                marginRight:"5px",
+                marginRight: "5px",
                 width: 36,
                 height: 36,
                 borderRadius: "50%",
@@ -259,12 +258,11 @@ export default function CashFlowChart({
                 flexShrink: 0,
               }}
             >
-               <Box
-                  component="img"
-                  src="/assets/icons/move-down-right.svg"
-                  alt="Transfer"
-                  sx={{ width: 18, height: 18 }}
-                />
+              <BaseFlowIcon
+                direction={"income"}
+                size={40}
+                iconSize={24}
+              />
             </Box>
             <Box>
               <Typography

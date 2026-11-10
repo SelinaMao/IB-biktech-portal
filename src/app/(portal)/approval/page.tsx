@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { FileText, Wallet } from "lucide-react";
+import { ClipboardClock, FileText, Grid, Smartphone, Wallet } from "lucide-react";
 
 import { showToast } from "@core/components/AppToast";
 import BaseFilterByDay, {
@@ -23,7 +23,11 @@ import {
   approvalHistoryEntries as initialApprovalHistoryEntries,
   type ApprovalEntry,
   type ApprovalTab,
+  ApprovalTypeBreakdownCard,
+  ApprovalSummaryCards,
+  approvalSummary,
 } from "@/features/approval";
+import StatCard from "@/features/dashboard/components/StatCard";
 
 const ROWS_PER_PAGE = 5;
 
@@ -162,8 +166,8 @@ export default function ApprovalPage() {
 
   return (
     <Box sx={{ width: "100%" }}>
-
-
+      {/* 1. Summary Cards */}
+      <ApprovalSummaryCards summary={approvalSummary} entries={pendingEntries} />
       {/* 2. Category Tabs: Financial & Non-financial */}
       <Box sx={{ borderBottom: `1px solid ${palette.slate[200]}`, mt: 4, mb: 2.5 }}>
         <Stack direction="row" spacing={3}>

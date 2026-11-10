@@ -15,6 +15,8 @@ import BaseSwitch from "@core/form/BaseSwitch";
 import {
   ApprovalTable,
   ApprovalDetailDialog,
+  ApprovalSummaryCards,
+  approvalSummary,
   pendingApprovalEntries as initialPendingApprovalEntries,
   nonFinancialApprovalEntries as initialNonFinancialEntries,
   approvalHistoryEntries as initialApprovalHistoryEntries,
@@ -260,10 +262,12 @@ export default function ApprovalRequestsPage() {
 
   return (
     <Box sx={{ width: "100%" }}>
-
-
-   
-
+      {/* 1. Summary Cards */}
+      <ApprovalSummaryCards
+        pendingCount={financialPending.length}
+        entries={financialPending}
+        summary={approvalSummary}
+      />
       {/* 3. Folder-style Tabs: Pending (5) & History */}
       <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-end", mb: 0, mt: 4 }}>
         <Box

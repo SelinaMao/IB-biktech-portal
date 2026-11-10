@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 import { Box, Button, InputBase, Stack, Typography } from "@mui/material";
 import { ArrowUpDown, Download, Search, SlidersHorizontal } from "lucide-react";
 
+import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseFlowIcon from "@core/components/BaseFlowIcon";
 import type { BaseFilterValue } from "@core/components/BaseFilter";
@@ -95,6 +96,21 @@ const DEFAULT_MOCK_TRANSACTIONS: TTransactionDetailResponse[] = [
     fields: [],
   },
 ];
+
+/** Column widths, as the share of the table each one takes. Matches dashboard TransactionsCard. */
+const COLUMN_WIDTHS = ["46%", "23%", "17%", "14%"] as const;
+
+/** The card's inner gutter. Columns butt up against each other, so only the
+ *  outer edges carry horizontal padding — the rest sit flush. */
+const TABLE_PX = 1.75;
+
+const HEAD_CELL_SX = {
+  pt: 0,
+  pb: 2,
+  fontSize: 15,
+  fontWeight: font.weight.regular,
+} as const;
+const BODY_CELL_SX = { py: 2.75 } as const;
 
 function formatDateDisplay(dateStr?: string) {
   if (!dateStr) return "-";
@@ -188,13 +204,10 @@ export default function TransactionsList({
   const columns: BaseTableColumn<TTransactionDetailResponse>[] = [
     {
       key: "detail",
-      header: (
-        <Typography sx={{ color: "#64748B", fontSize: 13.5, fontWeight: 500 }}>
-          {isFixedDeposit ? "Reference" : "To/From"}
-        </Typography>
-      ),
-      headSx: { pl: 2.5, py: 1.75 },
-      cellSx: { pl: 2.5, py: 2 },
+      header: isFixedDeposit ? "Reference" : "To/From",
+      width: COLUMN_WIDTHS[0],
+      headSx: { ...HEAD_CELL_SX, pl: TABLE_PX, pr: 0 },
+      cellSx: { ...BODY_CELL_SX, pl: TABLE_PX, pr: 0 },
       render: (t) => {
         const isIn = isIncomingTransaction(t) || (t.transactionAmount ?? 0) > 0;
         const isInterest =
@@ -202,63 +215,70 @@ export default function TransactionsList({
         const isCredit = isFixedDeposit ? isInterest : isIn;
 
         return (
-          <Stack direction="row" spacing={1.75} sx={{ alignItems: "center" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
             <BaseFlowIcon
               direction={isCredit ? "income" : "expense"}
               size={40}
-              iconSize={22}
+              iconSize={24}
             />
             <Box sx={{ minWidth: 0 }}>
               <Typography
                 sx={{
                   fontWeight: 600,
-                  fontSize: 14.5,
-                  color: "#0F172A",
-                  lineHeight: 1.3,
+                  fontSize: 15,
+                  color: palette.slate[900],
+                  lineHeight: 1.25,
                 }}
               >
                 {t.transactionDescription || "Bakong Payment"}
               </Typography>
               <Typography
                 sx={{
-                  fontSize: 12.5,
-                  color: "#64748B",
-                  mt: 0.25,
+                  fontSize: 12,
+                  color: palette.slate[450],
+                  lineHeight: 1.5,
+                  mt: 0.5,
                 }}
               >
                 Ref: {t.transactionReferenceCode || t.transactionId || "-"}
               </Typography>
             </Box>
-          </Stack>
+          </Box>
         );
       },
     },
     {
       key: "date",
-      header: (
-        <Typography sx={{ color: "#64748B", fontSize: 13.5, fontWeight: 500 }}>
-          Transaction Date
-        </Typography>
-      ),
-      headSx: { py: 1.75 },
-      cellSx: { py: 2 },
+      header: "Transaction Date",
+      width: COLUMN_WIDTHS[1],
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
       render: (t) => (
-        <Typography sx={{ color: "#334155", fontSize: 14 }}>
+        <Typography
+          sx={{
+            fontSize: 14,
+            color: palette.slate[900],
+            lineHeight: 1.5,
+          }}
+        >
           {formatDateDisplay(t.transactionDate)}
         </Typography>
       ),
     },
     {
       key: "account",
-      header: (
-        <Typography sx={{ color: "#64748B", fontSize: 13.5, fontWeight: 500 }}>
-          {isFixedDeposit ? "Remark" : "Account"}
-        </Typography>
-      ),
-      headSx: { py: 1.75 },
-      cellSx: { py: 2 },
+      header: isFixedDeposit ? "Remark" : "Account",
+      width: COLUMN_WIDTHS[2],
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
       render: (t) => (
-        <Typography sx={{ color: "#64748B", fontSize: 14 }}>
+        <Typography
+          sx={{
+            fontSize: 14,
+            color: palette.slate[500],
+            lineHeight: 1.5,
+          }}
+        >
           {getAccountLabel(t, accountNumber, accountType, isFixedDeposit)}
         </Typography>
       ),
@@ -283,25 +303,27 @@ export default function TransactionsList({
             cursor: "pointer",
             p: 0,
             ml: "auto",
-            "&:hover .sort-icon": { color: "#0F172A" },
+            color: "inherit",
+            font: "inherit",
+            fontSize: "inherit",
+            "&:hover .sort-icon": { color: palette.slate[900] },
           }}
         >
-          <Typography sx={{ color: "#64748B", fontSize: 13.5, fontWeight: 500 }}>
-            Amount
-          </Typography>
+          <span>Amount</span>
           <ArrowUpDown
             size={14}
             className="sort-icon"
             style={{
-              color: sortDirection ? "#1C64B4" : "#64748B",
+              color: sortDirection ? "#1C64B4" : "currentColor",
               transition: "color 0.15s ease",
             }}
           />
         </Box>
       ),
       align: "right",
-      headSx: { pr: 2.5, py: 1.75 },
-      cellSx: { pr: 2.5, py: 2 },
+      width: COLUMN_WIDTHS[3],
+      headSx: { ...HEAD_CELL_SX, fontWeight: font.weight.medium, pl: 0, pr: TABLE_PX },
+      cellSx: { ...BODY_CELL_SX, pl: 0, pr: TABLE_PX },
       render: (t) => {
         const isIn = isIncomingTransaction(t) || (t.transactionAmount ?? 0) > 0;
         const isInterest =
@@ -313,7 +335,7 @@ export default function TransactionsList({
             sx={{
               fontWeight: 700,
               fontSize: 15,
-              color: isCredit ? "#10B981" : "#0F172A",
+              color: isCredit ? "#10B981" : palette.slate[900],
               textAlign: "right",
             }}
           >
@@ -330,10 +352,10 @@ export default function TransactionsList({
     <Box
       sx={{
         bgcolor: "#FFFFFF",
-        borderRadius: "24px",
-        p: { xs: 2.5, sm: 3 },
+        borderRadius: `${radius.xl}px`,
+        p: `${padding.xxl}px`,
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
-        border: "1px solid #EDF2F7",
+        border: `1px solid ${palette.slate[200]}`,
       }}
     >
       {/* Top Header Row */}
@@ -343,14 +365,14 @@ export default function TransactionsList({
         sx={{
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", sm: "center" },
-          mb: 2.5,
+          mb: 3,
         }}
       >
         <Typography
           sx={{
-            fontSize: 20,
+            fontSize: { xs: 18, sm: 20 },
             fontWeight: 700,
-            color: "#0F172A",
+            color: palette.slate[900],
             lineHeight: 1.25,
           }}
         >
@@ -363,7 +385,7 @@ export default function TransactionsList({
           sx={{
             alignItems: "center",
             flexWrap: "wrap",
-            gap: { xs: 1, sm: 0 },
+            gap: { xs: 1, sm: 2 },
           }}
         >
           {/* Search Box */}
@@ -371,11 +393,11 @@ export default function TransactionsList({
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 1,
+              gap: 1.25,
               px: 1.5,
               height: 38,
               borderRadius: "8px",
-              border: "1px solid #E2E8F0",
+              border: `1px solid ${palette.slate[200]}`,
               bgcolor: "#FFFFFF",
               width: { xs: 140, sm: 200 },
               transition: "border-color 0.15s ease",
@@ -384,7 +406,7 @@ export default function TransactionsList({
               },
             }}
           >
-            <Search size={16} color="#64748B" style={{ flexShrink: 0 }} />
+            <Search size={16} color={palette.slate[400]} style={{ flexShrink: 0 }} />
             <InputBase
               placeholder="Search"
               value={query}
@@ -394,11 +416,11 @@ export default function TransactionsList({
               }}
               sx={{
                 fontSize: 13.5,
-                color: "#0F172A",
+                color: palette.slate[900],
                 width: "100%",
                 "& input": { p: 0 },
                 "& input::placeholder": {
-                  color: "#94A3B8",
+                  color: palette.slate[400],
                   opacity: 1,
                 },
               }}
@@ -413,18 +435,18 @@ export default function TransactionsList({
               startIcon={<SlidersHorizontal size={15} />}
               sx={{
                 height: 38,
-                px: 2,
+                px: 4,
                 borderRadius: "8px",
-                borderColor: hasActiveFilter ? "#1C64B4" : "#E2E8F0",
+                borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[200],
                 bgcolor: hasActiveFilter ? "#F0F7FF" : "#FFFFFF",
-                color: hasActiveFilter ? "#1C64B4" : "#0F172A",
+                color: hasActiveFilter ? "#1C64B4" : palette.slate[900],
                 textTransform: "none",
                 fontSize: 13.5,
                 fontWeight: 500,
                 boxShadow: "none",
                 "&:hover": {
-                  borderColor: hasActiveFilter ? "#1C64B4" : "#CBD5E1",
-                  bgcolor: hasActiveFilter ? "#E5F0FD" : "#F8FAFC",
+                  borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[300],
+                  bgcolor: hasActiveFilter ? "#E5F0FD" : palette.slate[50],
                 },
               }}
             >
@@ -441,7 +463,7 @@ export default function TransactionsList({
               disabled={isDownloading}
               sx={{
                 height: 38,
-                px: 2.25,
+                px: 4,
                 borderRadius: "8px",
                 bgcolor: "#1C64B4",
                 color: "#FFFFFF",
@@ -462,47 +484,41 @@ export default function TransactionsList({
         </Stack>
       </Stack>
 
-      <Box
-        sx={{
-          mx: { xs: -2.5, sm: -3 },
-        }}
-      >
-        <BaseTable
-          columns={columns}
-          rows={displayTransactions}
-          getRowKey={(t) => t.transactionId}
-          skeletonRows={rowsPerPage}
-          onRowClick={onSelectTransaction}
-          isLoading={isLoading}
-          headerBgColor="#FFFFFF"
-          headerBorderColor="#EDF2F7"
-          headerBorderTop={true}
-          rounded={false}
-          emptyTitle={error ? "Could not load transactions." : "No transactions in this period."}
-          emptyDescription={error ? "Please try again." : undefined}
-          getRowSx={() => ({
-            cursor: onSelectTransaction ? "pointer" : "default",
-            "& .MuiTableCell-root, & td": {
-              borderBottom: "none",
-              py: 2,
-            },
-            "&:hover": {
-              bgcolor: "#F8FAFC",
-            },
-          })}
-          pagination={
-            total > 0 && !error
-              ? {
-                  count: total,
-                  page,
-                  rowsPerPage,
-                  onPageChange,
-                }
-              : undefined
-          }
-          paginationVariant="compact"
-        />
-      </Box>
+      <BaseTable
+        columns={columns}
+        rows={displayTransactions}
+        getRowKey={(t) => t.transactionId}
+        skeletonRows={rowsPerPage}
+        onRowClick={onSelectTransaction}
+        isLoading={isLoading}
+        minWidth={640}
+        rounded={false}
+        headerBgColor={palette.white}
+        headerBorderColor={palette.slate[200]}
+        headerTextColor={palette.slate[500]}
+        headerBorderTop={false}
+        emptyTitle={error ? "Could not load transactions." : "No transactions in this period."}
+        emptyDescription={error ? "Please try again." : undefined}
+        getRowSx={() => ({
+          cursor: onSelectTransaction ? "pointer" : "default",
+          "&:hover": {
+            bgcolor: palette.slate[50],
+            borderRadius: `${radius.md}px`,
+          },
+          "& td": { borderBottom: `1px solid ${palette.slate[50]}` },
+        })}
+        pagination={
+          total > 0 && !error
+            ? {
+                count: total,
+                page,
+                rowsPerPage,
+                onPageChange,
+              }
+            : undefined
+        }
+        paginationVariant="compact"
+      />
 
       {/* Date Filter Dialog */}
       <TransactionFilterDialog

@@ -141,70 +141,24 @@ export default function ApprovalSummaryCards({
     return FIXED_APPROVAL_DATA.typeBreakdown;
   }, [typeBreakdown, summary?.typeBreakdown, entries]);
 
+  // Matches the exact dimensions, padding, radius, and height of PaymentActionCards
   const cardStyle: SxProps<Theme> = {
     bgcolor: "#FFFFFF",
     borderRadius: "16px",
     border: `1px solid ${palette.slate[200]}`,
     p: { xs: 2.5, sm: "20px 24px" },
     height: "100%",
+    minHeight: 147,
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
     boxShadow: "none",
-    minHeight: 140,
   };
 
   return (
     <Grid container spacing={2.5} sx={sx}>
       {/* Card 1: Pending count & oldest date */}
-      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <Box sx={cardStyle}>
-          <Typography
-            sx={{
-              fontSize: 14,
-              color: palette.slate[500],
-              fontWeight: 400,
-              lineHeight: 1.2,
-            }}
-          >
-            Pending amount
-          </Typography>
-          {isLoading ? (
-            <Box sx={{ my: 1.5 }}>
-              <Skeleton variant="text" width={160} height={36} />
-              <Skeleton variant="text" width={220} height={20} />
-            </Box>
-          ) : (
-            <>
-              <Typography
-                sx={{
-                  fontSize: { xs: 24, sm: 28 },
-                  fontWeight: 700,
-                  color: "#0F172A",
-                  my: 1.5,
-                  lineHeight: 1.1,
-                }}
-              >
-                <BaseBlurText>{resolvedAmountUSD}</BaseBlurText>
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  color: palette.slate[500],
-                  fontWeight: 400,
-                  lineHeight: 1.2,
-                }}
-              >
-                <BaseBlurText>{resolvedAmountSub}</BaseBlurText>
-              </Typography>
-            </>
-          )}
-        </Box>
-      </Grid>
-     
-
-      {/* Card 2: Pending amount & currency breakdown */}
-       <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
+      <Grid size={{ xs: 12, md: 4 }}>
         <Box sx={cardStyle}>
           <Typography
             sx={{
@@ -222,13 +176,13 @@ export default function ApprovalSummaryCards({
               <Skeleton variant="text" width={140} height={20} />
             </Box>
           ) : (
-            <>
+            <Box>
               <Typography
                 sx={{
                   fontSize: { xs: 28, sm: 32 },
                   fontWeight: 700,
                   color: "#0F172A",
-                  my: 1.5,
+                  my: 1.25,
                   lineHeight: 1.1,
                 }}
               >
@@ -244,18 +198,65 @@ export default function ApprovalSummaryCards({
               >
                 {resolvedOldestText}
               </Typography>
-            </>
+            </Box>
           )}
         </Box>
       </Grid>
 
-      {/* Card 3: Pending by type with SectionCard & progress bars */}
-      <Grid size={{ xs: 12, sm: 12, lg: 4 }}>
+      {/* Card 2: Pending amount & currency breakdown */}
+      <Grid size={{ xs: 12, md: 4 }}>
+        <Box sx={cardStyle}>
+          <Typography
+            sx={{
+              fontSize: 14,
+              color: palette.slate[500],
+              fontWeight: 400,
+              lineHeight: 1.2,
+            }}
+          >
+            Pending amount
+          </Typography>
+          {isLoading ? (
+            <Box sx={{ my: 1.5 }}>
+              <Skeleton variant="text" width={160} height={36} />
+              <Skeleton variant="text" width={220} height={20} />
+            </Box>
+          ) : (
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: { xs: 24, sm: 28 },
+                  fontWeight: 700,
+                  color: "#0F172A",
+                  my: 1.25,
+                  lineHeight: 1.1,
+                }}
+              >
+                <BaseBlurText>{resolvedAmountUSD}</BaseBlurText>
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  color: palette.slate[500],
+                  fontWeight: 400,
+                  lineHeight: 1.2,
+                }}
+              >
+                <BaseBlurText>{resolvedAmountSub}</BaseBlurText>
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </Grid>
+
+      {/* Card 3: Pending by type with progress bars */}
+      <Grid size={{ xs: 12, md: 4 }}>
         <ApprovalTypeBreakdownCard
           title={breakdownTitle ?? "Pending by type"}
           items={resolvedBreakdown}
           isLoading={isLoading}
           onItemClick={onBreakdownItemClick}
+          sx={cardStyle}
         />
       </Grid>
     </Grid>
