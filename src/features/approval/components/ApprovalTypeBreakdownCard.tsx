@@ -7,13 +7,13 @@ import Typography from "@mui/material/Typography";
 import type { SxProps, Theme } from "@mui/material/styles";
 
 import { palette } from "@/theme/palette";
+import BaseCard from "@core/components/BaseCard";
 import BaseChip from "@core/components/BaseChip";
 import type { ApprovalTypeBreakdown } from "../approval.types";
 
 export const FIXED_APPROVAL_TYPE_BREAKDOWN: ApprovalTypeBreakdown[] = [
   { label: "Transfer", count: 3 },
   { label: "Bill payment", count: 1 },
-  // { label: "Consumer bill", count: 1 },
 ];
 
 export interface ApprovalTypeBreakdownCardProps {
@@ -62,7 +62,7 @@ export default function ApprovalTypeBreakdownCard({
   };
 
   return (
-    <Box sx={defaultCardStyle}>
+    <BaseCard sx={defaultCardStyle}>
       <Stack
         direction="row"
         sx={{
@@ -105,10 +105,6 @@ export default function ApprovalTypeBreakdownCard({
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
             <Skeleton width="55%" height={18} />
             <Skeleton width="30%" height={14} />
-          </Stack>
-          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-            <Skeleton width="40%" height={18} />
-            <Skeleton width="25%" height={14} />
           </Stack>
         </Stack>
       ) : displayItems.length === 0 ? (
@@ -188,6 +184,6 @@ export default function ApprovalTypeBreakdownCard({
           })}
         </Stack>
       )}
-    </Box>
+    </BaseCard>
   );
 }

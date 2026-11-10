@@ -9,6 +9,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 
 import { palette } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
+import BaseCard from "@core/components/BaseCard";
 import { formatDate } from "@/utils/date-time";
 import type { ApprovalEntry, ApprovalSummary, ApprovalTypeBreakdown } from "../approval.types";
 import ApprovalTypeBreakdownCard, {
@@ -16,10 +17,10 @@ import ApprovalTypeBreakdownCard, {
 } from "./ApprovalTypeBreakdownCard";
 
 export const FIXED_APPROVAL_DATA = {
-  pendingCount: 5,
+  pendingCount: 4,
   oldestDateText: "Oldest from 15 Oct 2026",
   pendingAmountUSD: "USD 27,200.00",
-  pendingAmountSub: "KHR 1,680,000 · plus USD 11,240.00 bills to collect",
+  pendingAmountSub: "KHR 1,680,000",
   typeBreakdown: FIXED_APPROVAL_TYPE_BREAKDOWN,
 };
 
@@ -30,7 +31,7 @@ export interface ApprovalSummaryCardsProps {
   oldestDateText?: string;
   /** Primary pending amount string, e.g. "USD 27,200.00". */
   pendingAmountUSD?: string;
-  /** Secondary pending amount subtext, e.g. "KHR 1,680,000 · plus USD 11,240.00 bills to collect". */
+  /** Secondary pending amount subtext, e.g. "KHR 1,680,000". */
   pendingAmountSub?: string;
   /** Breakdown by transaction type. Falls back to dynamic computation if undefined. */
   typeBreakdown?: ApprovalTypeBreakdown[];
@@ -64,7 +65,12 @@ export default function ApprovalSummaryCards({
   const resolvedPendingCount = useMemo(() => {
     if (pendingCount !== undefined) return pendingCount;
     if (summary?.pendingCount !== undefined) return summary.pendingCount;
-    if (entries !== undefined) return entries.length;
+    if (entries !== undefined) {
+      const outgoing = entries.filter(
+        (e) => !e.transactionType?.toLowerCase().includes("consumer bill")
+      );
+      return outgoing.length > 0 ? outgoing.length : entries.length;
+    }
     return FIXED_APPROVAL_DATA.pendingCount;
   }, [pendingCount, summary?.pendingCount, entries]);
 
@@ -91,7 +97,7 @@ export default function ApprovalSummaryCards({
         .filter(
           (e) =>
             (e.currency || "").toUpperCase() === "USD" &&
-            !e.transactionType.toLowerCase().includes("consumer bill")
+            !e.transactionType?.toLowerCase().includes("consumer bill")
         )
         .reduce((sum, e) => sum + (e.amount || 0), 0);
       return `USD ${usdTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -101,26 +107,18 @@ export default function ApprovalSummaryCards({
 
   const resolvedAmountSub = useMemo(() => {
     if (pendingAmountSub) return pendingAmountSub;
-    if (summary?.pendingAmountSubLabel) return summary.pendingAmountSubLabel;
+    if (summary?.pendingAmountKHRLabel) return summary.pendingAmountKHRLabel;
     if (entries !== undefined) {
       const khrTotal = entries
         .filter((e) => (e.currency || "").toUpperCase() === "KHR")
         .reduce((sum, e) => sum + (e.amount || 0), 0);
-      const billsTotal = entries
-        .filter((e) => e.transactionType.toLowerCase().includes("consumer bill"))
-        .reduce((sum, e) => sum + (e.amount || 0), 0);
-      const billsText =
-        billsTotal > 0
-          ? `USD ${billsTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} bills to collect`
-          : "USD 0.00 bills to collect";
-      const khrText = `KHR ${khrTotal.toLocaleString("en-US")}`;
-      return `${khrText} · plus ${billsText}`;
+      if (khrTotal > 0) {
+        return `KHR ${khrTotal.toLocaleString("en-US")}`;
+      }
     }
-    if (summary?.pendingAmountKHRLabel) {
-      return `${summary.pendingAmountKHRLabel} · plus USD 11,240.00 bills to collect`;
-    }
+    if (summary?.pendingAmountSubLabel) return summary.pendingAmountSubLabel;
     return FIXED_APPROVAL_DATA.pendingAmountSub;
-  }, [pendingAmountSub, summary?.pendingAmountSubLabel, summary?.pendingAmountKHRLabel, entries]);
+  }, [pendingAmountSub, summary?.pendingAmountKHRLabel, summary?.pendingAmountSubLabel, entries]);
 
   const resolvedBreakdown = useMemo(() => {
     if (typeBreakdown !== undefined) return typeBreakdown;
@@ -129,11 +127,11 @@ export default function ApprovalSummaryCards({
       if (entries.length === 0) return [];
       const countByType = new Map<string, number>();
       for (const e of entries) {
+        if (e.transactionType?.toLowerCase().includes("consumer bill")) continue;
         let type = e.transactionType || "Other";
         const lower = type.toLowerCase();
         if (lower.includes("transfer") || lower.includes("bakong")) type = "Transfer";
         else if (lower.includes("bill payment")) type = "Bill payment";
-        else if (lower.includes("consumer bill")) type = "Consumer bill";
         countByType.set(type, (countByType.get(type) || 0) + 1);
       }
       return Array.from(countByType.entries()).map(([label, count]) => ({ label, count }));
@@ -141,7 +139,6 @@ export default function ApprovalSummaryCards({
     return FIXED_APPROVAL_DATA.typeBreakdown;
   }, [typeBreakdown, summary?.typeBreakdown, entries]);
 
-  // Matches the exact dimensions, padding, radius, and height of PaymentActionCards
   const cardStyle: SxProps<Theme> = {
     bgcolor: "#FFFFFF",
     borderRadius: "16px",
@@ -159,7 +156,7 @@ export default function ApprovalSummaryCards({
     <Grid container spacing={2.5} sx={sx}>
       {/* Card 1: Pending count & oldest date */}
       <Grid size={{ xs: 12, md: 4 }}>
-        <Box sx={cardStyle}>
+        <BaseCard sx={cardStyle}>
           <Typography
             sx={{
               fontSize: 14,
@@ -200,12 +197,12 @@ export default function ApprovalSummaryCards({
               </Typography>
             </Box>
           )}
-        </Box>
+        </BaseCard>
       </Grid>
 
       {/* Card 2: Pending amount & currency breakdown */}
       <Grid size={{ xs: 12, md: 4 }}>
-        <Box sx={cardStyle}>
+        <BaseCard sx={cardStyle}>
           <Typography
             sx={{
               fontSize: 14,
@@ -246,7 +243,7 @@ export default function ApprovalSummaryCards({
               </Typography>
             </Box>
           )}
-        </Box>
+        </BaseCard>
       </Grid>
 
       {/* Card 3: Pending by type with progress bars */}

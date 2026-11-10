@@ -1,17 +1,12 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
+import dayjs from "dayjs";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { ClipboardClock, FileText, Grid, Smartphone, Wallet } from "lucide-react";
 
 import { showToast } from "@core/components/AppToast";
-import BaseFilterByDay, {
-  isDateWithinFilter,
-  type BaseFilterByDayValue,
-} from "@core/components/BaseFilterByDay";
-import BaseSwitch from "@core/form/BaseSwitch";
-import { palette } from "@/theme/palette";
+import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/BaseFilter";
 import { CLIENT_PERMISSIONS, useCan } from "@/features/auth";
 import { useListMyTasksQuery } from "@/features/workflow";
 import { useListUsersQuery } from "@/features/user";
@@ -23,13 +18,12 @@ import {
   approvalHistoryEntries as initialApprovalHistoryEntries,
   type ApprovalEntry,
   type ApprovalTab,
-  ApprovalTypeBreakdownCard,
   ApprovalSummaryCards,
   approvalSummary,
 } from "@/features/approval";
-import StatCard from "@/features/dashboard/components/StatCard";
 
 const ROWS_PER_PAGE = 5;
+const DEFAULT_FILTER: BaseFilterValue = { type: "all", from: null, to: null };
 
 export default function ApprovalPage() {
   const canSeeTasks = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);
@@ -48,7 +42,7 @@ export default function ApprovalPage() {
   const [category, setCategory] = useState<"financial" | "non-financial">("financial");
   const [tab, setTab] = useState<ApprovalTab>("pending");
   const [search, setSearch] = useState("");
-  const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
+  const [dateFilter, setDateFilter] = useState<BaseFilterValue>(DEFAULT_FILTER);
   const [page, setPage] = useState(0);
 
   const [pendingEntries, setPendingEntries] = useState(initialPendingApprovalEntries);
@@ -95,9 +89,19 @@ export default function ApprovalPage() {
   const filteredEntries = useMemo(() => {
     let result = sourceEntries;
 
-    // Apply date filter via isDateWithinFilter
+    // Apply date filter like account page via resolveBaseFilterRange
     if (dateFilter && dateFilter.type !== "all") {
-      result = result.filter((entry) => isDateWithinFilter(entry.creationDate, dateFilter));
+      const range = resolveBaseFilterRange(dateFilter);
+      if (range) {
+        result = result.filter((entry) => {
+          if (!entry.creationDate) return false;
+          const d = dayjs(entry.creationDate);
+          return (
+            (d.isAfter(range.start, "day") || d.isSame(range.start, "day")) &&
+            (d.isBefore(range.end, "day") || d.isSame(range.end, "day"))
+          );
+        });
+      }
     }
 
     // Apply search filter
@@ -131,7 +135,7 @@ export default function ApprovalPage() {
     setPage(0);
   };
 
-  const handleDateFilterChange = (filter: BaseFilterByDayValue | null) => {
+  const handleDateFilterChange = (filter: BaseFilterValue) => {
     setDateFilter(filter);
     setPage(0);
   };
@@ -168,99 +172,9 @@ export default function ApprovalPage() {
     <Box sx={{ width: "100%" }}>
       {/* 1. Summary Cards */}
       <ApprovalSummaryCards summary={approvalSummary} entries={pendingEntries} />
-      {/* 2. Category Tabs: Financial & Non-financial */}
-      <Box sx={{ borderBottom: `1px solid ${palette.slate[200]}`, mt: 4, mb: 2.5 }}>
-        <Stack direction="row" spacing={3}>
-          {/* Financial Tab */}
-          <Box
-            component="button"
-            type="button"
-            onClick={() => {
-              setCategory("financial");
-              setPage(0);
-            }}
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 1,
-              pb: 1.5,
-              border: "none",
-              borderBottom: category === "financial" ? "2px solid #2764A5" : "2px solid transparent",
-              bgcolor: "transparent",
-              color: category === "financial" ? "#0F172A" : "#64748B",
-              cursor: "pointer",
-              fontWeight: category === "financial" ? 600 : 500,
-              fontSize: 14,
-              transition: "all 0.15s ease",
-            }}
-          >
-            <Wallet size={17} color={category === "financial" ? "#2764A5" : "#64748B"} />
-            <span>Financial</span>
-            <Box
-              sx={{
-                bgcolor: category === "financial" ? "#2764A5" : "#E7EEF5",
-                color: category === "financial" ? "#FFFFFF" : "#64748B",
-                fontSize: 11,
-                fontWeight: 600,
-                px: 0.9,
-                py: 0.2,
-                borderRadius: "999px",
-                minWidth: 18,
-                textAlign: "center",
-                lineHeight: 1.3,
-              }}
-            >
-              {pendingEntries.length}
-            </Box>
-          </Box>
 
-          {/* Non-financial Tab */}
-          <Box
-            component="button"
-            type="button"
-            onClick={() => {
-              setCategory("non-financial");
-              setPage(0);
-            }}
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 1,
-              pb: 1.5,
-              border: "none",
-              borderBottom: category === "non-financial" ? "2px solid #2764A5" : "2px solid transparent",
-              bgcolor: "transparent",
-              color: category === "non-financial" ? "#0F172A" : "#64748B",
-              cursor: "pointer",
-              fontWeight: category === "non-financial" ? 600 : 500,
-              fontSize: 14,
-              transition: "all 0.15s ease",
-            }}
-          >
-            <FileText size={17} color={category === "non-financial" ? "#2764A5" : "#64748B"} />
-            <span>Non-financial</span>
-            <Box
-              sx={{
-                bgcolor: category === "non-financial" ? "#2764A5" : "#E7EEF5",
-                color: category === "non-financial" ? "#FFFFFF" : "#64748B",
-                fontSize: 11,
-                fontWeight: 600,
-                px: 0.9,
-                py: 0.2,
-                borderRadius: "999px",
-                minWidth: 18,
-                textAlign: "center",
-                lineHeight: 1.3,
-              }}
-            >
-              {nonFinancialEntries.length}
-            </Box>
-          </Box>
-        </Stack>
-      </Box>
-
-      {/* 3. Folder-style Tabs: Pending (5) & History */}
-      <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-end", mb: 0 }}>
+      {/* 2. Tabs: Pending (5) & History */}
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mt: 4, mb: 2 }}>
         <Box
           component="button"
           type="button"
@@ -272,22 +186,23 @@ export default function ApprovalPage() {
             border: "none",
             outline: "none",
             cursor: "pointer",
-            px: 3,
-            py: 1.35,
-            borderRadius: "14px 14px 0 0",
+            px: 2.5,
+            py: 1,
+            borderRadius: "8px",
             bgcolor: tab === "pending" ? "#2764A5" : "transparent",
             color: tab === "pending" ? "#FFFFFF" : "#64748B",
-            fontSize: 14.5,
+            fontSize: 14,
             fontWeight: tab === "pending" ? 600 : 500,
             transition: "all 0.15s ease",
             display: "inline-flex",
             alignItems: "center",
             "&:hover": {
               color: tab === "pending" ? "#FFFFFF" : "#0F172A",
+              bgcolor: tab === "pending" ? "#20558C" : "#F1F5F9",
             },
           }}
         >
-          {`Pending (${category === "financial" ? pendingEntries.length : nonFinancialEntries.length})`}
+          Pending (5)
         </Box>
 
         <Box
@@ -301,18 +216,19 @@ export default function ApprovalPage() {
             border: "none",
             outline: "none",
             cursor: "pointer",
-            px: 3,
-            py: 1.35,
-            borderRadius: "14px 14px 0 0",
+            px: 2.5,
+            py: 1,
+            borderRadius: "8px",
             bgcolor: tab === "history" ? "#2764A5" : "transparent",
             color: tab === "history" ? "#FFFFFF" : "#64748B",
-            fontSize: 14.5,
+            fontSize: 14,
             fontWeight: tab === "history" ? 600 : 500,
             transition: "all 0.15s ease",
             display: "inline-flex",
             alignItems: "center",
             "&:hover": {
               color: tab === "history" ? "#FFFFFF" : "#0F172A",
+              bgcolor: tab === "history" ? "#20558C" : "#F1F5F9",
             },
           }}
         >
@@ -320,9 +236,8 @@ export default function ApprovalPage() {
         </Box>
       </Stack>
 
-      {/* 4. Transactions Card & Table using BaseSearchButton, BaseFilterByDay, and BasePagination */}
+      {/* 3. Transactions Card & Table matching photo */}
       <ApprovalTable
-        sx={{ borderTopLeftRadius: tab === "pending" ? 0 : "16px" }}
         entries={entries}
         isLoading={tasksLoading}
         totalCount={filteredEntries.length}

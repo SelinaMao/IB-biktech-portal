@@ -9,6 +9,7 @@ import { ChevronRight, HandCoins, Smartphone } from "lucide-react";
 import { palette } from "@/theme/palette";
 import BaseCard from "@core/components/BaseCard";
 import type { PaymentActionCardItem, PaymentActionSlug } from "../payment.types";
+import BaseIconBadge from "@/@core/components/BaseIconBadge";
 
 export interface PaymentActionCardsProps {
   cards: PaymentActionCardItem[];
@@ -92,13 +93,19 @@ export default function PaymentActionCards({
                 sx={{
                   width: 44,
                   height: 44,
-                  borderRadius: "12px",
-                  bgcolor: "#EBF3FA",
                   display: "grid",
                   placeItems: "center",
+                 
                 }}
               >
-                {renderIcon(item.iconName)}
+                <BaseIconBadge 
+                  direction="income"
+                  size={44}
+                  bgColor="#E7EEF5"
+                  color="#2764A5"
+                  icon={renderIcon(item.iconName)}
+                />
+                {/* {renderIcon(item.iconName)} */}
               </Box>
 
               <ChevronRight size={18} color={palette.slate[400]} />

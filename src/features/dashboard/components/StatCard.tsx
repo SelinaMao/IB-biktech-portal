@@ -8,6 +8,7 @@ import { HandCoinsIcon } from "lucide-react";
 import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
+import BaseIconBadge from "@core/components/BaseIconBadge";
 import BaseChip from "@core/components/BaseChip";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleHideAmount } from "@/store/global/global.slice";
@@ -38,14 +39,14 @@ export default function StatCard({
     const khrAmount = sub?.includes("KHR")
       ? sub
       : value?.includes("KHR")
-      ? value
-      : "0.00 KHR";
+        ? value
+        : "0.00 KHR";
 
     const usdAmount = value?.includes("USD")
       ? value
       : sub?.includes("USD")
-      ? sub
-      : "0.00 USD";
+        ? sub
+        : "0.00 USD";
 
     return (
       <BaseCard
@@ -100,7 +101,7 @@ export default function StatCard({
                 "&:hover": {
                   bgcolor: "#E2E8F0",
                 },
-                marginRight:"8px"
+                marginRight: "8px"
               }}
             >
               {hideAmount ? <Eye size={15} /> : <EyeOff size={15} />}
@@ -142,7 +143,7 @@ export default function StatCard({
         {/* Currency Balances Row (KHR and USD side by side) */}
         <Box
           sx={{
-            
+
             display: "flex",
             alignItems: "center",
             flexWrap: "wrap",
@@ -152,26 +153,25 @@ export default function StatCard({
         >
           {/* KHR Item */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: "12px",
-                bgcolor: "#FFF4E8",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <Image
-                src="/assets/images/riel.png"
-                alt="KHR"
-                width={5}
-                height={14}
-                style={{ objectFit: "contain" }}
-              />
-            </Box>
+            <BaseIconBadge
+              direction="income"
+              bgColor="#FFF4E8"
+              icon={
+                <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+                  <text
+                    x="50%"
+                    y="50%"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize="24"
+                    fontWeight={font.weight.medium}
+                    fill={palette.orange}
+                  >
+                    ៛
+                  </text>
+                </svg>
+              }
+            />
             <Box>
               <Typography sx={{ fontSize: 15, color: "#64748B", fontWeight: 300, lineHeight: 1.2 }}>
                 KHR
@@ -192,29 +192,11 @@ export default function StatCard({
 
           {/* USD Item */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            <Box
-              sx={{
-                width: 40,
-                height: 40,
-                borderRadius: "12px",
-                bgcolor: "#EAF6EE",
-                color: "#16A34A",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 22,
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
-            >
-               <Image
-                src="/assets/images/dollar.png"
-                alt="USD"
-                width={10}
-                height={13}
-                style={{ objectFit: "contain" }}
-              />
-            </Box>
+            <BaseIconBadge
+              direction="income"
+              bgColor="#EAF6EE"
+              icon={<DollarSign color="#16A34A" size={20} />}
+            />
             <Box>
               <Typography sx={{ fontSize: 15, color: "#64748B", fontWeight: 300, lineHeight: 1.2 }}>
                 USD

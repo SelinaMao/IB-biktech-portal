@@ -2,13 +2,18 @@
 
 import { useState } from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import InputBase from "@mui/material/InputBase";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { SxProps, Theme } from "@mui/material/styles";
+import { ArrowUpDown, Search, SlidersHorizontal } from "lucide-react";
 
 import { font, palette, radius } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
-import BaseFilterByDay, { type BaseFilterByDayValue } from "@core/components/BaseFilterByDay";
-import BaseSearchButton from "@core/components/BaseSearchButton";
+import BaseCard from "@core/components/BaseCard";
+import BaseFilter, { type BaseFilterValue } from "@core/components/BaseFilter";
+import type { BaseFilterByDayValue } from "@core/components/BaseFilterByDay";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import { formatDate } from "@/utils/date-time";
 import type { ApprovalEntry } from "../approval.types";
@@ -29,8 +34,8 @@ export type ApprovalTableProps = {
   onRowClick?: (entry: ApprovalEntry) => void;
   search?: string;
   onSearchChange?: (val: string) => void;
-  dateFilter?: BaseFilterByDayValue | null;
-  onDateFilterChange?: (filter: BaseFilterByDayValue | null) => void;
+  dateFilter?: BaseFilterValue | BaseFilterByDayValue | null;
+  onDateFilterChange?: (filter: any) => void;
   page?: number;
   rowsPerPage?: number;
   onPageChange?: (page: number) => void;
@@ -38,23 +43,49 @@ export type ApprovalTableProps = {
   sx?: SxProps<Theme>;
 };
 
-/** Proportional column width distribution across screen sizes */
+/** Proportional column width distribution */
 const COLUMN_WIDTHS = ["15%", "25%", "20%", "18%", "12%", "10%"] as const;
 
-/** Shared header cell styling */
+/** The card's inner gutter matching dashboard TransactionsCard.
+ *  Columns butt up against each other, so only outer edges carry horizontal padding — the rest sit flush. */
+const TABLE_PX = 1.75;
+
+/** Shared header cell styling matching dashboard TransactionsCard */
 const HEAD_CELL_SX = {
-  fontSize: 13,
-  fontWeight: 500,
+  pt: 0,
+  pb: 2,
+  fontSize: 13.5,
+  fontWeight: font.weight.medium,
   color: palette.slate[500],
-  py: 1.75,
-  px: 2,
 } as const;
 
-/** Shared body cell styling */
+/** Shared body cell styling matching dashboard TransactionsCard */
 const BODY_CELL_SX = {
-  py: 2.25,
-  px: 2,
+  py: 2.75,
 } as const;
+
+interface HeaderWithSortProps {
+  label: string;
+  sortable?: boolean;
+  align?: "left" | "right";
+}
+
+function HeaderWithSort({ label, sortable = true, align = "left" }: HeaderWithSortProps) {
+  return (
+    <Box
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 0.5,
+        justifyContent: align === "right" ? "flex-end" : "flex-start",
+        width: align === "right" ? "100%" : "auto",
+      }}
+    >
+      <span>{label}</span>
+      {sortable && <ArrowUpDown size={13} style={{ color: "#64748B", opacity: 0.85 }} />}
+    </Box>
+  );
+}
 
 export default function ApprovalTable({
   entries,
@@ -84,11 +115,16 @@ export default function ApprovalTable({
     }
   };
 
-  // Date filter state (controlled or local fallback)
-  const [internalDateFilter, setInternalDateFilter] = useState<BaseFilterByDayValue | null>(null);
+  // Date filter Popover state (using BaseFilter)
+  const [filterAnchorEl, setFilterAnchorEl] = useState<HTMLElement | null>(null);
+  const [internalDateFilter, setInternalDateFilter] = useState<BaseFilterValue>({
+    type: "all",
+    from: null,
+    to: null,
+  });
   const dateFilter =
     externalDateFilter !== undefined ? externalDateFilter : internalDateFilter;
-  const handleDateFilterChange = (filter: BaseFilterByDayValue | null) => {
+  const handleDateFilterChange = (filter: BaseFilterValue) => {
     if (externalOnDateFilterChange) {
       externalOnDateFilterChange(filter);
     } else {
@@ -119,20 +155,20 @@ export default function ApprovalTable({
     })}`;
   };
 
-  // Type-Safe columns with consistent width distribution & flexible headers
+  // Type-Safe columns with dashboard TransactionsCard padding pattern
   const columns: BaseTableColumn<ApprovalEntry>[] = [
     {
       key: "date",
-      header: "Date",
+      header: <HeaderWithSort label="Date" sortable />,
       width: COLUMN_WIDTHS[0],
-      headSx: { ...HEAD_CELL_SX, pl: 0.5 },
-      cellSx: { ...BODY_CELL_SX, pl: 0.5 },
+      headSx: { ...HEAD_CELL_SX, pl: TABLE_PX, pr: 0 },
+      cellSx: { ...BODY_CELL_SX, pl: TABLE_PX, pr: 0 },
       render: (t) => (
         <Box>
           <Typography
             sx={{
               fontSize: 13.5,
-              fontWeight: 500,
+              fontWeight: 600,
               color: "#0F172A",
               lineHeight: 1.3,
             }}
@@ -144,7 +180,7 @@ export default function ApprovalTable({
               fontSize: 12,
               color: "#64748B",
               lineHeight: 1.3,
-              mt: 0.4,
+              mt: 0.35,
             }}
           >
             {formatDate(t.creationDate, "hh:mm A")}
@@ -154,16 +190,16 @@ export default function ApprovalTable({
     },
     {
       key: "transactionType",
-      header: "Transaction type & reference",
+      header: <HeaderWithSort label="Transaction type & reference" sortable />,
       width: COLUMN_WIDTHS[1],
-      headSx: HEAD_CELL_SX,
-      cellSx: BODY_CELL_SX,
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
       render: (t) => (
         <Box>
           <Typography
             sx={{
-              fontSize: 14,
-              fontWeight: font.weight.regular,
+              fontSize: 13.5,
+              fontWeight: 600,
               color: "#0F172A",
               lineHeight: 1.3,
             }}
@@ -175,7 +211,7 @@ export default function ApprovalTable({
               fontSize: 12,
               color: "#64748B",
               lineHeight: 1.3,
-              mt: 0.4,
+              mt: 0.35,
             }}
           >
             {t.refNo}
@@ -185,16 +221,16 @@ export default function ApprovalTable({
     },
     {
       key: "payTo",
-      header: "Pay to",
+      header: <HeaderWithSort label="Pay to" sortable={false} />,
       width: COLUMN_WIDTHS[2],
-      headSx: HEAD_CELL_SX,
-      cellSx: BODY_CELL_SX,
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
       render: (t) => (
         <Box>
           <Typography
             sx={{
-              fontSize: 14,
-              fontWeight: font.weight.regular,
+              fontSize: 13.5,
+              fontWeight: 600,
               color: "#0F172A",
               lineHeight: 1.3,
             }}
@@ -206,7 +242,7 @@ export default function ApprovalTable({
               fontSize: 12,
               color: "#64748B",
               lineHeight: 1.3,
-              mt: 0.4,
+              mt: 0.35,
             }}
           >
             {t.payToAccountNo}
@@ -216,16 +252,16 @@ export default function ApprovalTable({
     },
     {
       key: "fromAccount",
-      header: "From account",
+      header: <HeaderWithSort label="From account" sortable={false} />,
       width: COLUMN_WIDTHS[3],
-      headSx: HEAD_CELL_SX,
-      cellSx: BODY_CELL_SX,
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
       render: (t) => (
         <Box>
           <Typography
             sx={{
-              fontSize: 14,
-              fontWeight: 500,
+              fontSize: 13.5,
+              fontWeight: 600,
               color: "#0F172A",
               lineHeight: 1.3,
             }}
@@ -237,7 +273,7 @@ export default function ApprovalTable({
               fontSize: 12,
               color: "#64748B",
               lineHeight: 1.3,
-              mt: 0.4,
+              mt: 0.35,
             }}
           >
             {t.sourceAccountNo}
@@ -247,17 +283,18 @@ export default function ApprovalTable({
     },
     {
       key: "amount",
-      header: "Amount",
+      header: <HeaderWithSort label="Amount" sortable align="right" />,
       align: "right",
       width: COLUMN_WIDTHS[4],
-      headSx: HEAD_CELL_SX,
-      cellSx: BODY_CELL_SX,
+      headSx: { ...HEAD_CELL_SX, px: 0, textAlign: "right" },
+      cellSx: { ...BODY_CELL_SX, px: 0, textAlign: "right" },
       render: (t) => (
         <Typography
           sx={{
             fontSize: 14,
-            fontWeight: font.weight.medium,
+            fontWeight: 600,
             color: "#0F172A",
+            textAlign: "right",
           }}
         >
           <BaseBlurText>
@@ -268,65 +305,137 @@ export default function ApprovalTable({
     },
     {
       key: "status",
-      header: "Status",
+      header: <HeaderWithSort label="Status" sortable align="right" />,
       align: "right",
       width: COLUMN_WIDTHS[5],
-      headSx: { ...HEAD_CELL_SX, pr: 0.5 },
-      cellSx: { ...BODY_CELL_SX, pr: 0.5 },
-      render: (t) => <ApprovalStatusChip status={t.status} />,
+      headSx: { ...HEAD_CELL_SX, pl: 0, pr: TABLE_PX, textAlign: "right" },
+      cellSx: { ...BODY_CELL_SX, pl: 0, pr: TABLE_PX, textAlign: "right" },
+      render: (t) => (
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <ApprovalStatusChip status={t.status} />
+        </Box>
+      ),
     },
   ];
 
+  const hasActiveFilter = Boolean(
+    dateFilter && (dateFilter.type !== "all" || dateFilter.from || dateFilter.to),
+  );
+
+  const dialogFilterValue: BaseFilterValue = dateFilter
+    ? {
+        type: (dateFilter.type as any) ?? "all",
+        from: dateFilter.from ?? null,
+        to: dateFilter.to ?? null,
+      }
+    : { type: "all", from: null, to: null };
+
   return (
-    <Box
-      sx={{
-        bgcolor: "#FFFFFF",
-        borderRadius: "16px",
-        border: `1px solid ${palette.slate[200]}`,
-        p: { xs: 2.5, sm: "20px 24px" },
-        boxShadow: "none",
-        ...sx,
-      }}
-    >
-      {/* Title */}
-      <Typography
+    <BaseCard sx={sx}>
+      {/* Top Header Row: Transactions on left, Search & Filters on right */}
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
         sx={{
-          fontSize: { xs: 18, sm: 20 },
-          fontWeight: 700,
-          color: "#0F172A",
-          mb: 6,
-        }}
-      >
-        {title}
-      </Typography>
-
-      {/* Filter Row: BaseSearchButton (left) & BaseFilterByDay (right) */}
-      <Box
-        sx={{
-          borderTop: "1px solid ",
-          pt: 6,
-          borderTopColor: palette.secondary[100],
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: { xs: "stretch", sm: "center" },
           justifyContent: "space-between",
-          gap: 2,
-          marginTop: 6,
-          mb: 3,
+          alignItems: { xs: "stretch", sm: "center" },
+          mb: 4,
         }}
       >
-        <BaseSearchButton
-          value={search}
-          onChange={handleSearchChange}
-          placeholder="Search"
-          width={240}
-        />
+        <Typography
+          sx={{
+            fontSize: { xs: 18, sm: 20 },
+            fontWeight: 700,
+            color: palette.slate[900],
+            lineHeight: 1.25,
+          }}
+        >
+          {title}
+        </Typography>
 
-        <BaseFilterByDay
-          value={dateFilter}
-          onChange={handleDateFilterChange}
-        />
-      </Box>
+        <Stack
+          direction="row"
+          spacing={1.25}
+          sx={{
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: { xs: 1, sm: 1.5 },
+          }}
+        >
+          {/* Search Box */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.25,
+              px: 1.5,
+              height: 38,
+              borderRadius: "8px",
+              border: `1px solid ${palette.slate[200]}`,
+              bgcolor: "#FFFFFF",
+              width: { xs: "100%", sm: 200 },
+              transition: "border-color 0.15s ease",
+              "&:focus-within": {
+                borderColor: "#1C64B4",
+              },
+            }}
+          >
+            <Search size={16} color={palette.slate[400]} style={{ flexShrink: 0 }} />
+            <InputBase
+              placeholder="Search"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              sx={{
+                fontSize: 13.5,
+                color: palette.slate[900],
+                width: "100%",
+                "& input": { p: 0 },
+                "& input::placeholder": {
+                  color: palette.slate[400],
+                  opacity: 1,
+                },
+              }}
+            />
+          </Box>
+
+          {/* Filters Button */}
+          <Button
+            variant="outlined"
+            onClick={(e) => setFilterAnchorEl(e.currentTarget)}
+            startIcon={<SlidersHorizontal size={15} />}
+            sx={{
+              height: 38,
+              px: 4,
+              borderRadius: "8px",
+              borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[200],
+              bgcolor: hasActiveFilter ? "#F0F7FF" : "#FFFFFF",
+              color: hasActiveFilter ? "#1C64B4" : palette.slate[700],
+              textTransform: "none",
+              fontSize: 13.5,
+              fontWeight: 500,
+              boxShadow: "none",
+              "&:hover": {
+                borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[300],
+                bgcolor: hasActiveFilter ? "#E5F0FD" : palette.slate[50],
+              },
+            }}
+          >
+            Filters
+          </Button>
+
+          {/* BaseFilter Dropdown */}
+          <BaseFilter
+            anchorEl={filterAnchorEl}
+            onClose={() => setFilterAnchorEl(null)}
+            defaultValue={dialogFilterValue}
+            onApply={(newVal) => {
+              handleDateFilterChange(newVal);
+              setFilterAnchorEl(null);
+              handlePageChange(0);
+            }}
+          />
+        </Stack>
+      </Stack>
 
       {/* BaseTable with built-in compact pagination */}
       <BaseTable
@@ -345,7 +454,6 @@ export default function ApprovalTable({
         onRowClick={onRowClick}
         getRowSx={() => ({
           cursor: onRowClick ? "pointer" : "default",
-          transition: "background-color 0.15s ease",
           "&:hover": {
             bgcolor: palette.slate[50],
             borderRadius: `${radius.md}px`,
@@ -359,9 +467,8 @@ export default function ApprovalTable({
           onPageChange: handlePageChange,
         }}
         paginationVariant="compact"
-        // BaseTable spaces the pager 40px off the table; this card wants 16px.
         paginationSx={{ mt: -3, ...paginationSx }}
       />
-    </Box>
+    </BaseCard>
   );
 }

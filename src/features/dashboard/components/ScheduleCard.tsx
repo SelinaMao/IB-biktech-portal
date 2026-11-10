@@ -7,6 +7,7 @@ import { ExternalLink, SquareArrowOutUpRight } from "lucide-react";
 
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
+import BaseIconBadge from "@core/components/BaseIconBadge";
 import { palette, radius, padding } from "@/theme/palette";
 import BaseButton from "@/@core/components/BaseButton";
 
@@ -30,7 +31,7 @@ export const defaultScheduleItems: ScheduleItem[] = [
     status: "Over Due",
     statusTone: "danger",
     amount: "$25.00",
-    href: "/transfer",
+    href: "/schedule",
   },
   {
     id: "2",
@@ -40,7 +41,7 @@ export const defaultScheduleItems: ScheduleItem[] = [
     status: "Progress",
     statusTone: "info",
     amount: "$40.00",
-    href: "/transfer",
+    href: "/schedule",
   },
   {
     id: "3",
@@ -50,7 +51,7 @@ export const defaultScheduleItems: ScheduleItem[] = [
     status: "Completed",
     statusTone: "success",
     amount: "$10.00",
-    href: "/transfer",
+    href: "/schedule",
   },
 ];
 
@@ -67,7 +68,7 @@ interface ScheduleCardProps {
 
 export default function ScheduleCard({
   items = defaultScheduleItems,
-  viewAllHref = "/transfer",
+  viewAllHref = "/schedule",
 }: ScheduleCardProps) {
   return (
     <BaseCard
@@ -153,41 +154,37 @@ export default function ScheduleCard({
               {/* Left: Date Badge + Title/Status */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
                 {/* Date Container */}
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: `${radius.md}px`,
-                    bgcolor: palette.slate[100],
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: palette.slate[900],
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    {item.day}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: palette.slate[450],
-                      lineHeight: 1.1,
-                      mt: 0.25,
-                    }}
-                  >
-                    {item.month}
-                  </Typography>
-                </Box>
+                <BaseIconBadge
+                  direction="income"
+                  size={44}
+                  bgColor={palette.slate[100]}
+                  // sx={{ borderRadius: `${radius.md}px` }}
+                  icon={
+                    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <Typography
+                        sx={{
+                          fontSize: 15,
+                          fontWeight: 700,
+                          color: palette.slate[900],
+                          lineHeight: 1.1,
+                        }}
+                      >
+                        {item.day}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: palette.slate[450],
+                          lineHeight: 1.1,
+                          mt: 0.25,
+                        }}
+                      >
+                        {item.month}
+                      </Typography>
+                    </Box>
+                  }
+                />
 
                 {/* Title and Status Chip */}
                 <Box>
@@ -197,7 +194,7 @@ export default function ScheduleCard({
                       fontWeight: 500,
                       color: palette.slate[900],
                       lineHeight: 1.25,
-                      padding:1
+                      padding: 1
                     }}
                   >
                     {item.title}
@@ -242,25 +239,25 @@ export default function ScheduleCard({
       </Box>
 
       {/* Footer View All Button */}
-<BaseButton
-  component={Link}
-  href={viewAllHref}
-  title="View all"
-  fullWidth
-  sx={{
-    py: 1.4,
-    borderRadius: "9999px",
-    bgcolor: palette.slate[100],
-    color: palette.slate[900],
-    fontSize: 15,
-    fontWeight: 500,
-    textDecoration: "none",
-    mt: 0.5,
-    "&:hover": {
-      bgcolor: palette.slate[200],
-    },
-  }}
-/>
+      <BaseButton
+        component={Link}
+        href={viewAllHref}
+        title="View all"
+        fullWidth
+        sx={{
+          py: 1.4,
+          borderRadius: "9999px",
+          bgcolor: palette.slate[100],
+          color: palette.slate[900],
+          fontSize: 15,
+          fontWeight: 500,
+          textDecoration: "none",
+          mt: 0.5,
+          "&:hover": {
+            bgcolor: palette.slate[200],
+          },
+        }}
+      />
     </BaseCard>
   );
 }

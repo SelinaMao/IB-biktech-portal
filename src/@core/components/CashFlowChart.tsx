@@ -9,7 +9,7 @@ import { formatCCY } from "@/utils/format-ccy";
 import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "./BaseBlurText";
 import BaseCard from "./BaseCard";
-import BaseFlowIcon from "./BaseFlowIcon";
+import BaseIconBadge from "./BaseIconBadge";
 import CashFlowChartPanel, {
   type CashFlowPoint,
 } from "./CashFlowChartPanel";
@@ -202,27 +202,8 @@ export default function CashFlowChart({
           }}
         >
           {/* Expense Stat */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Box
-              sx={{
-                marginRight: "5px",
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                bgcolor: "#FEE8E8",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#E11D48",
-                flexShrink: 0,
-              }}
-            >
-              <BaseFlowIcon
-                direction={"expense"}
-                size={40}
-                iconSize={24}
-              />
-            </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2.5 }}>
+            <BaseIconBadge direction="expense" iconSrc="/assets/icons/expense-icon.svg" />
             <Box>
               <Typography
                 sx={{
@@ -243,27 +224,8 @@ export default function CashFlowChart({
           </Box>
 
           {/* Income Stat */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Box
-              sx={{
-                marginRight: "5px",
-                width: 36,
-                height: 36,
-                borderRadius: "50%",
-                bgcolor: "#E6F4EA",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#10B981",
-                flexShrink: 0,
-              }}
-            >
-              <BaseFlowIcon
-                direction={"income"}
-                size={40}
-                iconSize={24}
-              />
-            </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2.5 }}>
+            <BaseIconBadge direction="income" iconSrc="/assets/icons/income-icon.svg" />
             <Box>
               <Typography
                 sx={{

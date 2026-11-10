@@ -10,7 +10,7 @@ import { font, palette, radius, padding } from "@/theme/palette";
 import { useAppSelector } from "@/store/hooks";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
-import BaseFlowIcon from "@core/components/BaseFlowIcon";
+import BaseIconBadge from "@core/components/BaseIconBadge";
 import {
   selectTransactionsResponse,
   useListTransactionsMutation,
@@ -248,12 +248,15 @@ export default function TransactionsCard({
       render: (t) => {
         const isNegative = t.direction === "out" || t.amount < 0;
         return (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2.75 }}>
             {/* Circular arrow icon — out is debit-red, in is credit-green. */}
-            <BaseFlowIcon
+            <BaseIconBadge
               direction={isNegative ? "expense" : "income"}
-              size={40}
-              iconSize={24}
+              iconSrc={
+                isNegative
+                  ? "/assets/icons/expense-icon.svg"
+                  : "/assets/icons/income-icon.svg"
+              }
             />
 
             <Box>
@@ -369,14 +372,7 @@ export default function TransactionsCard({
   ];
 
   return (
-    <BaseCard
-      sx={{
-        p: `${padding.xxl}px`,
-        borderRadius: `${radius.xl}px`,
-        border: `1px solid ${palette.slate[200]}`,
-        bgcolor: "#FFFFFF",
-      }}
-    >
+    <BaseCard >
       {/* ---------- Header Row: title + status pills + search + date filter ---------- */}
       <Box
         sx={{

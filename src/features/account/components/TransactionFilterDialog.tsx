@@ -13,7 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Eye, X } from "lucide-react";
-
+import { font, palette, radius, padding } from "@/theme/palette";
 import type { BaseFilterType, BaseFilterValue } from "@core/components/BaseFilter";
 
 export interface TransactionFilterDialogProps {
@@ -176,7 +176,7 @@ export default function TransactionFilterDialog({
           sx: {
             borderRadius: "20px",
             bgcolor: "#FFFFFF",
-            p: { xs: 2.5, sm: 3 },
+             p: `${padding.xxl}px`,
             width: { xs: "calc(100vw - 32px)", sm: 460 },
             maxWidth: 480,
             boxSizing: "border-box",
