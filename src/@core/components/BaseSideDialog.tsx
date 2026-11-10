@@ -199,7 +199,7 @@ function SideDialogStepper({
                   placeItems: "center",
                   fontSize: font.size.sm,
                   fontWeight: font.weight.bold,
-                  bgcolor: isCurrentOrDone ? palette.info[900] : palette.white,
+                  bgcolor: isCurrentOrDone ? palette.primary.main : palette.white,
                   color: isCurrentOrDone ? palette.white : palette.slate[400],
                   border: isCurrentOrDone
                     ? "none"
@@ -225,7 +225,7 @@ function SideDialogStepper({
                 sx={{
                   flex: 1,
                   height: "1px",
-                  bgcolor: i < activeStep ? palette.info[900] : palette.slate[200],
+                  bgcolor: i < activeStep ? palette.primary.main : palette.slate[200],
                   mt: "14px",
                   mx: 1,
                 }}

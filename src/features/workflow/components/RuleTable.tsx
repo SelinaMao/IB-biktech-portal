@@ -1,21 +1,20 @@
 "use client";
 
-import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import Chip from "@mui/material/Chip";
-import IconButton from "@mui/material/IconButton";
+import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { Pencil, Trash2 } from "lucide-react";
 import { useMemo } from "react";
 
-import BaseTable from "@core/components/BaseTable";
+import BaseIconButton from "@core/components/BaseIconButton";
+import BaseTable, { type BaseTablePagination } from "@core/components/BaseTable";
 import type { BaseTableColumn } from "@core/types/BaseTable.types";
+import { font, palette } from "@/theme/palette";
 
 import { describeChain, rangeWords } from "../rule-words";
 import type { OrgWorkflowRule, RuleSlab, WorkflowFunction } from "../workflow.types";
 
-type Props = {
+export type RuleTableProps = {
   rules: OrgWorkflowRule[];
   functions: WorkflowFunction[];
   groupNameByKey: Map<string, string>;
@@ -24,6 +23,8 @@ type Props = {
   canDelete: boolean;
   onEdit: (rule: OrgWorkflowRule) => void;
   onDelete: (rule: OrgWorkflowRule) => void;
+  pagination?: BaseTablePagination;
+  onRowClick?: (rule: OrgWorkflowRule) => void;
 };
 
 /** Every slab of the rule; a server older than slabs only sends the first one's range and chain. */
@@ -40,31 +41,59 @@ export default function RuleTable({
   canDelete,
   onEdit,
   onDelete,
-}: Props) {
+  pagination,
+  onRowClick,
+}: RuleTableProps) {
   const byCode = useMemo(() => new Map(functions.map((fn) => [fn.code, fn])), [functions]);
+
+  const headSx = {
+    color: palette.slate[400],
+    fontWeight: 400,
+    fontSize: "14px",
+  };
 
   const columns: BaseTableColumn<OrgWorkflowRule>[] = [
     {
       key: "function",
       header: "Action",
-      width: 280,
+      width: "25%",
+      headSx: { ...headSx, pl: { xs: 2, sm: 2.5 } },
+      cellSx: { pl: { xs: 2, sm: 2.5 }, py: 2.2 },
       render: (rule) => {
         const fn = byCode.get(rule.functionCode);
         return (
           <Stack sx={{ gap: 0.5, alignItems: "flex-start" }}>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            <Typography
+              variant="body2"
+              sx={{ fontWeight: 500, fontSize: "14px", color: "#0F172A" }}
+            >
               {fn?.name ?? rule.functionCode}
             </Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "monospace" }}>
+            <Typography
+              variant="caption"
+              sx={{ fontWeight: 400, fontSize: "12px", color: palette.slate[400], fontFamily: "monospace" }}
+            >
               {rule.functionCode}
             </Typography>
             {fn && (
-              <Chip
-                size="small"
-                variant="outlined"
-                color={fn.approvalCategory === "FINANCIAL" ? "primary" : "default"}
-                label={fn.approvalCategory === "FINANCIAL" ? "Financial" : "Non-financial"}
-              />
+              <Box
+                component="span"
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  width: "fit-content",
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: "6px",
+                  bgcolor: fn.approvalCategory === "FINANCIAL" ? "#EFF6FF" : "#F1F5F9",
+                  color: fn.approvalCategory === "FINANCIAL" ? "#1B5299" : "#475569",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  lineHeight: 1.4,
+                }}
+              >
+                {fn.approvalCategory === "FINANCIAL" ? "Financial" : "Non-financial"}
+              </Box>
             )}
           </Stack>
         );
@@ -73,23 +102,28 @@ export default function RuleTable({
     {
       key: "slabs",
       header: "Slabs and approvers",
+      width: "45%",
+      headSx,
+      cellSx: { py: 2.2 },
       render: (rule) => {
         const slabs = slabsOf(rule);
         const split = slabs.length > 1 || slabs.some((slab) => Boolean(slab.amountFrom) || slab.amountTo != null);
         return (
           <Stack sx={{ gap: 0.5 }}>
             {slabs.map((slab, index) => (
-              <Typography key={index} variant="body2">
+              <Typography key={index} variant="body2" sx={{ fontSize: "14px", color: "#0F172A" }}>
                 {split && (
-                  <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+                  <Typography component="span" variant="body2" sx={{ fontWeight: 600, fontSize: "14px", color: "#0F172A" }}>
                     {rangeWords(slab.amountFrom, slab.amountTo)}:{" "}
                   </Typography>
                 )}
-                {slab.chain.length ? describeChain(slab.chain, groupNameByKey) : "nobody has to approve"}
+                <Typography component="span" variant="body2" sx={{ fontWeight: 400, fontSize: "14px", color: palette.slate[700] }}>
+                  {slab.chain.length ? describeChain(slab.chain, groupNameByKey) : "nobody has to approve"}
+                </Typography>
               </Typography>
             ))}
             {rule.overrideAuthority && (
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{ color: palette.slate[400], fontSize: "13px" }}>
                 {rule.overrideAuthority.requiredCount} with higher authority may approve outright
               </Typography>
             )}
@@ -100,66 +134,152 @@ export default function RuleTable({
     {
       key: "origin",
       header: "Origin",
-      width: 170,
+      width: "15%",
+      headSx,
+      cellSx: { py: 2.2 },
       render: (rule) => (
         <Stack sx={{ gap: 0.5, alignItems: "flex-start" }}>
-          {rule.derivedFromMandatory && <Chip size="small" color="primary" variant="outlined" label="Bank floor" />}
-          {rule.fromAll ? (
-            <Chip size="small" variant="outlined" label="Set by “All”" />
+          {rule.derivedFromMandatory ? (
+            <Box
+              component="span"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                px: 1.5,
+                py: 0.5,
+                borderRadius: "6px",
+                bgcolor: "#EFF6FF",
+                color: "#1E40AF",
+                fontSize: "12px",
+                fontWeight: 600,
+              }}
+            >
+              Bank floor
+            </Box>
+          ) : rule.fromAll ? (
+            <Box
+              component="span"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                px: 1.5,
+                py: 0.5,
+                borderRadius: "6px",
+                bgcolor: "#F1F5F9",
+                color: "#475569",
+                fontSize: "12px",
+                fontWeight: 600,
+              }}
+            >
+              Set by “All”
+            </Box>
           ) : rule.templateRuleId ? (
-            <Chip size="small" variant="outlined" label="Bank default" />
+            <Box
+              component="span"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                px: 1.5,
+                py: 0.5,
+                borderRadius: "6px",
+                bgcolor: "#F1F5F9",
+                color: "#475569",
+                fontSize: "12px",
+                fontWeight: 600,
+              }}
+            >
+              Bank default
+            </Box>
           ) : (
-            <Typography variant="body2" color="text.secondary">
+            <Box
+              component="span"
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                px: 1.5,
+                py: 0.5,
+                borderRadius: "6px",
+                bgcolor: "#ECFDF5",
+                color: "#065F46",
+                fontSize: "12px",
+                fontWeight: 600,
+              }}
+            >
               Yours
-            </Typography>
+            </Box>
           )}
         </Stack>
       ),
     },
     {
       key: "actions",
-      header: "",
+      header: "Action",
+      width: "15%",
       align: "right",
-      width: 96,
-      render: (rule) => (
-        <Stack direction="row" justifyContent="flex-end" sx={{ gap: 0.5 }}>
-          <Tooltip title={canEdit ? "Edit rule" : "You cannot edit rules"}>
-            <span>
-              <IconButton size="small" disabled={!canEdit} onClick={() => onEdit(rule)}>
-                <EditOutlinedIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip
-            title={
-              rule.derivedFromMandatory ? "The bank pinned this rule" : canDelete ? "Delete rule" : "You cannot delete rules"
-            }
+      headSx: { ...headSx, pr: { xs: 2, sm: 2.5 } },
+      cellSx: { pr: { xs: 2, sm: 2.5 }, py: 2.2 },
+      render: (rule) => {
+        const fn = byCode.get(rule.functionCode);
+        return (
+          <Stack
+            direction="row"
+            spacing={1.5}
+            onClick={(e) => e.stopPropagation()}
+            sx={{ justifyContent: "flex-end", alignItems: "center" }}
           >
-            <span>
-              <IconButton
-                size="small"
+            {canEdit && (
+              <BaseIconButton
+                isBorder
+                icon={<Pencil size={font.size.md} color={palette.icon.default} />}
+                tooltip="Edit rule"
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onEdit(rule);
+                }}
+                aria-label={`Edit ${fn?.name ?? rule.functionCode}`}
+              />
+            )}
+            {canDelete && (
+              <BaseIconButton
+                isBorder
+                icon={<Trash2 size={font.size.md} color={palette.danger.main} />}
+                tooltip={
+                  rule.derivedFromMandatory
+                    ? "The bank pinned this rule"
+                    : "Delete rule"
+                }
                 color="error"
-                disabled={!canDelete || rule.derivedFromMandatory}
-                onClick={() => onDelete(rule)}
-              >
-                <DeleteOutlineRoundedIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Stack>
-      ),
+                disabled={rule.derivedFromMandatory}
+                onClick={(e) => {
+                  e?.stopPropagation?.();
+                  onDelete(rule);
+                }}
+                aria-label={`Delete ${fn?.name ?? rule.functionCode}`}
+              />
+            )}
+          </Stack>
+        );
+      },
     },
   ];
 
   return (
     <BaseTable
-      rows={rules}
       columns={columns}
+      rows={rules}
       getRowKey={(rule) => rule.id}
       isLoading={isLoading}
-      minWidth={900}
-      emptyTitle="No approval rules yet"
-      emptyDescription="An action with no rule of its own here follows the bank's default rule."
+      minWidth={850}
+      emptyTitle="No approval rules found"
+      emptyDescription="Try a different search, or add a new rule."
+      pagination={pagination}
+      paginationVariant="compact"
+      onRowClick={onRowClick}
+      rounded={false}
+      headerBgColor="transparent"
+      headerBorderColor={palette.slate[200]}
+      headerTextColor={palette.slate[400]}
+      headerBorderTop={false}
     />
   );
 }

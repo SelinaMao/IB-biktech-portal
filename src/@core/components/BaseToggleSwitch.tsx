@@ -45,7 +45,7 @@ export default function BaseToggleSwitch({
           p: "3px",
           cursor: disabled ? "default" : "pointer",
           opacity: disabled ? 0.6 : 1,
-          bgcolor: checked ? (activeColor ?? palette.success[100]) : (inactiveColor ?? palette.slate[300]),
+          bgcolor: checked ? (activeColor ?? palette.navy[800]) : (inactiveColor ?? palette.slate[300]),
           display: "flex",
           justifyContent: checked ? "flex-end" : "flex-start",
           transition: "background-color 150ms ease",

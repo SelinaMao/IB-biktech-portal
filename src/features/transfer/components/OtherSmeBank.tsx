@@ -40,7 +40,7 @@ type OtherSmeBankFormValues = {
   amountCurrency: { amount: string; currency: string };
   remark: string;
   scheduleTransfer: boolean;
-  frequency: "one-time" | "recurring";
+  frequency: "one-time" | "weekly" | "monthly" | "recurring";
   timing: "today" | "later" | "weekly";
   scheduleDate: string;
   endCondition: "after-transfers" | "no-end-date";
@@ -57,7 +57,7 @@ const INITIAL_VALUES: OtherSmeBankFormValues = {
   scheduleTransfer: false,
   frequency: "one-time",
   timing: "today",
-  scheduleDate: "Today, 14 Mar 2026",
+  scheduleDate: "",
   endCondition: "after-transfers",
   afterTransfersCount: 3,
   saveTemplate: false,
@@ -92,7 +92,14 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
 
   const fromAccount = findAccount(accounts, values.fromAccountId) || accounts[0];
   const toAccountName = accountDetail?.accountName || findOtherSmeBankAccountName(otherSmeBankDirectory, values.toAccountNumber);
-  const frequencyLabel = values.frequency === "one-time" ? "One-time" : "Recurring";
+  const frequencyLabel =
+    values.frequency === "weekly"
+      ? "Weekly"
+      : values.frequency === "monthly"
+      ? "Monthly"
+      : values.frequency === "recurring"
+      ? "Recurring"
+      : "One-time";
 
   const previewFields: TransferPreviewField[] = [
     { label: "From Account", value: fromAccount ? accountOptionLabel(fromAccount) : "-" },
@@ -104,7 +111,7 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
     ...(values.scheduleTransfer
       ? [
           { label: "Frequency", value: frequencyLabel },
-          { label: "Date", value: values.scheduleDate || "-" },
+          { label: "Start Date", value: values.scheduleDate || "Immediately" },
         ]
       : []),
     ...(values.remark ? [{ label: "Remark", value: values.remark }] : []),
@@ -136,8 +143,8 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
       canSubmit={Boolean(
         amount &&
           fromAccount &&
-          values.toAccountNumber &&
-          (!values.scheduleTransfer || values.scheduleDate),
+          values.toAccountNumber
+
       )}
       previewFields={previewFields}
       summaryRows={summaryRows}

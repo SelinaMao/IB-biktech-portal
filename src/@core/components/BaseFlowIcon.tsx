@@ -1,10 +1,17 @@
 "use client";
 
 import Box, { type BoxProps } from "@mui/material/Box";
-import { ArrowDownRight, ArrowUpRight, type LucideIcon } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  MoneyReceiveCircleIcon,
+  MoneySendCircleIcon,
+} from "@hugeicons/core-free-icons";
+import type { ComponentProps } from "react";
 
 /** Money direction — `expense` is cash leaving, `income` is cash arriving. */
 export type FlowDirection = "expense" | "income";
+
+type HugeIcon = ComponentProps<typeof HugeiconsIcon>["icon"];
 
 /**
  * Tone + default glyph per direction. The single place cash-flow red/green and
@@ -12,10 +19,10 @@ export type FlowDirection = "expense" | "income";
  */
 export const FLOW_TONE: Record<
   FlowDirection,
-  { fg: string; bg: string; Icon: LucideIcon }
+  { fg: string; bg: string; icon: HugeIcon }
 > = {
-  expense: { fg: "#E11D48", bg: "#FEE8E8", Icon: ArrowUpRight },
-  income: { fg: "#10B981", bg: "#E6F4EA", Icon: ArrowDownRight },
+  expense: { fg: "#E11D48", bg: "#FEE8E8", icon: MoneySendCircleIcon },
+  income: { fg: "#10B981", bg: "#E6F4EA", icon: MoneyReceiveCircleIcon },
 };
 
 export type BaseFlowIconProps = Omit<BoxProps, "children" | "color"> & {
@@ -29,20 +36,15 @@ export type BaseFlowIconProps = Omit<BoxProps, "children" | "color"> & {
   color?: string;
   /** Override the direction's circle background. */
   bgColor?: string;
-  /** Replace the default arrow (e.g. an `<img>` or another lucide icon). */
+  /** Replace the default glyph (e.g. an `<img>` or another icon). */
   icon?: React.ReactNode;
 };
 
-/**
- * Circular tinted badge holding a cash-flow arrow — the base every
- * Expense/Income (debit/credit) indicator uses instead of re-declaring the
- * circle, the tint and the arrow at each call site.
- */
 export default function BaseFlowIcon({
   direction,
   size = 36,
   iconSize,
-  strokeWidth = 2,
+  strokeWidth = 1.5,
   color,
   bgColor,
   icon,
@@ -50,7 +52,6 @@ export default function BaseFlowIcon({
   ...rest
 }: BaseFlowIconProps) {
   const tone = FLOW_TONE[direction];
-  const Icon = tone.Icon;
 
   return (
     <Box
@@ -71,7 +72,13 @@ export default function BaseFlowIcon({
       ]}
       {...rest}
     >
-      {icon ?? <Icon size={iconSize ?? size / 2} strokeWidth={strokeWidth} />}
+      {icon ?? (
+        <HugeiconsIcon
+          icon={tone.icon}
+          size={iconSize ?? size / 2}
+          strokeWidth={strokeWidth}
+        />
+      )}
     </Box>
   );
 }

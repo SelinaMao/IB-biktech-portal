@@ -40,9 +40,9 @@ const INITIAL_VALUES = {
   purpose: transferPurposes[0],
   remark: "",
   scheduleTransfer: false,
-  frequency: "one-time" as "one-time" | "recurring",
+  frequency: "one-time" as "one-time" | "weekly" | "monthly" | "recurring",
   timing: "today" as "today" | "later" | "weekly",
-  scheduleDate: "Today, 14 Mar 2026",
+  scheduleDate: "",
   endCondition: "after-transfers" as "after-transfers" | "no-end-date",
 };
 
@@ -79,8 +79,18 @@ export default function International({ open, onClose }: InternationalProps) {
     { label: "Purpose", value: values.purpose },
     ...(values.scheduleTransfer
       ? [
-          { label: "Frequency", value: values.frequency === "one-time" ? "One-time" : "Recurring" },
-          { label: "Date", value: values.scheduleDate || "-" },
+          {
+            label: "Frequency",
+            value:
+              values.frequency === "weekly"
+                ? "Weekly"
+                : values.frequency === "monthly"
+                ? "Monthly"
+                : values.frequency === "recurring"
+                ? "Recurring"
+                : "One-time",
+          },
+          { label: "Start Date", value: values.scheduleDate || "Immediately" },
         ]
       : []),
     ...(values.remark ? [{ label: "Remark", value: values.remark }] : []),

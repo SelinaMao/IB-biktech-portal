@@ -107,7 +107,7 @@ export default function AccountOverviewCard({
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <CashFlowChart
                 data={data}
-                activeCurrency="USD"
+                activeCurrency={currency || "USD"}
                 showCard={false}
                 showHeader={false}
                 showStats={false}

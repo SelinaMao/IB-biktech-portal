@@ -48,25 +48,75 @@ export const findTransactionField = (
 
 export const mapCashFlowPoints = (entry?: CoreAccountSummaryEntry | any): CashFlowPoint[] => {
   if (!entry) return [];
-  const rawList = Array.isArray(entry)
-    ? entry
-    : (entry.transactionSummary?.data ?? entry.data ?? entry.cashFlow ?? []);
+  const payload =
+    entry?.data && (entry.data.transactionSummary || Array.isArray(entry.data))
+      ? entry.data
+      : entry;
+
+  const rawList = Array.isArray(payload)
+    ? payload
+    : (payload.transactionSummary?.data ??
+      payload.data ??
+      payload.transactions ??
+      payload.cashFlow ??
+      []);
 
   if (!Array.isArray(rawList)) return [];
 
-  return rawList.map((point: any, index: number) => {
-    const rawDate = point.date || point.transactionDate || "";
+  const pointsMap = new Map<
+    string,
+    { date: string; inflow: number; outflow: number; fullDate?: string; timestamp: number }
+  >();
+
+  rawList.forEach((point: any, index: number) => {
+    const rawDate = point.date || point.transactionDate || point.createdDate || "";
     const parsed = dayjs(rawDate);
     const dateLabel = parsed.isValid() ? parsed.format("DD") : String(rawDate || index + 1);
     const fullDate = parsed.isValid() ? parsed.format("DD MMM YYYY") : undefined;
+    const timestamp = parsed.isValid() ? parsed.valueOf() : index;
 
-    return {
-      date: dateLabel,
-      inflow: Number(point.transactionIn ?? point.inflow ?? point.cashIn ?? 0),
-      outflow: Number(point.transactionOut ?? point.outflow ?? point.cashOut ?? 0),
-      fullDate,
-    };
+    const inVal = Number(
+      point.transactionIn ??
+        point.inflow ??
+        point.cashIn ??
+        point.amountIn ??
+        (point.transactionType === "C" ? point.transactionAmount : 0) ??
+        0,
+    );
+    const outVal = Number(
+      point.transactionOut ??
+        point.outflow ??
+        point.cashOut ??
+        point.amountOut ??
+        (point.transactionType === "D" ? Math.abs(point.transactionAmount) : 0) ??
+        0,
+    );
+
+    const key = parsed.isValid() ? parsed.format("YYYY-MM-DD") : String(rawDate || index);
+
+    if (pointsMap.has(key)) {
+      const existing = pointsMap.get(key)!;
+      existing.inflow += isNaN(inVal) ? 0 : inVal;
+      existing.outflow += isNaN(outVal) ? 0 : outVal;
+    } else {
+      pointsMap.set(key, {
+        date: dateLabel,
+        inflow: isNaN(inVal) ? 0 : inVal,
+        outflow: isNaN(outVal) ? 0 : outVal,
+        fullDate,
+        timestamp,
+      });
+    }
   });
+
+  return Array.from(pointsMap.values())
+    .sort((a, b) => a.timestamp - b.timestamp)
+    .map(({ date, inflow, outflow, fullDate }) => ({
+      date,
+      inflow,
+      outflow,
+      fullDate,
+    }));
 };
 
 

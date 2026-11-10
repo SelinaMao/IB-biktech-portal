@@ -3,29 +3,27 @@
 import React from "react";
 import Box from "@mui/material/Box";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import OutlinedInput from "@mui/material/OutlinedInput";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
+import { Calendar } from "lucide-react";
+import dayjs from "dayjs";
 
 export type TransferScheduleValues = {
   enabled: boolean;
-  frequency: "one-time" | "recurring";
-  timing: "today" | "later" | "weekly";
+  frequency: "one-time" | "weekly" | "monthly" | string;
+  timing?: "today" | "later" | "weekly" | string;
   startDate: string;
-  endCondition: "after-transfers" | "no-end-date";
+  endCondition?: "after-transfers" | "no-end-date" | string;
   afterTransfersCount?: number;
 };
 
 export const DEFAULT_SCHEDULE_VALUES: TransferScheduleValues = {
   enabled: false,
   frequency: "one-time",
-  timing: "today",
-  startDate: "Today, 14 Mar 2026",
-  endCondition: "after-transfers",
-  afterTransfersCount: 3,
+  startDate: "",
 };
 
 export type TransferScheduleSectionProps = {
@@ -34,14 +32,14 @@ export type TransferScheduleSectionProps = {
   // Fallbacks for individual prop binding
   enabled?: boolean;
   onToggle?: (enabled: boolean) => void;
-  frequency?: "one-time" | "recurring";
-  onFrequencyChange?: (val: "one-time" | "recurring") => void;
-  timing?: "today" | "later" | "weekly";
-  onTimingChange?: (val: "today" | "later" | "weekly") => void;
+  frequency?: "one-time" | "weekly" | "monthly" | string;
+  onFrequencyChange?: (val: any) => void;
+  timing?: "today" | "later" | "weekly" | string;
+  onTimingChange?: (val: any) => void;
   startDate?: string;
   onStartDateChange?: (val: string) => void;
-  endCondition?: "after-transfers" | "no-end-date";
-  onEndConditionChange?: (val: "after-transfers" | "no-end-date") => void;
+  endCondition?: "after-transfers" | "no-end-date" | string;
+  onEndConditionChange?: (val: any) => void;
   afterTransfersCount?: number;
   disabled?: boolean;
 };
@@ -49,7 +47,7 @@ export type TransferScheduleSectionProps = {
 const radioSx = {
   color: "#CBD5E1",
   "&.Mui-checked": {
-    color: "#0D9488",
+    color: "#2E937A",
   },
   p: 0.75,
 };
@@ -62,29 +60,21 @@ export default function TransferScheduleSection(props: TransferScheduleSectionPr
     onToggle,
     frequency = values?.frequency ?? "one-time",
     onFrequencyChange,
-    timing = values?.timing ?? "today",
-    onTimingChange,
-    startDate = values?.startDate ?? "Today, 14 Mar 2026",
+    startDate = values?.startDate ?? "",
     onStartDateChange,
-    endCondition = values?.endCondition ?? "after-transfers",
-    onEndConditionChange,
-    afterTransfersCount = values?.afterTransfersCount ?? 3,
     disabled = false,
   } = props;
+
+  const dateInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleToggle = (checked: boolean) => {
     if (onToggle) onToggle(checked);
     if (onChange && values) onChange({ ...values, enabled: checked });
   };
 
-  const handleFrequency = (val: "one-time" | "recurring") => {
+  const handleFrequency = (val: string) => {
     if (onFrequencyChange) onFrequencyChange(val);
     if (onChange && values) onChange({ ...values, frequency: val });
-  };
-
-  const handleTiming = (val: "today" | "later" | "weekly") => {
-    if (onTimingChange) onTimingChange(val);
-    if (onChange && values) onChange({ ...values, timing: val });
   };
 
   const handleStartDate = (val: string) => {
@@ -92,9 +82,50 @@ export default function TransferScheduleSection(props: TransferScheduleSectionPr
     if (onChange && values) onChange({ ...values, startDate: val });
   };
 
-  const handleEndCondition = (val: "after-transfers" | "no-end-date") => {
-    if (onEndConditionChange) onEndConditionChange(val);
-    if (onChange && values) onChange({ ...values, endCondition: val });
+  const normalizedFrequency =
+    frequency === "weekly"
+      ? "weekly"
+      : frequency === "monthly"
+      ? "monthly"
+      : "one-time";
+
+  // Parse raw value for <input type="date"> (must be YYYY-MM-DD or empty)
+  const rawDateValue = React.useMemo(() => {
+    if (!startDate) return "";
+    const cleaned = startDate.replace(/^Today,\s*/i, "").trim();
+    const d = dayjs(cleaned);
+    return d.isValid() ? d.format("YYYY-MM-DD") : "";
+  }, [startDate]);
+
+  // Display text formatted for the UI (e.g. "Select Date" or "18 Mar 2026")
+  const displayDateText = React.useMemo(() => {
+    if (!startDate) return "";
+    const cleaned = startDate.replace(/^Today,\s*/i, "").trim();
+    const d = dayjs(cleaned);
+    return d.isValid() ? d.format("DD MMM YYYY") : startDate;
+  }, [startDate]);
+
+  const openDatePicker = () => {
+    if (disabled) return;
+    try {
+      if (dateInputRef.current && "showPicker" in dateInputRef.current) {
+        dateInputRef.current.showPicker();
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+    dateInputRef.current?.focus();
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (val) {
+      const formatted = dayjs(val).isValid() ? dayjs(val).format("DD MMM YYYY") : val;
+      handleStartDate(formatted);
+    } else {
+      handleStartDate("");
+    }
   };
 
   return (
@@ -142,129 +173,109 @@ export default function TransferScheduleSection(props: TransferScheduleSectionPr
       </Stack>
 
       {enabled && (
-        <Stack spacing={2} sx={{ mt: 1.5 }}>
-          {/* Frequency */}
-          <Box>
-            <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#334155", mb: 0.5 }}>
-              Frequency
-            </Typography>
-            <RadioGroup
-              row
-              value={frequency}
-              onChange={(e) => handleFrequency(e.target.value as "one-time" | "recurring")}
-            >
-              <FormControlLabel
-                value="one-time"
-                control={<Radio sx={radioSx} />}
-                label={<Typography sx={{ fontSize: 14, color: "#334155" }}>One-time</Typography>}
-                sx={{ mr: 3 }}
-              />
-              <FormControlLabel
-                value="recurring"
-                control={<Radio sx={radioSx} />}
-                label={<Typography sx={{ fontSize: 14, color: "#334155" }}>Recurring</Typography>}
-              />
-            </RadioGroup>
-          </Box>
+        <>
+          <Box sx={{ borderBottom: "1px solid #EDEDEC", my: 2 }} />
+          <Stack spacing={2.5}>
+            {/* Frequency */}
+            <Box>
+              <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#0F172A", mb: 0.75 }}>
+                Frequency
+              </Typography>
+              <RadioGroup
+                row
+                value={normalizedFrequency}
+                onChange={(e) => handleFrequency(e.target.value)}
+              >
+                <FormControlLabel
+                  value="one-time"
+                  control={<Radio sx={radioSx} />}
+                  label={<Typography sx={{ fontSize: 14, color: "#334155", fontWeight: 400 }}>One-time</Typography>}
+                  sx={{ mr: { xs: 2, sm: 3.5 } }}
+                />
+                <FormControlLabel
+                  value="weekly"
+                  control={<Radio sx={radioSx} />}
+                  label={<Typography sx={{ fontSize: 14, color: "#334155", fontWeight: 400 }}>Weekly</Typography>}
+                  sx={{ mr: { xs: 2, sm: 3.5 } }}
+                />
+                <FormControlLabel
+                  value="monthly"
+                  control={<Radio sx={radioSx} />}
+                  label={<Typography sx={{ fontSize: 14, color: "#334155", fontWeight: 400 }}>Monthly</Typography>}
+                />
+              </RadioGroup>
+            </Box>
 
-          {/* Transfer timing */}
-          <Box>
-            <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#334155", mb: 0.5 }}>
-              Transfer timing
-            </Typography>
-            <RadioGroup
-              row
-              value={timing}
-              onChange={(e) => handleTiming(e.target.value as "today" | "later" | "weekly")}
-            >
-              <FormControlLabel
-                value="today"
-                control={<Radio sx={radioSx} />}
-                label={<Typography sx={{ fontSize: 14, color: "#334155" }}>Today</Typography>}
-                sx={{ mr: 3 }}
-              />
-              <FormControlLabel
-                value="later"
-                control={<Radio sx={radioSx} />}
-                label={<Typography sx={{ fontSize: 14, color: "#334155" }}>Later</Typography>}
-                sx={{ mr: 3 }}
-              />
-              <FormControlLabel
-                value="weekly"
-                control={<Radio sx={radioSx} />}
-                label={<Typography sx={{ fontSize: 14, color: "#334155" }}>Weekly</Typography>}
-              />
-            </RadioGroup>
-          </Box>
-
-          {/* Start date */}
-          <Box>
-            <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#334155", mb: 0.75 }}>
-              Start date
-            </Typography>
-            <OutlinedInput
-              fullWidth
-              value={startDate}
-              onChange={(e) => handleStartDate(e.target.value)}
-              placeholder="Today, 14 Mar 2026"
-              sx={{
-                borderRadius: "14px",
-                bgcolor: "#FFFFFF",
-                height: 48,
-                "& .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#CBD5E1",
-                  borderWidth: "1px",
-                },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#94A3B8",
-                },
-                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "#0D9488",
-                  borderWidth: "1.5px",
-                },
-                "& .MuiInputBase-input": {
+            {/* Start date */}
+            <Box>
+              <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#0F172A", mb: 1 }}>
+                Start Date
+              </Typography>
+              <Box
+                tabIndex={disabled ? -1 : 0}
+                role="button"
+                aria-label="Select Date"
+                onClick={openDatePicker}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    openDatePicker();
+                  }
+                }}
+                sx={{
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "center",
+                  height: 48,
+                  borderRadius: "10px",
+                  border: "1px solid #CBD5E1",
+                  bgcolor: "#FFFFFF",
                   px: 2,
-                  py: 0,
-                  fontSize: 15,
-                  fontWeight: 400,
-                  color: "#5C6B82",
-                  "&::placeholder": {
-                    color: "#5C6B82",
-                    opacity: 1,
+                  gap: 1.5,
+                  cursor: disabled ? "default" : "pointer",
+                  transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+                  "&:hover": {
+                    borderColor: disabled ? "#CBD5E1" : "#94A3B8",
                   },
-                },
-              }}
-            />
-          </Box>
-
-          {/* End condition */}
-          <Box>
-            <Typography sx={{ fontSize: 14, fontWeight: 500, color: "#334155", mb: 0.5 }}>
-              End condition
-            </Typography>
-            <RadioGroup
-              row
-              value={endCondition}
-              onChange={(e) => handleEndCondition(e.target.value as "after-transfers" | "no-end-date")}
-            >
-              <FormControlLabel
-                value="after-transfers"
-                control={<Radio sx={radioSx} />}
-                label={
-                  <Typography sx={{ fontSize: 14, color: "#334155" }}>
-                    After {afterTransfersCount} transfers
-                  </Typography>
-                }
-                sx={{ mr: 3 }}
-              />
-              <FormControlLabel
-                value="no-end-date"
-                control={<Radio sx={radioSx} />}
-                label={<Typography sx={{ fontSize: 14, color: "#334155" }}>No end date</Typography>}
-              />
-            </RadioGroup>
-          </Box>
-        </Stack>
+                  "&:focus-visible, &:focus-within": {
+                    borderColor: "#2764A5",
+                    outline: "none",
+                    boxShadow: "0 0 0 2px rgba(39, 100, 165, 0.15)",
+                  },
+                }}
+              >
+                <Calendar size={18} color="#0F172A" strokeWidth={1.75} style={{ flexShrink: 0 }} />
+                <Typography
+                  sx={{
+                    fontSize: 14,
+                    fontWeight: 400,
+                    color: displayDateText ? "#0F172A" : "#64748B",
+                    userSelect: "none",
+                    flexGrow: 1,
+                  }}
+                >
+                  {displayDateText || "Select Date"}
+                </Typography>
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  disabled={disabled}
+                  value={rawDateValue}
+                  min={dayjs().format("YYYY-MM-DD")}
+                  onChange={handleDateChange}
+                  style={{
+                    position: "absolute",
+                    opacity: 0,
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    cursor: disabled ? "default" : "pointer",
+                  }}
+                />
+              </Box>
+            </Box>
+          </Stack>
+        </>
       )}
     </Box>
   );
