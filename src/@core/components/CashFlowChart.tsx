@@ -203,7 +203,27 @@ export default function CashFlowChart({
         >
           {/* Expense Stat */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <BaseFlowIcon direction="expense" sx={{ marginRight: "5px" }} />
+            <Box
+              sx={{
+                 marginRight:"5px",
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                bgcolor: "#FEE8E8",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#E11D48",
+                flexShrink: 0,
+              }}
+            >
+              <Box
+                  component="img"
+                  src="/assets/icons/move-up-right.svg"
+                  alt="Transfer"
+                  sx={{ width: 18, height: 18 }}
+                />
+            </Box>
             <Box>
               <Typography
                 sx={{
@@ -225,7 +245,27 @@ export default function CashFlowChart({
 
           {/* Income Stat */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <BaseFlowIcon direction="income" sx={{ marginRight: "5px" }} />
+            <Box
+              sx={{
+                marginRight:"5px",
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                bgcolor: "#E6F4EA",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#10B981",
+                flexShrink: 0,
+              }}
+            >
+               <Box
+                  component="img"
+                  src="/assets/icons/move-down-right.svg"
+                  alt="Transfer"
+                  sx={{ width: 18, height: 18 }}
+                />
+            </Box>
             <Box>
               <Typography
                 sx={{

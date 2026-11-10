@@ -1,21 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 
 import { font, palette } from "@/theme/palette";
 import BaseIconButton from "@core/components/BaseIconButton";
 import BaseToggleSwitch from "@core/components/BaseToggleSwitch";
 import BaseTable, { type BaseTableColumn, type BaseTablePagination } from "@core/components/BaseTable";
-import { baseTableHeaderTextSx } from "@core/components/BaseTableHeader";
-import { formatDateTime, getCurrentDateFormat } from "@/utils/date-time";
-import type { AdminUser, AdminUserEntry } from "../user.types";
-import UserStatusChip from "./UserStatusChip";
-import { MoreVertical, PenLine, Trash2 } from "lucide-react";
+import { userStatusMeta, type AdminUser, type AdminUserEntry } from "../user.types";
 
 export type UsersTableProps = {
   entries: AdminUserEntry[];
@@ -40,16 +38,34 @@ export type UsersTableProps = {
   canDelete?: boolean;
 };
 
-/** The row's "⋮" menu — needs its own anchor state, so it can't live inline in a column render. */
-function RowActionsMenu({ user, onView, onReset }: { user: AdminUser; onView?: () => void; onReset?: () => void }) {
+/** The row's "⋮" menu — styled with the same bordered rounded icon button. */
+function RowActionsMenu({
+  user,
+  onView,
+  onReset,
+}: {
+  user: AdminUser;
+  onView?: () => void;
+  onReset?: () => void;
+}) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
   return (
     <>
       <IconButton
         size="small"
-        onClick={(e) => setAnchorEl(e.currentTarget)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setAnchorEl(e.currentTarget);
+        }}
         aria-label={`More actions for ${user.username}`}
+        sx={{
+          borderRadius: "12px",
+          border: `1px solid ${palette.slate[200]}`,
+          padding: "8px",
+          color: palette.icon.default,
+          "&:hover": { backgroundColor: palette.primary[100] },
+        }}
       >
         <MoreVertical size={font.size.md} />
       </IconButton>
@@ -63,9 +79,12 @@ function RowActionsMenu({ user, onView, onReset }: { user: AdminUser; onView?: (
           paper: {
             sx: {
               minWidth: 160,
+              borderRadius: "10px",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
+              border: `1px solid ${palette.slate[200]}`,
               "& .MuiMenuItem-root": {
-                fontSize: font.size.md,
-                py: 1.25,
+                fontSize: "14px",
+                py: 1,
                 px: 2,
               },
             },
@@ -73,7 +92,8 @@ function RowActionsMenu({ user, onView, onReset }: { user: AdminUser; onView?: (
         }}
       >
         <MenuItem
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setAnchorEl(null);
             onReset?.();
           }}
@@ -81,7 +101,8 @@ function RowActionsMenu({ user, onView, onReset }: { user: AdminUser; onView?: (
           Reset
         </MenuItem>
         <MenuItem
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setAnchorEl(null);
             onView?.();
           }}
@@ -108,35 +129,39 @@ export default function UsersTable({
   canDeactivate = true,
   canDelete = true,
 }: UsersTableProps) {
+  const headSx = {
+    color: palette.slate[400],
+    fontWeight: 400,
+    fontSize: "14px",
+  };
+
   const columns: BaseTableColumn<AdminUserEntry>[] = [
-    // {
-    //   key: "user",
-    //   header: "User",
-    //   render: ({ user }) => (
-    //     <>
-    //       <Typography variant="body2" sx={baseTableHeaderTextSx}>
-    //         {user.fullName || user.username}
-    //       </Typography>
-    //       <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-    //         {user.email}
-    //       </Typography>
-    //     </>
-    //   ),
-    // },
     {
       key: "username",
       header: "User Name",
+      width: "25%",
+      headSx: { ...headSx, pl: { xs: 2, sm: 2.5 } },
+      cellSx: { pl: { xs: 2, sm: 2.5 }, py: 2.2 },
       render: ({ user }) => (
-        <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
-          {user.username}
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 500, fontSize: "14px", color: "#0F172A" }}
+        >
+          {user.fullName || user.username}
         </Typography>
       ),
     },
     {
       key: "userID",
       header: "User ID",
+      width: "20%",
+      headSx,
+      cellSx: { py: 2.2 },
       render: ({ user }) => (
-        <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 400, fontSize: "14px", color: palette.slate[700] }}
+        >
           {user.username}
         </Typography>
       ),
@@ -144,35 +169,83 @@ export default function UsersTable({
     {
       key: "roles",
       header: "Roles",
+      width: "25%",
+      headSx,
+      cellSx: { py: 2.2 },
       render: ({ user }) =>
         user.roles.length ? (
           <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
-            {user?.roles.map((role, index) => (
-              <Typography key={role.id ?? `${role.name}-${index}`}>{role.name}</Typography>
+            {user.roles.map((role, index) => (
+              <Box
+                key={role.id ?? `${role.name}-${index}`}
+                component="span"
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  px: 2,
+                  py: 1,
+                  borderRadius: "6px",
+                  bgcolor: palette.slate[100],
+                  color: palette.slate[700],
+                  fontSize: "13px",
+                  fontWeight: 500,
+                }}
+              >
+                {role.name}
+              </Box>
             ))}
           </Stack>
         ) : (
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          <Typography variant="caption" sx={{ color: palette.slate[400], fontSize: "13px" }}>
             None
           </Typography>
         ),
     },
-
-    // {
-    //   key: "lastLogin",
-    //   header: "Last login",
-    //   render: ({ user }) => (
-    //     <Typography variant="body2" sx={{ color: "text.secondary" }}>
-    //       {user.lastLogin ? formatDateTime(user.lastLogin) : getCurrentDateFormat("DD MMM YYYY, h:mm A")}
-    //     </Typography>
-    //   ),
-    // },
     {
       key: "status",
       header: "Status",
-      render: ({ user }) => <UserStatusChip status={user.status} />,
+      width: "15%",
+      headSx,
+      cellSx: { py: 2.2 },
+      render: ({ user }) => {
+        const isActive = user.status === "ACTIVE";
+        const meta = userStatusMeta(user.status);
+        return (
+          <Box
+            component="span"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              px: 1.5,
+              py: 0.5,
+              borderRadius: "6px",
+              bgcolor: isActive
+                ? "#0E7054"
+                : user.status === "PENDING_ACTIVATION"
+                  ? "#FEF3C7"
+                  : user.status === "DEACTIVATED" || user.status === "LOCKED"
+                    ? "#FEE2E2"
+                    : "#F1F5F9",
+              color: isActive
+                ? "#FFFFFF"
+                : user.status === "PENDING_ACTIVATION"
+                  ? "#92400E"
+                  : user.status === "DEACTIVATED" || user.status === "LOCKED"
+                    ? "#991B1B"
+                    : "#475569",
+              fontSize: "13px",
+              fontWeight: 600,
+              lineHeight: 1.4,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {meta.label}
+          </Box>
+        );
+      },
     },
-    {
+     {
       key: "actions",
       header: "Actions",
       align: "right",
@@ -181,7 +254,7 @@ export default function UsersTable({
         const isActive = user.status === "ACTIVE";
         return (
           <Stack direction="row" spacing={1} onClick={(e) => e.stopPropagation()} sx={{ justifyContent: "flex-end", alignItems: "center" }}>
-            {canEdit && <BaseIconButton isBorder icon={<PenLine size={font.size.md} />} tooltip="Edit user" onClick={() => onEdit(user)} aria-label={`Edit ${user.username}`} />}
+            {canEdit && <BaseIconButton isBorder icon={<Pencil size={font.size.md} />} tooltip="Edit user" onClick={() => onEdit(user)} aria-label={`Edit ${user.username}`} />}
 
             {canDelete && (
               <BaseIconButton
@@ -220,11 +293,13 @@ export default function UsersTable({
       emptyTitle="No users found"
       emptyDescription="Try a different search, or create a new user."
       pagination={pagination}
+      paginationVariant="compact"
       onRowClick={onRowClick}
-      rounded={true}
-      headerBgColor={palette.slate[50]}
+      rounded={false}
+      headerBgColor="transparent"
       headerBorderColor={palette.slate[200]}
       headerTextColor={palette.slate[400]}
+      headerBorderTop={false}
     />
   );
 }

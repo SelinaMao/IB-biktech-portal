@@ -17,6 +17,7 @@ import { formatTransactionAmount, isIncomingTransaction } from "../account.slice
 import type { TTransactionDetailResponse } from "../account.types";
 import { formatAccountNumber } from "@/utils";
 import { palette } from "@/theme/palette";
+import BaseFlowIcon from "@/@core/components/BaseFlowIcon";
 
 export interface TransactionsListProps {
   transactions: TTransactionDetailResponse[];
@@ -125,9 +126,9 @@ export default function TransactionsList({
               }}
             >
               {isCredit ? (
-                <MoveDownLeft size={16} color="#16A34A" />
+                <BaseFlowIcon direction="income" sx={{ marginRight: "5px" }} />
               ) : (
-                <MoveUpRight size={16} color="#EA580C" />
+                 <BaseFlowIcon direction="expense" sx={{ marginRight: "5px" }} />
               )}
             </Box>
             <Box sx={{ minWidth: 0 }}>
@@ -210,20 +211,20 @@ export default function TransactionsList({
               variant="contained"
               onClick={() => setStatementDownloadOpen(true)}
               startIcon={<Download size={16} />}
-               sx={{
-                  bgcolor: "#EBF3FA",
-                  color: "#0F172A",
-                  borderRadius: "999px",
-                  textTransform: "none",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  px: 4.5,
-                  py: 0.85,
-                  height: 38,
-                  boxShadow: "none",
-                  whiteSpace: "nowrap",
-                  "&:hover": { bgcolor: "#DFEAF6", boxShadow: "none" ,border  :"none"},
-                }}
+              sx={{
+                bgcolor: "#EBF3FA",
+                color: "#0F172A",
+                borderRadius: "999px",
+                textTransform: "none",
+                fontSize: 13.5,
+                fontWeight: 600,
+                px: 4.5,
+                py: 0.85,
+                height: 38,
+                boxShadow: "none",
+                whiteSpace: "nowrap",
+                "&:hover": { bgcolor: "#DFEAF6", boxShadow: "none", border: "none" },
+              }}
             />
             <StatementDownloadDialog
               open={statementDownloadOpen}
