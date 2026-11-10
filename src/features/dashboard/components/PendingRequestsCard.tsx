@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import BaseCard from "@core/components/BaseCard";
+import BaseIconBadge from "@core/components/BaseIconBadge";
 import { font, palette, radius, padding } from "@/theme/palette";
 
 export interface PendingRequestItem {
@@ -172,20 +173,12 @@ export default function PendingRequestsCard({
             >
               {/* Left: Icon + Labels */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
-                <Box
-                  sx={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: "50%",
-                    bgcolor: palette.slate[100],
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  {item.icon}
-                </Box>
+                <BaseIconBadge
+                  direction="income"
+                  size={44}
+                  bgColor={palette.slate[100]}
+                  icon={item.icon}
+                />
 
                 <Box>
                   <Typography

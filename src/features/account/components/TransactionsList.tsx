@@ -6,7 +6,7 @@ import { Box, Button, InputBase, Stack, Typography } from "@mui/material";
 import { ArrowUpDown, Download, Search, SlidersHorizontal } from "lucide-react";
 
 import BaseBlurText from "@core/components/BaseBlurText";
-import BaseFlowIcon from "@core/components/BaseFlowIcon";
+import BaseIconBadge from "@core/components/BaseIconBadge";
 import type { BaseFilterValue } from "@core/components/BaseFilter";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import StatementDownloadDialog from "./StatementDownloadDialog";
@@ -202,9 +202,14 @@ export default function TransactionsList({
         const isCredit = isFixedDeposit ? isInterest : isIn;
 
         return (
-          <Stack direction="row" spacing={1.75} sx={{ alignItems: "center" }}>
-            <BaseFlowIcon
+          <Stack direction="row" spacing={2.75} sx={{ alignItems: "center" }}>
+            <BaseIconBadge
               direction={isCredit ? "income" : "expense"}
+              iconSrc={
+                isCredit
+                  ? "/assets/icons/income-icon.svg"
+                  : "/assets/icons/expense-icon.svg"
+              }
               size={40}
               iconSize={22}
             />

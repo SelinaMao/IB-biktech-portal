@@ -40,6 +40,16 @@ export default function ClientDashboardPage() {
     bankAccounts.find((account: CoreAccountEntry) => account.accountType === "CA") ??
     bankAccounts[0];
 
+  // Left/right columns are independent Stacks inside the same Grid row, so
+  // MUI already stretches both Grid cells to match the taller one — but the
+  // Stack itself doesn't fill that height. Letting the last card grow into
+  // the leftover space keeps both columns' bottoms aligned no matter how
+  // much data each side renders (fewer transactions, fewer schedule rows...).
+  const stretchLastCardSx = {
+    height: "100%",
+    "& > *:last-child": { flexGrow: 1 },
+  } as const;
+
   const kpiCards = useMemo(() => {
     if (!accountsSummary) return statCards;
     const [availableBalance, ...rest] = statCards;
@@ -68,7 +78,7 @@ export default function ClientDashboardPage() {
         <Grid container spacing={2.5}>
           {/* Left Column (8 cols) */}
           <Grid size={{ xs: 12, lg: 8 }}>
-            <Stack spacing={2.5}>
+            <Stack spacing={2.5} sx={stretchLastCardSx}>
               {/* Top Card: Available Balance */}
               {kpiCards.map((c) => (
                 <StatCard key={c.label} {...c} />
@@ -88,7 +98,7 @@ export default function ClientDashboardPage() {
 
           {/* Right Column (4 cols) */}
           <Grid size={{ xs: 12, lg: 4 }}>
-            <Stack spacing={2.5}>
+            <Stack spacing={2.5} sx={stretchLastCardSx}>
               <PendingRequestsCard />
               <ScheduleCard />
               <ExchangeRatesCard
