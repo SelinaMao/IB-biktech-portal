@@ -145,15 +145,15 @@ export default function AccountsSidebar({
       summary?.totalBalanceKHR !== undefined
         ? summary.totalBalanceKHR
         : accounts
-            .filter((a) => a.ccy === "KHR")
-            .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
+          .filter((a) => a.ccy === "KHR")
+          .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
 
     const usd =
       summary?.totalBalanceUSD !== undefined
         ? summary.totalBalanceUSD
         : accounts
-            .filter((a) => a.ccy === "USD" || !a.ccy)
-            .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
+          .filter((a) => a.ccy === "USD" || !a.ccy)
+          .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
 
     return {
       totalBalanceKHR: khr,
@@ -165,9 +165,9 @@ export default function AccountsSidebar({
     const key = account.id || `${account.accountNumber}-${account.accountType}`;
     const active = Boolean(
       selectedId &&
-        (account.id === selectedId ||
-          account.accountNumber === selectedId ||
-          `${account.accountNumber}-${account.accountType}` === selectedId),
+      (account.id === selectedId ||
+        account.accountNumber === selectedId ||
+        `${account.accountNumber}-${account.accountType}` === selectedId),
     );
 
     const barColor = getAccountIndicatorColor(account, index);
@@ -232,7 +232,8 @@ export default function AccountsSidebar({
             boxSizing: "border-box",
             borderRadius: "16px",
             bgcolor: "#FFFFFF",
-            border: active ? `2px solid ${barColor}` : "1.5px solid #EDF2F7",
+            border: `1px solid ${active ? barColor : "#EDF2F7"}`,
+            borderLeft: active ? `4px solid ${barColor}` : "1px solid #EDF2F7",
             backgroundImage: active
               ? `linear-gradient(90deg, ${colorWithAlpha(barColor, 0.35)} 0%, ${colorWithAlpha(barColor, 0.12)} 22%, ${colorWithAlpha(barColor, 0.04)} 38%, rgba(255, 255, 255, 0) 50%, #FFFFFF 100%)`
               : "none",
@@ -245,9 +246,9 @@ export default function AccountsSidebar({
               ...(active
                 ? {}
                 : {
-                    bgcolor: "#F8FAFC",
-                    borderColor: "#CBD5E1",
-                  }),
+                  bgcolor: "#F8FAFC",
+                  borderColor: "#CBD5E1",
+                }),
             },
             "&:focus-visible": {
               outline: "2px solid #3B82F6",

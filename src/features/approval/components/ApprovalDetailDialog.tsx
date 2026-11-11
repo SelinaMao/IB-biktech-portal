@@ -148,7 +148,9 @@ export default function ApprovalDetailDialog({
                   ? "#E28800"
                   : statusMeta.color === "success"
                     ? "#16A34A"
-                    : "#6B7280",
+                    : statusMeta.color === "error"
+                      ? "#DC2626"
+                      : "#6B7280",
                 color: "#000000",
                 fontSize: 11,
                 fontWeight: 500,
