@@ -6,6 +6,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import BaseBlurText from "@core/components/BaseBlurText";
 import { formatCCY } from "@/utils/format-ccy";
 import { formatAccountNumber } from "@/utils/format-account-number";
+import LoanSummary from "./LoanSummary";
 
 export interface LoanEntry {
   id: string;
@@ -21,6 +22,7 @@ export interface LoansSidebarProps {
   outstandingKhr?: number;
   outstandingUsd?: number;
   loans: LoanEntry[];
+  hideSummary?: boolean;
   selectedId?: string;
   onSelect?: (id: string) => void;
 }
@@ -102,23 +104,11 @@ export function getLoanTypeName(loan: LoanEntry): string {
   return "Loan Account";
 }
 
-/** Formats amount as "KHR 120,293,000.00" or "USD 293,000.00" */
-function formatSummaryCurrency(
-  amount: number | string | undefined | null,
-  ccy: string,
-): string {
-  const num = Number(amount ?? 0);
-  const formatted = (isNaN(num) ? 0 : num).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return `${ccy} ${formatted}`;
-}
-
 export default function LoansSidebar({
   outstandingKhr,
   outstandingUsd,
   loans,
+  hideSummary = false,
   selectedId,
   onSelect,
 }: LoansSidebarProps) {
@@ -290,56 +280,18 @@ export default function LoansSidebar({
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* ───────── Top: Summary Box ───────── */}
-      <Box
-        sx={{
-          bgcolor: "#F4F7FB",
-          borderRadius: "16px",
-          p: "18px 20px",
-          border: "1px solid #EDF2F7",
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: 14,
-            fontWeight: 500,
-            color: "#718096",
-            mb: 1.25,
-            lineHeight: 1.2,
-          }}
-        >
-          Summary Loan
-        </Typography>
-
-        <Stack spacing={0.75}>
-          <Typography
-            sx={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#0F172A",
-              lineHeight: 1.35,
-            }}
-          >
-            <BaseBlurText>{formatSummaryCurrency(totalKHR, "KHR")}</BaseBlurText>
-          </Typography>
-
-          <Typography
-            sx={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#0F172A",
-              lineHeight: 1.35,
-            }}
-          >
-            <BaseBlurText>{formatSummaryCurrency(totalUSD, "USD")}</BaseBlurText>
-          </Typography>
-        </Stack>
-      </Box>
+      {!hideSummary && (
+        <LoanSummary
+          totalKHR={totalKHR}
+          totalUSD={totalUSD}
+          loans={loans}
+        />
+      )}
 
       {/* ───────── Loan Accounts List Section ───────── */}
       {loans.length > 0 && (
         <Box sx={{ mt: 3 }}>
-          <Typography
+          {/* <Typography
             sx={{
               fontSize: 15,
               fontWeight: 700,
@@ -350,7 +302,7 @@ export default function LoansSidebar({
             }}
           >
             Loan Accounts
-          </Typography>
+          </Typography> */}
           <Stack spacing={1.5}>
             {loans.map((loan, index) => renderLoanCard(loan, index))}
           </Stack>
