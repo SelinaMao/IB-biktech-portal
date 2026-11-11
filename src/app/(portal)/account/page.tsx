@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Box, Grid } from "@mui/material";
+import { Box, Grid, Typography } from "@mui/material";
 
 import { resolveBaseDownloadRange, type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/BaseFilter";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import { showToast } from "@core/components/AppToast";
+import SummaryCardNew from "@/features/account/components/SummaryCardNew";
 import { useAppSelector } from "@/store/hooks";
 import {
   AccountsSidebar,
@@ -293,16 +294,45 @@ export default function AccountPage() {
           accountNumber: effectiveInfo.accountNumber,
         }
         : selectedAccount
-        ? {
-          name: selectedAccount.accountName,
-          accountNumber: selectedAccount.accountNumber,
-        }
-        : undefined,
+          ? {
+            name: selectedAccount.accountName,
+            accountNumber: selectedAccount.accountNumber,
+          }
+          : undefined,
     [effectiveInfo, selectedAccount],
   );
-
+  const chartData = useMemo(
+    () =>
+      bankAccounts.map((acc, i) => ({
+        name: acc.accountName || `Account ${i + 1}`,
+        value: 1,
+        color: getAccountIndicatorColor(acc, i),
+      })),
+    [bankAccounts],
+  );
   return (
     <Box sx={{ width: "100%" }}>
+
+      <SummaryCardNew
+        label="Available Balance"
+        accounts={bankAccounts}
+        summary={effectiveSummary}
+        accountSummary={selectedAccountSummary}
+        transactions={effectiveTransactions}
+        chartData={chartData}
+      />
+      <Grid><Typography
+        sx={{
+          fontSize: 15,
+          fontWeight: 700,
+          color: "#5A6B82",
+          lineHeight: 1.2,
+          mb: 1.5,
+          px: 0.5,
+        }}
+      >
+        Account List
+      </Typography> </Grid>
       <Grid container spacing={2.5}>
         {/* Left Column: Accounts Sidebar */}
         <Grid size={{ xs: 12, lg: 3 }}>
@@ -311,6 +341,7 @@ export default function AccountPage() {
             accounts={bankAccounts}
             selectedId={selectedAccountId}
             onSelect={(id) => setSelectedAccountId(id)}
+            hideSummary
           />
         </Grid>
 
@@ -344,6 +375,7 @@ export default function AccountPage() {
                 <TransactionsList
                   key={selectedAccount.id || `${selectedAccount.accountNumber}-${selectedAccount.accountType}`}
                   transactions={effectiveTransactions}
+                  accentColor={selectedAccountColor}
                   isLoading={effectiveTxnStatus === "loading"}
                   error={effectiveTxnStatus === "failed"}
                   query={txnQuery}

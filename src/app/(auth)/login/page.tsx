@@ -63,6 +63,7 @@ export default function ClientLoginPage() {
   const [pendingCredentials, setPendingCredentials] = useState<LoginFormFields | null>(null);
   const [otpUserId, setOtpUserId] = useState("");
   const [otpId, setOtpId] = useState<string | undefined>();
+  const [challengeToken, setChallengeToken] = useState<string | undefined>();
   const [phone, setPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<string>("");
@@ -162,9 +163,13 @@ export default function ClientLoginPage() {
     try {
       const result = await login({ body: formData });
       if (result.status === "first_login") {
+        if (!result.data.challengeToken) {
+          throw new Error("Unable to start password setup. Please try signing in again.");
+        }
         setPendingCredentials(formData);
         setOtpUserId(result.data.user.id);
         setOtpId(result.data.otpId);
+        setChallengeToken(result.data.challengeToken);
         setPhone(result.data.user.phone ?? "");
         setSubmitting(false);
         otpDialog.openOtp(result.data?.resendSecondCount);
@@ -196,10 +201,19 @@ export default function ClientLoginPage() {
     if (!pendingCredentials) return;
 
     return otpDialog.runVerify(async () => {
-      await verifyOtp({
+      const result = await verifyOtp({
         confirmCode: code,
         otpId,
       });
+      const verificationToken = result.verificationToken ?? result.resetToken;
+      if (!challengeToken || !verificationToken) {
+        throw new AuthError({
+          message: "Password setup could not be started.",
+          detail: "Please sign in again to receive a new verification code.",
+        });
+      }
+      sessionStorage.setItem("token", challengeToken);
+      sessionStorage.setItem("verification", verificationToken);
       otpDialog.setOtpSuccess(t("otp.success"));
       setTimeout(() => {
         otpDialog.closeOtp();

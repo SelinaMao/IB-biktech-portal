@@ -1,16 +1,32 @@
 import type React from "react";
+import type { SxProps, Theme } from "@mui/material/styles";
 
 export type CompanyStatus = "active" | "dormant" | "frozen";
 
 export type SummaryTone = "success" | "warning" | "info" | "purple";
 
 export interface SummaryCardProps {
-  label: string;
-  value: string;
+  label?: string;
+  value?: string;
   sub?: string;
   action?: string;
   icon?: React.ReactNode;
   tone?: SummaryTone;
+  accounts?: CoreAccountEntry[];
+  summary?: {
+    totalBalanceUSD?: number;
+    totalBalanceKHR?: number;
+    totalExpense?: number;
+    totalIncome?: number;
+  } | null;
+  currency?: "USD" | "KHR";
+  chartData?: Array<{ name: string; value: number; color: string }>;
+  expenseAmount?: string | number;
+  incomeAmount?: string | number;
+  accountSummary?: CoreAccountSummaryEntry | null;
+  transactions?: TTransactionDetailResponse[] | CoreTransactionEntry[];
+  cashFlow?: Array<{ date: string; inflow: number; outflow: number }>;
+  sx?: SxProps<Theme>;
 }
 
 export type TxnDirection = "in" | "out";

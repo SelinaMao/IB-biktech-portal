@@ -22,6 +22,8 @@ export async function POST(request: Request) {
   if (!body) {
     return badRequestResponse();
   }
+  const isFirstLogin =
+    typeof body === "object" && body !== null && "challengeToken" in body;
 
   const upstream = await coreFetch(adminApi.AUTH.FORCE_CHANGE_PASSWORD, {
     method: "POST",
@@ -36,9 +38,9 @@ export async function POST(request: Request) {
   }
 
   const { accessToken, refreshToken, user, message } = envelope.data ?? {};
-  if (!accessToken || !user) {
+  if (isFirstLogin || !accessToken || !user) {
     // Core set the password but did not complete the login — the client
-    // falls back to a normal login with the new password.
+    // must verify the new password with a normal login.
     return Response.json({
       success: true,
       message: message ?? envelope.message,

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 
 import BaseBlurText from "@core/components/BaseBlurText";
+import { DEFAULT_PIE_COLORS } from "@core/components/PieChart";
 import { formatCCY } from "@/utils/format-ccy";
 import { formatAccountNumber } from "@/utils/format-account-number";
 import type { CoreAccountEntry, CoreAccountsResponse } from "../account.types";
@@ -13,7 +14,21 @@ export interface AccountsSidebarProps {
   accounts: CoreAccountEntry[];
   selectedId?: string;
   onSelect?: (id: string) => void;
+  hideSummary?: boolean;
 }
+// First colors match the donut chart, extras prevent repeats when there are more accounts
+const ACCOUNT_COLORS: string[] = [
+  ...DEFAULT_PIE_COLORS,
+  "#F472B6", // Pink
+  "#FACC15", // Yellow
+  "#14B8A6", // Teal
+  "#F87171", // Red
+  "#A3E635", // Lime
+  "#818CF8", // Indigo
+];
+
+
+
 
 /** Converts any hex or rgb color to rgba with custom alpha for soft gradients */
 export function colorWithAlpha(color: string, alpha: number): string {
@@ -85,28 +100,23 @@ export function getAccountTypeName(account: CoreAccountEntry): string {
   return rawType || "Current Account";
 }
 
+
+
 /**
- * Returns the indicator / theme color for each account.
- * Follows the Figma design color sequence:
- * Index 0: Sky Blue, Index 1: Warm Orange, Index 2: Sage Green, Index 3: Mint Teal, etc.
+ * Returns the indicator / theme color for each account:
+ * 1. account.color from API (if present)
+ * 2. color by account type (TYPE_COLORS)
+ * 3. fallback by position (DEFAULT_PIE_COLORS)
  */
 export const getAccountIndicatorColor = (
   account?: CoreAccountEntry | null,
   index: number = 0,
 ): string => {
+  // Color from API wins (remove this line if you never want it to override)
   if (account?.color) return account.color;
 
-  const palette = [
-    "#5CAFE4", // Sky Blue (Card 1 in Figma: #65BEFA / #5CAFE4)
-    "#F1B96E", // Warm Orange (Card 2 in Figma: #F1B96E)
-    "#74C0A8", // Sage Green (Card 3 in Figma: #74C0A8)
-    "#8DD4BE", // Mint Teal (Card 4 in Figma: #8DD4BE)
-    "#A78BFA", // Purple
-    "#F472B6", // Pink
-    "#38BDF8", // Cyan
-  ];
-
-  return palette[index % palette.length];
+  // 1 account = 1 color, by position
+  return ACCOUNT_COLORS[index % ACCOUNT_COLORS.length];
 };
 
 /** Formats dynamic amount as "KHR 120,293,000.00" or "USD 293,000.00" */
@@ -127,22 +137,23 @@ export default function AccountsSidebar({
   accounts,
   selectedId,
   onSelect,
+  hideSummary = false,
 }: AccountsSidebarProps) {
-  // Dynamic balances: prefer core summary totals, fallback to summing accounts list dynamically
+  // Dynamic balances: prefer core summary totals, fallback to summing accounts list
   const { totalBalanceKHR, totalBalanceUSD } = useMemo(() => {
     const khr =
       summary?.totalBalanceKHR !== undefined
         ? summary.totalBalanceKHR
         : accounts
-            .filter((a) => a.ccy === "KHR")
-            .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
+          .filter((a) => a.ccy === "KHR")
+          .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
 
     const usd =
       summary?.totalBalanceUSD !== undefined
         ? summary.totalBalanceUSD
         : accounts
-            .filter((a) => a.ccy === "USD" || !a.ccy)
-            .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
+          .filter((a) => a.ccy === "USD" || !a.ccy)
+          .reduce((sum, a) => sum + (Number(a.availableBalance) || 0), 0);
 
     return {
       totalBalanceKHR: khr,
@@ -150,16 +161,13 @@ export default function AccountsSidebar({
     };
   }, [summary, accounts]);
 
-  const renderAccountCard = (
-    account: CoreAccountEntry,
-    index: number,
-  ) => {
+  const renderAccountCard = (account: CoreAccountEntry, index: number) => {
     const key = account.id || `${account.accountNumber}-${account.accountType}`;
     const active = Boolean(
       selectedId &&
-        (account.id === selectedId ||
-          account.accountNumber === selectedId ||
-          `${account.accountNumber}-${account.accountType}` === selectedId),
+      (account.id === selectedId ||
+        account.accountNumber === selectedId ||
+        `${account.accountNumber}-${account.accountType}` === selectedId),
     );
 
     const barColor = getAccountIndicatorColor(account, index);
@@ -187,7 +195,7 @@ export default function AccountsSidebar({
           userSelect: "none",
         }}
       >
-        {/* Unselected: Left Vertical Curved Tapered Indicator (hides smoothly when active) */}
+        {/* Left vertical tapered indicator (hides when active) */}
         <Box
           sx={{
             width: active ? 0 : "6px",
@@ -224,7 +232,8 @@ export default function AccountsSidebar({
             boxSizing: "border-box",
             borderRadius: "16px",
             bgcolor: "#FFFFFF",
-            border: active ? `2px solid ${barColor}` : "1.5px solid #EDF2F7",
+            border: `1px solid ${active ? barColor : "#EDF2F7"}`,
+            borderLeft: active ? `4px solid ${barColor}` : "1px solid #EDF2F7",
             backgroundImage: active
               ? `linear-gradient(90deg, ${colorWithAlpha(barColor, 0.35)} 0%, ${colorWithAlpha(barColor, 0.12)} 22%, ${colorWithAlpha(barColor, 0.04)} 38%, rgba(255, 255, 255, 0) 50%, #FFFFFF 100%)`
               : "none",
@@ -237,9 +246,9 @@ export default function AccountsSidebar({
               ...(active
                 ? {}
                 : {
-                    bgcolor: "#F8FAFC",
-                    borderColor: "#CBD5E1",
-                  }),
+                  bgcolor: "#F8FAFC",
+                  borderColor: "#CBD5E1",
+                }),
             },
             "&:focus-visible": {
               outline: "2px solid #3B82F6",
@@ -304,71 +313,51 @@ export default function AccountsSidebar({
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* ───────── Dynamic Summary Box ───────── */}
-      <Box
-        sx={{
-          bgcolor: "#F4F7FB",
-          borderRadius: "16px",
-          p: "18px 20px",
-          border: "1px solid #EDF2F7",
-        }}
-      >
-        <Typography
+      {/* Summary box (hidden when top SummaryCard is active) */}
+      {!hideSummary && (
+        <Box
           sx={{
-            fontSize: 14,
-            fontWeight: 500,
-            color: "#718096",
-            mb: 1.25,
-            lineHeight: 1.2,
+            bgcolor: "#F4F7FB",
+            borderRadius: "16px",
+            p: "18px 20px",
+            border: "1px solid #EDF2F7",
           }}
         >
-          Summary
-        </Typography>
-
-        <Stack spacing={0.75}>
           <Typography
             sx={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#0F172A",
-              lineHeight: 1.35,
-            }}
-          >
-            <BaseBlurText>
-              {formatSummaryCurrency(totalBalanceKHR, "KHR")}
-            </BaseBlurText>
-          </Typography>
-
-          <Typography
-            sx={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: "#0F172A",
-              lineHeight: 1.35,
-            }}
-          >
-            <BaseBlurText>
-              {formatSummaryCurrency(totalBalanceUSD, "USD")}
-            </BaseBlurText>
-          </Typography>
-        </Stack>
-      </Box>
-
-      {/* ───────── Account List Section ───────── */}
-      {accounts.length > 0 && (
-        <Box sx={{ mt: 3 }}>
-          <Typography
-            sx={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#5A6B82",
+              fontSize: 14,
+              fontWeight: 500,
+              color: "#718096",
+              mb: 1.25,
               lineHeight: 1.2,
-              mb: 1.5,
-              px: 0.5,
             }}
           >
-            Account List
+            Summary
           </Typography>
+
+          <Stack spacing={0.75}>
+            <Typography
+              sx={{ fontSize: 16, fontWeight: 700, color: "#0F172A", lineHeight: 1.35 }}
+            >
+              <BaseBlurText>
+                {formatSummaryCurrency(totalBalanceKHR, "KHR")}
+              </BaseBlurText>
+            </Typography>
+
+            <Typography
+              sx={{ fontSize: 16, fontWeight: 700, color: "#0F172A", lineHeight: 1.35 }}
+            >
+              <BaseBlurText>
+                {formatSummaryCurrency(totalBalanceUSD, "USD")}
+              </BaseBlurText>
+            </Typography>
+          </Stack>
+        </Box>
+      )}
+
+      {/* Account list */}
+      {accounts.length > 0 && (
+        <Box sx={{ mt: hideSummary ? 0 : 3 }}>
           <Stack spacing={1.5}>
             {accounts.map((account, index) => renderAccountCard(account, index))}
           </Stack>

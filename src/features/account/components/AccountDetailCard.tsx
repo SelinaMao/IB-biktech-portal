@@ -16,6 +16,7 @@ import type {
 import AccountDetails from "./AccountDetails";
 import StatementDownloadDialog from "./StatementDownloadDialog";
 import { getAccountIndicatorColor } from "./AccountsSidebar";
+import CardBorderAccent from "./CardBorderAccent";
 
 export interface AccountDetailsProps {
   open?: boolean;
@@ -254,15 +255,15 @@ export default function AccountDetailCard({
   return (
     <Box
       sx={{
+        position: "relative",
         bgcolor: "#FFFFFF",
-        borderRadius: "24px",
-        p: { xs: 2.5, sm: "16px 16px" },
+        borderRadius: "20px",
+        p: { xs: 2.5, sm: "20px 24px" },
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
         border: "1px solid #EDF2F7",
-        borderLeft: `4px solid ${cardAccentColor}`,
-        transition: "border-left-color 0.2s ease-in-out",
       }}
     >
+      <CardBorderAccent color={cardAccentColor} type="bottom-left" radius={20} length={28} />
       <Stack
         direction={{ xs: "column", md: "row" }}
         spacing={3}

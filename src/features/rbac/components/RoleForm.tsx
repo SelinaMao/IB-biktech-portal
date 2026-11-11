@@ -767,12 +767,11 @@ export default function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
                 onClick={() => setStep(0)}
                 disabled={isSubmitting}
                 sx={{
-                  color: palette.slate[700],
+                  // color: palette.slate[700],
                   textTransform: "none",
                   fontWeight: 600,
                   fontSize: "14px",
-                  p: 0,
-                  minWidth: 0,
+                  minWidth: 0,  
                   "&:hover": { bgcolor: "transparent", color: "#1B5299" },
                 }}
               />

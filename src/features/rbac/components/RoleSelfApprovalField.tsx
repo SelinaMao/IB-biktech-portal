@@ -103,7 +103,7 @@ export default function RoleSelfApprovalField({
         control={control}
         render={({ field }) =>
           field.value ? (
-            <Alert severity="warning" variant="outlined">
+            <Alert severity="error" variant="outlined">
               A holder can raise a request and sign it alone. A change that raises their own
               authority is still refused.
             </Alert>

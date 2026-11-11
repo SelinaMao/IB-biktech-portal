@@ -209,7 +209,8 @@ export default function LoansSidebar({
             boxSizing: "border-box",
             borderRadius: "16px",
             bgcolor: "#FFFFFF",
-            border: active ? `2px solid ${barColor}` : "1.5px solid #EDF2F7",
+            border: `1px solid ${active ? barColor : "#EDF2F7"}`,
+            borderLeft: active ? `4px solid ${barColor}` : "1px solid #EDF2F7",
             backgroundImage: active
               ? `linear-gradient(90deg, ${colorWithAlpha(barColor, 0.35)} 0%, ${colorWithAlpha(barColor, 0.12)} 22%, ${colorWithAlpha(barColor, 0.04)} 38%, rgba(255, 255, 255, 0) 50%, #FFFFFF 100%)`
               : "none",
@@ -222,9 +223,9 @@ export default function LoansSidebar({
               ...(active
                 ? {}
                 : {
-                    bgcolor: "#F8FAFC",
-                    borderColor: "#CBD5E1",
-                  }),
+                  bgcolor: "#F8FAFC",
+                  borderColor: "#CBD5E1",
+                }),
             },
             "&:focus-visible": {
               outline: "2px solid #3B82F6",
