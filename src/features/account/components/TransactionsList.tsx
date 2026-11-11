@@ -12,6 +12,7 @@ import type { BaseFilterValue } from "@core/components/BaseFilter";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import StatementDownloadDialog from "./StatementDownloadDialog";
 import TransactionFilterDialog from "./TransactionFilterDialog";
+import CardBorderAccent from "./CardBorderAccent";
 import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { isIncomingTransaction } from "../account.slice";
 import type { TTransactionDetailResponse } from "../account.types";
@@ -40,6 +41,7 @@ export interface TransactionsListProps {
   accountName?: string;
   accountNumber?: string;
   accountType?: string;
+  accentColor?: string;
 }
 
 /** Fallback mock data matching design mockup */
@@ -181,6 +183,7 @@ export default function TransactionsList({
   accountName = "",
   accountNumber = "",
   accountType,
+  accentColor = "#74C0A8",
 }: TransactionsListProps) {
   const [statementDownloadOpen, setStatementDownloadOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
@@ -357,12 +360,14 @@ export default function TransactionsList({
     <Box
       sx={{
         bgcolor: "#FFFFFF",
-        borderRadius: `${radius.xl}px`,
+        position: "relative",
+        borderRadius: "20px",
         p: `${padding.xxl}px`,
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
         border: `1px solid ${palette.slate[200]}`,
       }}
     >
+      <CardBorderAccent color={accentColor} type="top-left" radius={20} length={28} />
       {/* Top Header Row */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -370,7 +375,7 @@ export default function TransactionsList({
         sx={{
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", sm: "center" },
-          mb: 3,
+          mb: 2,
         }}
       >
         <Typography
@@ -483,7 +488,7 @@ export default function TransactionsList({
                 },
               }}
             >
-              Download Statement
+              Download
             </Button>
           )}
         </Stack>
@@ -510,7 +515,7 @@ export default function TransactionsList({
             bgcolor: palette.slate[50],
             borderRadius: `${radius.md}px`,
           },
-          "& td": { borderBottom: `1px solid ${palette.slate[50]}` },
+          "& td": { borderBottom: `1px solid ${palette.slate[200]}` },
         })}
         pagination={
           total > 0 && !error

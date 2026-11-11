@@ -20,6 +20,8 @@ export default function SetupPasswordPage() {
   const [password1, setPassword1] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreedTerms, setAgreedTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // UI Error states
   const [passwordError, setPasswordError] = useState<string>("");
@@ -113,10 +115,12 @@ export default function SetupPasswordPage() {
     }
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isSubmitting) return;
 
     setTouched({ password: true, confirmPassword: true, terms: true });
+    setSubmitError("");
 
     const pErr = validatePassword(password1);
     const cpErr = validateConfirmPassword(confirmPassword, password1);
@@ -126,21 +130,30 @@ export default function SetupPasswordPage() {
     setConfirmPasswordError(cpErr);
     setTermsError(tErr);
 
+    if (pErr || cpErr || tErr) return;
+
     const token = sessionStorage.getItem("token");
     const verification = sessionStorage.getItem("verification");
-    if(!token || !verification){
+    if (!token || !verification) {
+      setSubmitError("Your verification session has expired. Please sign in again.");
       return;
     }
 
-    if (!pErr && !cpErr && !tErr) {
-      try {
-        await setPassword({ challengeToken: token, verificationToken: verification, newPassword: password1 });
-        router.push("/success");
-        sessionStorage.removeItem("token");
-        sessionStorage.removeItem("verification");
-      } catch (error) {
-        console.log(error);
-      }
+    setIsSubmitting(true);
+    try {
+      await setPassword({
+        challengeToken: token,
+        verificationToken: verification,
+        newPassword: password1,
+        autoLogin: false,
+      });
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("verification");
+      router.replace("/login");
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Unable to set your password. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -268,6 +281,7 @@ export default function SetupPasswordPage() {
           <TextField
             id="new-password"
             fullWidth
+            autoComplete="new-password"
             type={showPassword ? "text" : "password"}
             placeholder="Enter Password"
             value={password1}
@@ -366,6 +380,7 @@ export default function SetupPasswordPage() {
           <TextField
             id="confirm-password"
             fullWidth
+            autoComplete="new-password"
             type={showConfirmPassword ? "text" : "password"}
             placeholder="Enter Confirm Password"
             value={confirmPassword}
@@ -519,9 +534,15 @@ export default function SetupPasswordPage() {
           </Box>
 
           {/* Verify / Submit Button */}
+          {submitError && (
+            <Typography role="alert" sx={{ color: "#EF4444", fontSize: "13px", mb: 1 }}>
+              {submitError}
+            </Typography>
+          )}
           <Box
             component="button"
             type="submit"
+            disabled={isSubmitting}
             sx={{
               marginTop: 4,
               width: "100%",
@@ -531,6 +552,10 @@ export default function SetupPasswordPage() {
               fontSize: "15px",
               fontWeight: 600,
               cursor: "pointer",
+              "&:disabled": {
+                cursor: "not-allowed",
+                opacity: 0.7,
+              },
               bgcolor: "#2563EB",
               color: "#FFFFFF",
               boxShadow: "0 4px 12px rgba(37, 99, 235, 0.25)",
@@ -540,7 +565,7 @@ export default function SetupPasswordPage() {
               },
             }}
           >
-            confirm
+            {isSubmitting ? "Submitting..." : "Confirm"}
           </Box>
         </Box>
       </Box>

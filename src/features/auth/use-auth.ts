@@ -112,9 +112,8 @@ export function useAuth() {
   );
 
   /**
-   * First-login flow: challengeToken from login + verificationToken from otp/verify. Core opens the
-   * session along with the new password (the BFF has already stored its tokens), so `data.user` is
-   * the signed-in user — no second login.
+   * First-login flow: challengeToken from login + verificationToken from otp/verify. Callers may
+   * disable auto-login when they need the user to authenticate with the newly set password.
    */
   const setPassword = useCallback(
     async (args: { challengeToken: string; verificationToken: string; newPassword: string; autoLogin?: boolean }): Promise<SetPasswordResult> => {

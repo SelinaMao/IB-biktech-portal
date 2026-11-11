@@ -3,7 +3,7 @@ import { trackEvent, trackFailure } from "./analytics";
 import { AnalyticsEvent, type AnalyticsEventName, type AnalyticsParams } from "./analytics.events";
 
 type TrackedMutation = {
-  event: AnalyticsEventName;
+  event: AnalyticsEventName | ((arg: unknown) => AnalyticsEventName);
   /** The safe parts of the mutation's argument — enums only, never IDs or customer data. */
   params?: (arg: unknown) => AnalyticsParams;
 };
@@ -17,6 +17,12 @@ type TrackedMutation = {
  */
 const TRACKED_MUTATIONS: Record<string, TrackedMutation> = {
   signUpVerifyOtp: { event: AnalyticsEvent.SIGN_UP, params: () => ({ method: "account_number" }) },
+  setPassword: {
+    event: (arg) =>
+      typeof arg === "object" && arg !== null && "token" in arg
+        ? AnalyticsEvent.PASSWORD_RESET
+        : AnalyticsEvent.PASSWORD_SET,
+  },
 
   renameTransferTemplate: { event: AnalyticsEvent.TRANSFER_TEMPLATE_RENAMED },
   deleteTransferTemplate: { event: AnalyticsEvent.TRANSFER_TEMPLATE_DELETED },
@@ -74,12 +80,14 @@ export const analyticsMiddleware: Middleware = () => (next) => (action) => {
   const tracked = TRACKED_MUTATIONS[arg.endpointName];
   if (!tracked) return result;
 
-  const params = tracked.params?.(arg.originalArgs ?? {});
+  const originalArgs = arg.originalArgs ?? {};
+  const event = typeof tracked.event === "function" ? tracked.event(originalArgs) : tracked.event;
+  const params = tracked.params?.(originalArgs);
   if (isFulfilled(action)) {
-    trackEvent(tracked.event, params);
+    trackEvent(event, params);
   } else if (!action.meta.aborted) {
     // A rejected query carries the server's error envelope as `payload`; a thrown one only `error`.
-    trackFailure(tracked.event, action.payload ?? action.error, params);
+    trackFailure(event, action.payload ?? action.error, params);
   }
   return result;
 };
