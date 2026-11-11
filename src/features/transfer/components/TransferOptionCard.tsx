@@ -7,6 +7,7 @@ import { ChevronRight } from "lucide-react";
 import { palette, radius } from "@/theme/palette";
 import BaseCard from "@core/components/BaseCard";
 import type { TransferOption } from "../transfer.types";
+import BaseIconBadge from "@/@core/components/BaseIconBadge";
 
 export default function TransferOptionCard({
   option,
@@ -53,7 +54,13 @@ export default function TransferOptionCard({
             placeItems: "center",
           }}
         >
-          {option.icon}
+          <BaseIconBadge 
+            direction="income"
+            size={40}
+            bgColor={palette.hover[10]}
+            color={palette.primary[600]}
+            icon={option.icon}
+          />
         </Box>
           <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between", marginTop:4}}>
             <Typography sx={{ fontWeight: 600, fontSize: 14, color: "text.primary" }}>

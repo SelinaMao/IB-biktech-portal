@@ -31,7 +31,7 @@ export const defaultScheduleItems: ScheduleItem[] = [
     status: "Over Due",
     statusTone: "danger",
     amount: "$25.00",
-    href: "/transfer",
+    href: "/schedule",
   },
   {
     id: "2",
@@ -41,7 +41,7 @@ export const defaultScheduleItems: ScheduleItem[] = [
     status: "Progress",
     statusTone: "info",
     amount: "$40.00",
-    href: "/transfer",
+    href: "/schedule",
   },
   {
     id: "3",
@@ -51,7 +51,7 @@ export const defaultScheduleItems: ScheduleItem[] = [
     status: "Completed",
     statusTone: "success",
     amount: "$10.00",
-    href: "/transfer",
+    href: "/schedule",
   },
 ];
 
@@ -68,7 +68,7 @@ interface ScheduleCardProps {
 
 export default function ScheduleCard({
   items = defaultScheduleItems,
-  viewAllHref = "/transfer",
+  viewAllHref = "/schedule",
 }: ScheduleCardProps) {
   return (
     <BaseCard

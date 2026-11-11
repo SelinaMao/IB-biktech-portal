@@ -1,26 +1,33 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Box, Stack, Typography } from "@mui/material";
+import dayjs from "dayjs";
+import { Box, Button, InputBase, Stack, Typography } from "@mui/material";
+import { FolderOutput, Search, SlidersHorizontal } from "lucide-react";
 
-import { padding, palette } from "@/theme/palette";
+import { font, padding, palette, radius } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
-import BaseButton from "@core/components/BaseButton";
 import BaseDownloadPanel, { type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
-import BaseSearchButton from "@core/components/BaseSearchButton";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
-import SectionCard from "@/features/dashboard/components/SectionCard";
+import type { BaseFilterValue } from "@core/components/BaseFilter";
+import { TransactionFilterDialog } from "@/features/account";
 import type { LoanTransaction, TxnStatus } from "../loan.types";
-import BaseFilterByDay, {
-  type BaseFilterByDayValue,
-  isDateWithinFilter,
-} from "@/@core/components/BaseFilterByDay";
-import { Download } from "lucide-react";
 
 const ROWS_PER_PAGE = 5;
 
-/** Matches BaseCard's padding — bled edge-to-edge so the header tint reaches the card border. */
-const CARD_PADDING_PX = 20;
+/** Column widths as shares of table. Matches account/dashboard transaction tables style. */
+const COLUMN_WIDTHS = ["8%", "18%", "14%", "13%", "15%", "16%", "16%"] as const;
+
+/** Card inner gutter padding on first and last columns. */
+const TABLE_PX = 1.75;
+
+const HEAD_CELL_SX = {
+  pt: 0,
+  pb: 2,
+  fontSize: 15,
+  fontWeight: font.weight.regular,
+} as const;
+const BODY_CELL_SX = { py: 2.75 } as const;
 
 export const LOAN_TRANSACTIONS: LoanTransaction[] = [
   {
@@ -158,7 +165,7 @@ export const LOAN_TRANSACTIONS: LoanTransaction[] = [
     principal: "$14,800.00",
     interest: "$1,190.00",
     total: "$15,990.00",
-    balance: "$88,500.00",
+    balance: "$95,000.00",
     amount: "$15,990.00",
     direction: "out",
     status: "upcoming",
@@ -169,11 +176,11 @@ export const LOAN_TRANSACTIONS: LoanTransaction[] = [
     ref: "RP-2026-06-21",
     date: "2026-06-21",
     dueDate: "21 June 2026",
-    principal: "$9,800.00",
-    interest: "$670.00",
-    total: "$10,470.00",
-    balance: "$73,000.00",
-    amount: "$10,470.00",
+    principal: "$7,800.00",
+    interest: "$580.00",
+    total: "$8,380.00",
+    balance: "$54,000.00",
+    amount: "$8,380.00",
     direction: "out",
     status: "upcoming",
   },
@@ -183,10 +190,122 @@ export const LOAN_TRANSACTIONS: LoanTransaction[] = [
     ref: "RP-2026-06-22",
     date: "2026-06-22",
     dueDate: "22 June 2026",
-    principal: "$11,900.00",
-    interest: "$1,080.00",
+    principal: "$12,400.00",
+    interest: "$950.00",
+    total: "$13,350.00",
+    balance: "$79,000.00",
+    amount: "$13,350.00",
+    direction: "out",
+    status: "upcoming",
+  },
+  {
+    no: "13",
+    title: "Monthly Repayment #13",
+    ref: "RP-2026-06-23",
+    date: "2026-06-23",
+    dueDate: "23 June 2026",
+    principal: "$9,200.00",
+    interest: "$720.00",
+    total: "$9,920.00",
+    balance: "$61,000.00",
+    amount: "$9,920.00",
+    direction: "out",
+    status: "upcoming",
+  },
+  {
+    no: "14",
+    title: "Monthly Repayment #14",
+    ref: "RP-2026-06-24",
+    date: "2026-06-24",
+    dueDate: "24 June 2026",
+    principal: "$11,800.00",
+    interest: "$890.00",
+    total: "$12,690.00",
+    balance: "$76,000.00",
+    amount: "$12,690.00",
+    direction: "out",
+    status: "upcoming",
+  },
+  {
+    no: "15",
+    title: "Monthly Repayment #15",
+    ref: "RP-2026-06-25",
+    date: "2026-06-25",
+    dueDate: "25 June 2026",
+    principal: "$10,900.00",
+    interest: "$840.00",
+    total: "$11,740.00",
+    balance: "$71,000.00",
+    amount: "$11,740.00",
+    direction: "out",
+    status: "upcoming",
+  },
+  {
+    no: "16",
+    title: "Monthly Repayment #16",
+    ref: "RP-2026-06-26",
+    date: "2026-06-26",
+    dueDate: "26 June 2026",
+    principal: "$13,500.00",
+    interest: "$1,120.00",
+    total: "$14,620.00",
+    balance: "$86,000.00",
+    amount: "$14,620.00",
+    direction: "out",
+    status: "upcoming",
+  },
+  {
+    no: "17",
+    title: "Monthly Repayment #17",
+    ref: "RP-2026-06-27",
+    date: "2026-06-27",
+    dueDate: "27 June 2026",
+    principal: "$8,400.00",
+    interest: "$670.00",
+    total: "$9,070.00",
+    balance: "$58,000.00",
+    amount: "$9,070.00",
+    direction: "out",
+    status: "upcoming",
+  },
+  {
+    no: "18",
+    title: "Monthly Repayment #18",
+    ref: "RP-2026-06-28",
+    date: "2026-06-28",
+    dueDate: "28 June 2026",
+    principal: "$14,100.00",
+    interest: "$1,160.00",
+    total: "$15,260.00",
+    balance: "$91,000.00",
+    amount: "$15,260.00",
+    direction: "out",
+    status: "upcoming",
+  },
+  {
+    no: "19",
+    title: "Monthly Repayment #19",
+    ref: "RP-2026-06-29",
+    date: "2026-06-29",
+    dueDate: "29 June 2026",
+    principal: "$9,800.00",
+    interest: "$780.00",
+    total: "$10,580.00",
+    balance: "$65,000.00",
+    amount: "$10,580.00",
+    direction: "out",
+    status: "upcoming",
+  },
+  {
+    no: "20",
+    title: "Monthly Repayment #20",
+    ref: "RP-2026-06-30",
+    date: "2026-06-30",
+    dueDate: "30 June 2026",
+    principal: "$12,100.00",
+    interest: "$880.00",
     total: "$12,980.00",
-    balance: "$0.00",
+    balance: "$78,000.00",
     amount: "$12,980.00",
     direction: "out",
     status: "upcoming",
@@ -209,18 +328,31 @@ export default function LoanTransactionsCard({
   );
   const [page, setPage] = useState(0);
   const [query, setQuery] = useState("");
-  const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
+  const [dateFilter, setDateFilter] = useState<BaseFilterValue>({
+    type: "all",
+    from: null,
+    to: null,
+  });
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [downloadAnchor, setDownloadAnchor] = useState<null | HTMLElement>(null);
+
+  const hasActiveFilter = Boolean(dateFilter && dateFilter.type !== "all");
 
   const filtered = useMemo(() => {
     const byStatus = showStatusToggle
       ? dataSource.filter((t) => t.status === status)
       : dataSource;
 
-    const byDate = dateFilter
-      ? byStatus.filter((t) =>
-        isDateWithinFilter(t.dueDate || t.date, dateFilter),
-      )
+    const byDate = dateFilter && (dateFilter.from || dateFilter.to)
+      ? byStatus.filter((t) => {
+          const raw = t.dueDate || t.date;
+          if (!raw) return true;
+          const d = dayjs(raw);
+          if (!d.isValid()) return true;
+          if (dateFilter.from && d.isBefore(dayjs(dateFilter.from).startOf("day"))) return false;
+          if (dateFilter.to && d.isAfter(dayjs(dateFilter.to).endOf("day"))) return false;
+          return true;
+        })
       : byStatus;
 
     const q = query.trim().toLowerCase();
@@ -251,8 +383,9 @@ export default function LoanTransactionsCard({
     {
       key: "no",
       header: "#",
-      headSx: { pl: `${CARD_PADDING_PX}px`, py: 1.8, width: 60 },
-      cellSx: { pl: `${CARD_PADDING_PX}px`, py: 3 },
+      width: COLUMN_WIDTHS[0],
+      headSx: { ...HEAD_CELL_SX, pl: TABLE_PX, pr: 0 },
+      cellSx: { ...BODY_CELL_SX, pl: TABLE_PX, pr: 0 },
       render: (t) => (
         <Typography
           sx={{
@@ -268,10 +401,11 @@ export default function LoanTransactionsCard({
     {
       key: "dueDate",
       header: "Due Date",
-      headSx: { py: 1.8 },
-      cellSx: { py: 3 },
+      width: COLUMN_WIDTHS[1],
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
       render: (t) => (
-        <Typography sx={{ fontSize: 14, color: palette.slate[700] }}>
+        <Typography sx={{ fontSize: 14, color: palette.slate[900] }}>
           {t.dueDate ?? t.date}
         </Typography>
       ),
@@ -279,8 +413,9 @@ export default function LoanTransactionsCard({
     {
       key: "principal",
       header: "Principal",
-      headSx: { py: 1.8 },
-      cellSx: { py: 3 },
+      width: COLUMN_WIDTHS[2],
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
       render: (t) => (
         <Typography sx={{ fontSize: 14, color: palette.slate[700] }}>
           <BaseBlurText>{t.principal}</BaseBlurText>
@@ -290,8 +425,9 @@ export default function LoanTransactionsCard({
     {
       key: "interest",
       header: "Interest",
-      headSx: { py: 1.8 },
-      cellSx: { py: 3 },
+      width: COLUMN_WIDTHS[3],
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
       render: (t) => (
         <Typography sx={{ fontSize: 14, color: palette.slate[700] }}>
           <BaseBlurText>{t.interest}</BaseBlurText>
@@ -301,14 +437,15 @@ export default function LoanTransactionsCard({
     {
       key: "total",
       header: "Total",
-      headSx: { py: 1.8 },
-      cellSx: { py: 3 },
+      width: COLUMN_WIDTHS[4],
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
       render: (t) => (
         <Typography
           sx={{
             fontSize: 15,
             fontWeight: 700,
-            color: "#000000",
+            color: palette.slate[900],
           }}
         >
           <BaseBlurText>{t.total}</BaseBlurText>
@@ -318,8 +455,9 @@ export default function LoanTransactionsCard({
     {
       key: "balance",
       header: "Balance",
-      headSx: { py: 1.8 },
-      cellSx: { py: 3 },
+      width: COLUMN_WIDTHS[5],
+      headSx: { ...HEAD_CELL_SX, px: 0 },
+      cellSx: { ...BODY_CELL_SX, px: 0 },
       render: (t) => (
         <Typography sx={{ fontSize: 14, color: palette.slate[700] }}>
           <BaseBlurText>{t.balance}</BaseBlurText>
@@ -329,8 +467,9 @@ export default function LoanTransactionsCard({
     {
       key: "status",
       header: "Status",
-      headSx: { pr: `${CARD_PADDING_PX}px`, py: 1.8 },
-      cellSx: { pr: `${CARD_PADDING_PX}px`, py: 3 },
+      width: COLUMN_WIDTHS[6],
+      headSx: { ...HEAD_CELL_SX, pl: 0, pr: TABLE_PX },
+      cellSx: { ...BODY_CELL_SX, pl: 0, pr: TABLE_PX },
       render: (t) => {
         const s = (t.status || "").toLowerCase();
         let bg = "#F1F5F9";
@@ -339,7 +478,6 @@ export default function LoanTransactionsCard({
 
         if (s === "due") {
           bg = "#FDEFD9";
-
           color = "#92400E";
           label = "Due";
         } else if (s === "upcoming") {
@@ -366,12 +504,12 @@ export default function LoanTransactionsCard({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              px: 2.8,
-              py: 1.45,
+              px: 2,
+              py: 0.75,
               borderRadius: "9999px",
               bgcolor: bg,
               color: color,
-              fontSize: 12,
+              fontSize: 12.5,
               fontWeight: 600,
               lineHeight: 1.2,
               minWidth: 72,
@@ -386,127 +524,190 @@ export default function LoanTransactionsCard({
   ];
 
   return (
-    <SectionCard
-      title="Repayment Schedule"
-      header={
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-          <BaseButton
-            title="Download Statement"
+    <Box
+      sx={{
+        bgcolor: "#FFFFFF",
+        borderRadius: `${radius.xl}px`,
+        p: `${padding.xxl}px`,
+        boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
+        border: `1px solid ${palette.slate[200]}`,
+      }}
+    >
+      {/* Top Header Row */}
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
+        sx={{
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", sm: "center" },
+          mb: 3,
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: { xs: 18, sm: 20 },
+            fontWeight: 700,
+            color: palette.slate[900],
+            lineHeight: 1.25,
+          }}
+        >
+          Repayment Schedule
+        </Typography>
+
+        <Stack
+          direction="row"
+          spacing={1.25}
+          sx={{
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: { xs: 1, sm: 2 },
+          }}
+        >
+          {/* Search Box */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              px: 1.5,
+              height: 38,
+              borderRadius: "8px",
+              border: `1px solid ${palette.slate[200]}`,
+              bgcolor: "#FFFFFF",
+              width: { xs: 140, sm: 200 },
+              transition: "border-color 0.15s ease",
+              "&:focus-within": {
+                borderColor: "#1C64B4",
+              },
+            }}
+          >
+            <Search size={16} color={palette.slate[400]} style={{ flexShrink: 0 }} />
+            <InputBase
+              placeholder="Search"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(0);
+              }}
+              sx={{
+                fontSize: 13.5,
+                color: palette.slate[900],
+                width: "100%",
+                "& input": { p: 0 },
+                "& input::placeholder": {
+                  color: palette.slate[400],
+                  opacity: 1,
+                },
+              }}
+            />
+          </Box>
+
+          {/* Filters Button */}
+          <Button
+            variant="outlined"
+            onClick={() => setFilterDialogOpen(true)}
+            startIcon={<SlidersHorizontal size={15} />}
+            sx={{
+              height: 38,
+              px: 4,
+              borderRadius: "8px",
+              borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[200],
+              bgcolor: hasActiveFilter ? "#F0F7FF" : "#FFFFFF",
+              color: hasActiveFilter ? "#1C64B4" : palette.slate[900],
+              textTransform: "none",
+              fontSize: 13.5,
+              fontWeight: 400,
+              boxShadow: "none",
+              "&:hover": {
+                borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[300],
+                bgcolor: hasActiveFilter ? "#E5F0FD" : palette.slate[50],
+              },
+            }}
+          >
+            Filters
+          </Button>
+
+          {/* Export Button */}
+          <Button
             variant="contained"
-            startIcon={<Download size={16} />}
             onClick={(e) => setDownloadAnchor(e.currentTarget)}
-             sx={{
-                  bgcolor: "#EBF3FA",
-                  color: "#0F172A",
-                  borderRadius: "999px",
-                  textTransform: "none",
-                  fontSize: 13.5,
-                  fontWeight: 600,
-                  px: 4.5,
-                  py: 0.85,
-                  height: 38,
-                  boxShadow: "none",
-                  whiteSpace: "nowrap",
-                  "&:hover": { bgcolor: "#DFEAF6", boxShadow: "none" ,border  :"none"},
-                }}
-          />
+            startIcon={<FolderOutput size={15} />}
+            sx={{
+              height: 38,
+              px: 4,
+              borderRadius: "8px",
+              bgcolor: "#1C64B4",
+              color: "#FFFFFF",
+              textTransform: "none",
+              fontSize: 13.5,
+              fontWeight: 600,
+              boxShadow: "none",
+              whiteSpace: "nowrap",
+              "&:hover": {
+                bgcolor: "#154F91",
+                boxShadow: "none",
+              },
+            }}
+          >
+            Export
+          </Button>
           <BaseDownloadPanel
             anchorEl={downloadAnchor}
             onClose={() => setDownloadAnchor(null)}
-            onDownload={(value: BaseDownloadValue) => {
+            onDownload={(_value: BaseDownloadValue) => {
               setDownloadAnchor(null);
             }}
           />
         </Stack>
-      }
-      showBorder={false}
-    >
-      <Box
-        sx={{
-          width: `calc(100% + ${CARD_PADDING_PX * 2}px)`,
-          mx: `-${CARD_PADDING_PX}px`,
+      </Stack>
+
+      {/* Table */}
+      <BaseTable
+        columns={columns}
+        rows={pageItems}
+        getRowKey={(t) => t.ref || String(t.no)}
+        minWidth={720}
+        rounded={false}
+        headerBgColor={palette.white}
+        headerBorderColor={palette.slate[200]}
+        headerTextColor={palette.slate[500]}
+        headerBorderTop={false}
+        emptyTitle={`No ${showStatusToggle ? `${status} ` : ""}repayments in this period.`}
+        getRowSx={(row) => {
+          const isDue = (row.status || "").toLowerCase() === "due";
+          return {
+            cursor: "default",
+            bgcolor: isDue ? "#FFF8EE" : "transparent",
+            "&:hover": {
+              bgcolor: isDue ? "#FFF0DD" : palette.slate[50],
+              borderRadius: `${radius.md}px`,
+            },
+            "& td": { borderBottom: `1px solid ${palette.slate[50]}` },
+          };
         }}
-      >
-        <Stack sx={{ px: 2.5, py: 1.5 }}>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "column", md: "row" },
-              justifyContent: "space-between",
-              alignItems: { xs: "stretch", sm: "center" },
-              gap: 1.5,
-              paddingTop: 6,
-              borderTop: "1px solid",
-              borderTopColor: palette.secondary[100],
-            }}
-          >
-            <BaseSearchButton
-              value={query}
-              onChange={(v) => {
-                setQuery(v);
-                setPage(0);
-              }}
-              placeholder="Search repayments…"
-              tooltip="Search"
-              width={240}
-            />
-            <BaseFilterByDay
-              value={dateFilter}
-              onChange={(v) => {
-                setDateFilter(v);
-                setPage(0);
-              }}
-            />
-          </Box>
-          <BaseTable
-            columns={columns}
-            rows={pageItems}
-            getRowKey={(t) => t.ref || String(t.no)}
-            headerBgColor="#FFFFFF"
-            headerBorderColor="#E2E8F0"
-            headerTextColor={palette.slate[500]}
-            headerBorderTop={false}
-            rounded={false}
-            emptyTitle={`No ${showStatusToggle ? `${status} ` : ""}repayments in this period.`}
-            getRowSx={(row) => {
-              const isDue = (row.status || "").toLowerCase() === "due";
-              return isDue
-                ? {
-                  bgcolor: "#FFF5EA",
-                  "&:hover": { bgcolor: "#FFEED8" },
-                  "& .MuiTableCell-root, & td": {
-                    bgcolor: "transparent",
-                    borderBottom: "none",
-                    py: 3,
-                  },
-                }
-                : {
-                  "& .MuiTableCell-root, & td": {
-                    borderBottom: "none",
-                    py: 3,
-                  },
-                };
-            }}
-            pagination={
-              filtered.length > 0
-                ? {
-                  count: filtered.length,
-                  page: currentPage,
-                  rowsPerPage: ROWS_PER_PAGE,
-                  onPageChange: setPage,
-                }
-                : undefined
-            }
-            paginationSx={{
-              pr: `${CARD_PADDING_PX}px`,
-              pl: `${CARD_PADDING_PX}px`,
-            }}
-            paginationVariant="compact"
-          />
-        </Stack>
+        pagination={
+          filtered.length > 0
+            ? {
+                count: filtered.length,
+                page: currentPage,
+                rowsPerPage: ROWS_PER_PAGE,
+                onPageChange: setPage,
+              }
+            : undefined
+        }
+        paginationVariant="compact"
+      />
 
-
-      </Box>
-    </SectionCard>
+      {/* Filter Dialog */}
+      <TransactionFilterDialog
+        open={filterDialogOpen}
+        onClose={() => setFilterDialogOpen(false)}
+        value={dateFilter}
+        onApply={(newVal) => {
+          setDateFilter(newVal);
+          setPage(0);
+        }}
+      />
+    </Box>
   );
 }

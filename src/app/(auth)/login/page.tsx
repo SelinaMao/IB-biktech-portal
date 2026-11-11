@@ -40,6 +40,18 @@ const PRESET_ACCOUNTS = [
     username: "vattana.001",
     password: "@STRONGPASSWORd1",
   },
+  {
+    label: "selina.001",
+    role: "Corporate",
+    username: "selina.001",
+    password: "@STRONGPASSWORd1",
+  },
+  {
+    label: "Chiven.001",
+    role: "Corporate",
+    username: "Chiven.001",
+    password: "@STRONGPASSWORd1",
+  },
 ];
 
 export default function ClientLoginPage() {

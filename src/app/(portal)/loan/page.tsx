@@ -105,14 +105,9 @@ export default function LoanPage() {
     return totals;
   }, [loanAccounts]);
 
+  // Starts with no loan pre-selected so on initial page load only LoansSidebar is visible
   const [selectedLoanId, setSelectedLoanId] = useState<string | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
-
-  useEffect(() => {
-    if (!selectedLoanId && loanAccounts.length > 0) {
-      setSelectedLoanId(loanAccounts[0].id);
-    }
-  }, [loanAccounts, selectedLoanId]);
 
   const selectedLoanAccount = useMemo(() => {
     if (!selectedLoanId) return undefined;

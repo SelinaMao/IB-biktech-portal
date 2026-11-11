@@ -99,14 +99,8 @@ export default function AccountPage() {
     };
   }, [coreSummary, bankAccounts]);
 
+  // Starts with no account pre-selected so on initial visit only AccountsSidebar is shown
   const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>();
-
-  useEffect(() => {
-    if (!selectedAccountId && bankAccounts.length > 0) {
-      const first = bankAccounts[0];
-      setSelectedAccountId(first.id || `${first.accountNumber}-${first.accountType}`);
-    }
-  }, [bankAccounts, selectedAccountId]);
 
   const selectedAccount = useMemo(() => {
     if (!selectedAccountId) return undefined;
@@ -381,7 +375,7 @@ export default function AccountPage() {
         </Grid>
       </Grid>
 
-            {/* Account Information Drawer (for when button is clicked) */}
+      {/* Account Information Drawer (for when button is clicked) */}
       {selectedAccount && (effectiveInfo || selectedAccount) && (
         <AccountInformationDetail
           open={accountInformationDetail}

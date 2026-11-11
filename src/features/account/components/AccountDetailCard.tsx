@@ -58,7 +58,6 @@ export default function AccountDetailCard({
   fixedDeposit,
   isFixedDeposit = false,
   isSaving = false,
-  summary,
   onOpenAccountInfo,
   onExportStatements,
   onDownloadCertificate,
@@ -71,10 +70,10 @@ export default function AccountDetailCard({
 
   const target = fixedDeposit || info;
   const ccy = (
+    selectedAccount?.ccy ??
     target?.currencyCode ??
     target?.ccy ??
     info?.ccy ??
-    selectedAccount?.ccy ??
     "USD"
   ).toUpperCase();
 
@@ -156,50 +155,67 @@ export default function AccountDetailCard({
     target?.totalAmountToReceive ?? info?.totalAmountToReceive ?? 0;
 
   // Progress calculation for TD (20 segments matching mockup)
-  const totalSegments = 20;
-  const percentage = (() => {
-    if (
-      target?.totalMaturityDays &&
-      target.totalMaturityDays > 0 &&
-      target.onGoingMaturityDays !== undefined
-    ) {
-      return Math.min(
-        100,
-        Math.max(
-          0,
-          Math.round((target.onGoingMaturityDays / target.totalMaturityDays) * 100),
-        ),
-      );
-    }
-    if (maturityAmount > 0 && depositAmount > 0) {
-      return Math.min(
-        100,
-        Math.max(
-          0,
-          Math.round((Number(depositAmount) / Number(maturityAmount)) * 100),
-        ),
-      );
-    }
-    return 0;
-  })();
-  const activeSegments = Math.max(
-    0,
-    Math.round((percentage / 100) * totalSegments),
-  );
+  // const totalSegments = 20;
+  // const percentage = (() => {
+  //   if (
+  //     target?.totalMaturityDays &&
+  //     target.totalMaturityDays > 0 &&
+  //     target.onGoingMaturityDays !== undefined
+  //   ) {
+  //     return Math.min(
+  //       100,
+  //       Math.max(
+  //         0,
+  //         Math.round((target.onGoingMaturityDays / target.totalMaturityDays) * 100),
+  //       ),
+  //     );
+  //   }
+  //   if (maturityAmount > 0 && depositAmount > 0) {
+  //     return Math.min(
+  //       100,
+  //       Math.max(
+  //         0,
+  //         Math.round((Number(depositAmount) / Number(maturityAmount)) * 100),
+  //       ),
+  //     );
+  //   }
+  //   return 0;
+  // })();
+  // const activeSegments = Math.max(
+  //   0,
+  //   Math.round((percentage / 100) * totalSegments),
+  // );
 
-  // CA / SA Metrics (100% dynamic from API / summary / selectedAccount)
+  // CA / SA Metrics (100% dynamic from API / selectedAccount)
+  const accountInfo =
+    info?.accountNumber === selectedAccount?.accountNumber ? info : undefined;
+  const accountStats =
+    stats?.accountNumber === selectedAccount?.accountNumber ? stats : undefined;
+
   const availableBal =
-    summary?.summaryBalance?.availableBalance ??
-    stats?.availableBalance ??
-    info?.availableBalance ??
     selectedAccount?.availableBalance ??
+    accountInfo?.availableBalance ??
+    accountStats?.availableBalance ??
     0;
+
+  const selectedAccountRecord = selectedAccount as unknown as
+    | Record<string, unknown>
+    | undefined;
+
   const totalBal =
-    summary?.summaryBalance?.ledgerBalance ??
-    stats?.ledgerBalance ??
-    info?.ledgerBalance ??
-    stats?.currentBalance ??
-    info?.currentBalance ??
+    accountInfo?.ledgerBalance ??
+    accountStats?.ledgerBalance ??
+    accountInfo?.currentBalance ??
+    accountStats?.currentBalance ??
+    (typeof selectedAccountRecord?.ledgerBalance === "number"
+      ? selectedAccountRecord.ledgerBalance
+      : undefined) ??
+    (typeof selectedAccountRecord?.currentBalance === "number"
+      ? selectedAccountRecord.currentBalance
+      : undefined) ??
+    (typeof selectedAccountRecord?.totalBalance === "number"
+      ? selectedAccountRecord.totalBalance
+      : undefined) ??
     selectedAccount?.availableBalance ??
     0;
 
