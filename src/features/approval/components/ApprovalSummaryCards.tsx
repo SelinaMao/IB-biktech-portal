@@ -145,7 +145,7 @@ export default function ApprovalSummaryCards({
     border: `1px solid ${palette.slate[200]}`,
     p: { xs: 2.5, sm: "20px 24px" },
     height: "100%",
-    minHeight: 147,
+    minHeight: 124,
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
