@@ -3,11 +3,12 @@
 import React, { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { Box, Button, InputBase, Stack, Typography } from "@mui/material";
-import { ArrowUpDown, Download, Search, SlidersHorizontal } from "lucide-react";
+import { ArrowUpDown, Download, Search } from "lucide-react";
 
 import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseIconBadge from "@core/components/BaseIconBadge";
+import BaseFilterButton from "@core/components/BaseFilterButton";
 import type { BaseFilterValue } from "@core/components/BaseFilter";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import StatementDownloadDialog from "./StatementDownloadDialog";
@@ -439,29 +440,10 @@ export default function TransactionsList({
 
           {/* Filters Button */}
           {showDateFilter && (
-            <Button
-              variant="outlined"
+            <BaseFilterButton
+              active={hasActiveFilter}
               onClick={() => setFilterDialogOpen(true)}
-              startIcon={<SlidersHorizontal size={15} />}
-              sx={{
-                height: 38,
-                px: 4,
-                borderRadius: "8px",
-                borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[200],
-                bgcolor: hasActiveFilter ? "#F0F7FF" : "#FFFFFF",
-                color: hasActiveFilter ? "#1C64B4" : palette.slate[900],
-                textTransform: "none",
-                fontSize: 13,
-                fontWeight: 300,
-                boxShadow: "none",
-                "&:hover": {
-                  borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[300],
-                  bgcolor: hasActiveFilter ? "#E5F0FD" : palette.slate[50],
-                },
-              }}
-            >
-              Filters
-            </Button>
+            />
           )}
 
           {/* Download Statement Button */}
@@ -520,11 +502,11 @@ export default function TransactionsList({
         pagination={
           total > 0 && !error
             ? {
-                count: total,
-                page,
-                rowsPerPage,
-                onPageChange,
-              }
+              count: total,
+              page,
+              rowsPerPage,
+              onPageChange,
+            }
             : undefined
         }
         paginationVariant="compact"

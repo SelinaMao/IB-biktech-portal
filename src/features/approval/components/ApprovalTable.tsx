@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import InputBase from "@mui/material/InputBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { ArrowUpDown, Search, SlidersHorizontal } from "lucide-react";
+import { ArrowUpDown, Search } from "lucide-react";
 
 import { font, palette, radius } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
 import BaseFilter, { type BaseFilterValue } from "@core/components/BaseFilter";
+import BaseFilterButton from "@core/components/BaseFilterButton";
+import BaseFilterTypeContent from "@core/components/BaseFilterTypeContent";
 import type { BaseFilterByDayValue } from "@core/components/BaseFilterByDay";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import { formatDate } from "@/utils/date-time";
@@ -399,41 +400,24 @@ export default function ApprovalTable({
           </Box>
 
           {/* Filters Button */}
-          <Button
-            variant="outlined"
+          <BaseFilterButton
+            active={hasActiveFilter}
             onClick={(e) => setFilterAnchorEl(e.currentTarget)}
-            startIcon={<SlidersHorizontal size={15} />}
-            sx={{
-              height: 38,
-              px: 4,
-              borderRadius: "8px",
-              borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[200],
-              bgcolor: hasActiveFilter ? "#F0F7FF" : "#FFFFFF",
-              color: hasActiveFilter ? "#1C64B4" : palette.slate[700],
-              textTransform: "none",
-              fontSize: 13.5,
-              fontWeight: 500,
-              boxShadow: "none",
-              "&:hover": {
-                borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[300],
-                bgcolor: hasActiveFilter ? "#E5F0FD" : palette.slate[50],
-              },
-            }}
-          >
-            Filters
-          </Button>
+            inactiveTextColor={palette.slate[700]}
+          />
 
           {/* BaseFilter Dropdown */}
-          <BaseFilter
-            anchorEl={filterAnchorEl}
-            onClose={() => setFilterAnchorEl(null)}
-            defaultValue={dialogFilterValue}
-            onApply={(newVal) => {
-              handleDateFilterChange(newVal);
-              setFilterAnchorEl(null);
-              handlePageChange(0);
-            }}
-          />
+          <BaseFilter anchorEl={filterAnchorEl} onClose={() => setFilterAnchorEl(null)}>
+            <BaseFilterTypeContent
+              onClose={() => setFilterAnchorEl(null)}
+              defaultValue={dialogFilterValue}
+              onApply={(newVal) => {
+                handleDateFilterChange(newVal);
+                setFilterAnchorEl(null);
+                handlePageChange(0);
+              }}
+            />
+          </BaseFilter>
         </Stack>
       </Stack>
 

@@ -3,11 +3,12 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { Box, Button, InputBase, Stack, Typography } from "@mui/material";
-import { FolderOutput, Search, SlidersHorizontal } from "lucide-react";
+import { FolderOutput, Search } from "lucide-react";
 
 import { font, padding, palette, radius } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseDownloadPanel, { type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
+import BaseFilterButton from "@core/components/BaseFilterButton";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import type { BaseFilterValue } from "@core/components/BaseFilter";
 import { TransactionFilterDialog } from "@/features/account";
@@ -603,29 +604,11 @@ export default function LoanTransactionsCard({
           </Box>
 
           {/* Filters Button */}
-          <Button
-            variant="outlined"
+          <BaseFilterButton
+            active={hasActiveFilter}
             onClick={() => setFilterDialogOpen(true)}
-            startIcon={<SlidersHorizontal size={15} />}
-            sx={{
-              height: 38,
-              px: 4,
-              borderRadius: "8px",
-              borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[200],
-              bgcolor: hasActiveFilter ? "#F0F7FF" : "#FFFFFF",
-              color: hasActiveFilter ? "#1C64B4" : palette.slate[900],
-              textTransform: "none",
-              fontSize: 13.5,
-              fontWeight: 400,
-              boxShadow: "none",
-              "&:hover": {
-                borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[300],
-                bgcolor: hasActiveFilter ? "#E5F0FD" : palette.slate[50],
-              },
-            }}
-          >
-            Filters
-          </Button>
+            sx={{ fontWeight: 400 }}
+          />
 
           {/* Export Button */}
           <Button
