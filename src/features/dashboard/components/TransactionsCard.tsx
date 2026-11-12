@@ -2,28 +2,24 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
-import { Box, Button, Typography } from "@mui/material";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import { Box, Typography } from "@mui/material";
 import { Search } from "lucide-react";
 
 import { font, palette, radius, padding } from "@/theme/palette";
 import { useAppSelector } from "@/store/hooks";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
+import BaseFilterButton from "@core/components/BaseFilterButton";
 import BaseIconBadge from "@core/components/BaseIconBadge";
 import {
   selectTransactionsResponse,
+  TransactionFilterDialog,
   useListTransactionsMutation,
   type TxnStatus,
 } from "@/features/account";
 import type { TxnDirection } from "../dashboard.types";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
-import BaseFilterByDay from "@/@core/components/BaseFilterByDay";
-import BaseFilter, {
-  BASE_FILTER_TYPE_LABELS,
-  type BaseFilterTypeOption,
-  type BaseFilterValue,
-} from "@/@core/components/BaseFilter";
+import type { BaseFilterValue } from "@/@core/components/BaseFilter";
 
 export interface TransactionItem {
   id?: string;
@@ -123,14 +119,6 @@ const HEAD_CELL_SX = {
 } as const;
 const BODY_CELL_SX = { py: 2.75 } as const;
 
-/** This card offers All plus short rolling windows — not BaseFilter's full month list. */
-const DATE_FILTER_OPTIONS: BaseFilterTypeOption[] = [
-  { value: "all", label: "All" },
-  { value: "last7Days", label: "Last 7 days" },
-  { value: "last30Days", label: "Last 30 days" },
-  { value: "customDate", label: "Custom Date" },
-];
-
 const formatTxnAmount = (amount: number) => {
   const sign = amount < 0 ? "-" : "";
   const formatted = Math.abs(amount).toLocaleString("en-US", {
@@ -166,11 +154,11 @@ export default function TransactionsCard({
 }: TransactionsCardProps) {
   const [statusTab, setStatusTab] = useState<StatusTab>("Processed");
   const [dateFilter, setDateFilter] = useState<BaseFilterValue>({
-    type: "last7Days",
+    type: "all",
     from: null,
     to: null,
   });
-  const [rangeAnchor, setRangeAnchor] = useState<HTMLElement | null>(null);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
 
@@ -441,31 +429,10 @@ export default function TransactionsCard({
           </Box>
 
           {/* Date Filter */}
-          <Button
-            variant="outlined"
-            endIcon={<KeyboardArrowDownRoundedIcon />}
-            onClick={(e) => setRangeAnchor(e.currentTarget)}
-            sx={{
-              height: 40,
-              borderRadius: `${radius.md}px`,
-              color: "text.primary",
-              borderColor: palette.slate[200],
-            }}
-          >
-            {BASE_FILTER_TYPE_LABELS[dateFilter.type]}
-          </Button>
-          <BaseFilter
-            anchorEl={rangeAnchor}
-            onClose={() => setRangeAnchor(null)}
-            defaultValue={dateFilter}
-            typeOptions={DATE_FILTER_OPTIONS}
-            onApply={(value) => {
-              setDateFilter(value);
-              setRangeAnchor(null);
-            }}
+          <BaseFilterButton
+            active={dateFilter.type !== "all"}
+            onClick={() => setFilterDialogOpen(true)}
           />
-
-
         </Box>
       </Box>
 
@@ -498,6 +465,17 @@ export default function TransactionsCard({
         paginationVariant="compact"
         // BaseTable spaces the pager 40px off the table; this card wants 16px.
         paginationSx={{ mt: -3 }}
+      />
+
+      {/* Date Filter Dialog */}
+      <TransactionFilterDialog
+        open={filterDialogOpen}
+        onClose={() => setFilterDialogOpen(false)}
+        value={dateFilter}
+        onApply={(newVal) => {
+          setDateFilter(newVal);
+          setPage(0);
+        }}
       />
     </BaseCard>
   );
