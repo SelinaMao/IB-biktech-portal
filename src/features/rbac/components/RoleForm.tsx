@@ -16,7 +16,7 @@ import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { showToast } from "@core/components/AppToast";
@@ -610,7 +610,7 @@ export default function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
                 </TableHead>
                 <TableBody>
                   {MODULE_GROUPS.map((group) => (
-                    <Box component="tbody" key={group.module} sx={{ display: "contents" }}>
+                    <Fragment key={group.module}>
                       {/* Module Title Row */}
                       <TableRow sx={{ bgcolor: palette.slate[50] }}>
                         <TableCell
@@ -689,7 +689,7 @@ export default function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
                           </TableCell>
                         </TableRow>
                       ))}
-                    </Box>
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
@@ -912,7 +912,7 @@ export default function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
                     if (!hasAnyCheckedInGroup) return null;
 
                     return (
-                      <Box component="tbody" key={`review-${group.module}`} sx={{ display: "contents" }}>
+                      <Fragment key={`review-${group.module}`}>
                         <TableRow sx={{ bgcolor: palette.slate[50] }}>
                           <TableCell
                             colSpan={4}
@@ -981,7 +981,7 @@ export default function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
                             </TableRow>
                           );
                         })}
-                      </Box>
+                      </Fragment>
                     );
                   })}
                 </TableBody>

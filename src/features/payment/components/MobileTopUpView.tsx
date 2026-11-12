@@ -102,8 +102,8 @@ export default function MobileTopUpView({
   }, [fetchedAccounts]);
 
   // Form State
-  const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || FALLBACK_ACCOUNTS[0].id);
-  const [mobileNumber, setMobileNumber] = useState("011 222 2222");
+  const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id);
+  const [mobileNumber, setMobileNumber] = useState("");
   const [amount, setAmount] = useState<number>(5);
   const [customAmountStr, setCustomAmountStr] = useState<string>("5.00");
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
@@ -167,34 +167,30 @@ export default function MobileTopUpView({
     }
   };
 
+  const join = (...parts: Array<string | number | null | undefined>) =>
+    parts.filter((p) => p !== null && p !== undefined && String(p).trim() !== "").join(" · ");
+
+  const amountNum = Number(amount);
+  const safeAmount = Number.isFinite(amountNum) ? amountNum : 0;
+
   const previewFields: TransferPreviewField[] = [
     {
       label: "From Account",
-      value: `${selectedAccount.name} · ${selectedAccount.number}`,
+      value: join(selectedAccount?.name, selectedAccount?.number) || "-",
     },
     {
       label: "To Account",
-      value: `${network.tag} · ${mobileNumber}`,
+      value: join(network?.tag, mobileNumber) || "-",
     },
     {
       label: "Amount",
-      value: `USD ${amount.toFixed(2)}`,
+      value: `USD ${safeAmount.toFixed(2)}`,
     },
-    ...(setSchedule
-      ? [
-          {
-            label: "Schedule",
-            value: `${scheduleFreq} auto-pay`,
-          },
-        ]
+    ...(setSchedule && scheduleFreq
+      ? [{ label: "Schedule", value: `${scheduleFreq} auto-pay` }]
       : []),
     ...(saveAsTemplate && templateName.trim()
-      ? [
-          {
-            label: "Remark",
-            value: templateName.trim(),
-          },
-        ]
+      ? [{ label: "Remark", value: templateName.trim() }]
       : []),
   ];
 

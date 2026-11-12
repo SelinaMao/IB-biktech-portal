@@ -9,6 +9,8 @@ import { formatAccountNumber } from "@/utils/format-account-number";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseButton from "@core/components/BaseButton";
 import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
+import { DEFAULT_PIE_COLORS } from "@core/components/PieChart";
+import { CardBorderAccent } from "@/features/account";
 import type { BorrowerProfile, LoanScheduleDetails } from "../loan.types";
 
 export interface LoanDetailCardProps {
@@ -69,7 +71,7 @@ export default function LoanDetailCard({
   onOpenAccountInfo,
 }: LoanDetailCardProps) {
   const [copied, setCopied] = useState(false);
-  const cardAccentColor = accentColor || "#5CAFE4";
+  const cardAccentColor = accentColor || DEFAULT_PIE_COLORS[0];
 
   // Resolve data from props and borrower/schedule
   const name = loanName || borrower?.name || "Car Loan";
@@ -82,9 +84,13 @@ export default function LoanDetailCard({
   const rawMatDate = maturityDate || schedule?.maturityDate || "-";
   const formattedMatDate = formatMaturityDate(rawMatDate);
 
-  const accountTypeSubtitle = `${
-    type.toLowerCase().includes("loan") ? "Loan" : type
-  } · ${ccy}`;
+  const lowerType = type.toLowerCase();
+  const accountTypeName = lowerType.includes("overdraft")
+    ? "Overdraft account"
+    : lowerType.includes("loan")
+      ? "Loan account"
+      : type;
+  const accountTypeSubtitle = `${accountTypeName} · ${ccy}`;
 
   const handleCopyAccount = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -99,15 +105,15 @@ export default function LoanDetailCard({
   return (
     <Box
       sx={{
+        position: "relative",
         bgcolor: "#FFFFFF",
-        borderRadius: "24px",
-        p: { xs: 2.5, sm: "16px 16px" },
+        borderRadius: "20px",
+        p: { xs: 2.5, sm: "20px 24px" },
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
         border: "1px solid #EDF2F7",
-        borderLeft: `4px solid ${cardAccentColor}`,
-        transition: "border-left-color 0.2s ease-in-out",
       }}
     >
+      <CardBorderAccent color={cardAccentColor} type="bottom-left" radius={20} length={28} />
       <Stack
         direction={{ xs: "column", md: "row" }}
         spacing={3}

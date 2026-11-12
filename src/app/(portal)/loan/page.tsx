@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, Grid, Typography } from "@mui/material";
 import { resolveBaseDownloadRange, type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
+import { DEFAULT_PIE_COLORS } from "@core/components/PieChart";
 import { showToast } from "@core/components/AppToast";
 import { useAppSelector } from "@/store/hooks";
 import { downloadBlob } from "@/utils/download-file";
@@ -109,6 +110,7 @@ export default function LoanPage() {
   // Starts with no loan pre-selected so on initial page load only LoansSidebar is visible
   const [selectedLoanId, setSelectedLoanId] = useState<string | undefined>();
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [isDownloadingStatement, setIsDownloadingStatement] = useState(false);
 
   const selectedLoanAccount = useMemo(() => {
     if (!selectedLoanId) return undefined;
@@ -126,7 +128,7 @@ export default function LoanPage() {
   }, [loanAccounts, selectedLoanAccount]);
 
   const selectedLoanColor = useMemo(() => {
-    if (!selectedLoanAccount) return "#5CAFE4";
+    if (!selectedLoanAccount) return DEFAULT_PIE_COLORS[0];
     return getLoanIndicatorColor(selectedLoanAccount, selectedIndex);
   }, [selectedLoanAccount, selectedIndex]);
 
@@ -213,8 +215,19 @@ export default function LoanPage() {
     [selectedLoanDetails.cashFlow],
   );
 
+  const chartData = useMemo(
+    () =>
+      loanAccounts.map((loan, i) => ({
+        name: loan.name || `Loan ${i + 1}`,
+        value: 1,
+        color: getLoanIndicatorColor(loan, i),
+      })),
+    [loanAccounts],
+  );
+
   const handleExportStatements = async (value: BaseDownloadValue) => {
-    if (!selectedLoanAccount?.number) return;
+    if (!selectedLoanAccount?.number || isDownloadingStatement) return;
+    setIsDownloadingStatement(true);
     try {
       const formatCfg = STATEMENT_DOWNLOAD_FORMATS[value.format];
       const range = resolveBaseDownloadRange(value.range);
@@ -235,6 +248,8 @@ export default function LoanPage() {
         title: "Download failed",
         message: "Could not export loan statement. Please try again.",
       });
+    } finally {
+      setIsDownloadingStatement(false);
     }
   };
 
@@ -244,6 +259,7 @@ export default function LoanPage() {
         totalKHR={outstandingByCcy.khr}
         totalUSD={outstandingByCcy.usd}
         loans={loanAccounts}
+        chartData={chartData}
         expenseAmount={loanCashFlow.expense}
         incomeAmount={loanCashFlow.income}
         currency={schedule.currency ?? selectedLoanAccount?.currency ?? "USD"}
@@ -309,6 +325,11 @@ export default function LoanPage() {
                 <LoanTransactionsCard
                   key={selectedLoanAccount.id}
                   transactions={selectedLoanDetails.transactions}
+                  accentColor={selectedLoanColor}
+                  accountName={selectedLoanAccount.name}
+                  accountNumber={selectedLoanAccount.number}
+                  isDownloading={isDownloadingStatement}
+                  onDownload={handleExportStatements}
                 />
               </Grid>
             </Grid>
