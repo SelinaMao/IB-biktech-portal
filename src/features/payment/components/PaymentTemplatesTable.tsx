@@ -1,24 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dayjs from "dayjs";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
-import InputAdornment from "@mui/material/InputAdornment";
+import InputBase from "@mui/material/InputBase";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { ChevronsUpDown, Pencil, Plus, Search, Trash2 } from "lucide-react";
 
 import { font, palette, radius } from "@/theme/palette";
 import BaseButton from "@core/components/BaseButton";
-import BaseSearchByDay, {
-  type BaseFilterByDayValue,
-} from "@core/components/BaseSearchByDay";
-import { isDateWithinFilter } from "@core/components/BaseFilterByDay";
+import BaseFilterButton from "@core/components/BaseFilterButton";
+import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/BaseFilter";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
+import PaymentTemplateFilterDialog from "./PaymentTemplateFilterDialog";
 import type { PaymentTemplate } from "../payment.types";
+
+const DEFAULT_DATE_FILTER: BaseFilterValue = { type: "all", from: null, to: null };
 
 export interface PaymentTemplatesTableProps {
   templates: PaymentTemplate[];
@@ -59,8 +60,11 @@ export default function PaymentTemplatesTable({
   onSelectTemplate,
 }: PaymentTemplatesTableProps) {
   const [search, setSearch] = useState("");
-  const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
+  const [dateFilter, setDateFilter] = useState<BaseFilterValue>(DEFAULT_DATE_FILTER);
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [page, setPage] = useState(0);
+
+  const hasActiveFilter = dateFilter.type !== "all";
 
   const filteredTemplates = useMemo(() => {
     let result = templates;
@@ -74,8 +78,12 @@ export default function PaymentTemplatesTable({
           tpl.correspondentId.toLowerCase().includes(q),
       );
     }
-    if (dateFilter) {
-      result = result.filter((tpl) => isDateWithinFilter(tpl.createdAt, dateFilter));
+    const range = resolveBaseFilterRange(dateFilter);
+    if (range) {
+      result = result.filter((tpl) => {
+        const created = dayjs(tpl.createdAt);
+        return created.isValid() && !created.isBefore(range.start) && !created.isAfter(range.end);
+      });
     }
     return result;
   }, [templates, search, dateFilter]);
@@ -253,7 +261,7 @@ export default function PaymentTemplatesTable({
         boxShadow: "none",
       }}
     >
-      {/* Header bar: Title & Subtitle on left, + Template on right */}
+      {/* Header bar: Title & Subtitle on left, search + Filters + Template on right */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
@@ -285,49 +293,88 @@ export default function PaymentTemplatesTable({
           </Typography>
         </Box>
 
-        <BaseButton
-          title="Template"
-          startIcon={<Plus size={18} />}
-          onClick={onAddTemplate}
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
           sx={{
-            bgcolor: "#2764A5",
-            color: "#ffffff",
-            borderRadius: "10px",
-            px: 3.5,
-            py: 1.5,
-            fontSize: 14,
-            fontWeight: font.weight.regular,
-            textTransform: "none",
-            "&:hover": {
-              bgcolor: "#1E5289",
-            },
+            alignItems: { xs: "stretch", sm: "center" },
+            width: { xs: "100%", sm: "auto" },
           }}
-        />
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.25,
+              px: 1.5,
+              height: 38,
+              borderRadius: "8px",
+              border: `1px solid ${palette.slate[200]}`,
+              bgcolor: "#FFFFFF",
+              width: { xs: "100%", sm: 200 },
+              transition: "border-color 0.15s ease",
+              "&:focus-within": {
+                borderColor: "#1C64B4",
+              },
+            }}
+          >
+            <Search size={16} color={palette.slate[400]} style={{ flexShrink: 0 }} />
+            <InputBase
+              placeholder="Search"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
+              sx={{
+                fontSize: 13.5,
+                color: palette.slate[900],
+                width: "100%",
+                "& input": { p: 0 },
+                "& input::placeholder": {
+                  color: palette.slate[400],
+                  opacity: 1,
+                },
+              }}
+            />
+          </Box>
+
+          <BaseFilterButton
+            active={hasActiveFilter}
+            onClick={() => setFilterDialogOpen(true)}
+          />
+
+          <BaseButton
+            title="Template"
+            startIcon={<Plus size={18} />}
+            onClick={onAddTemplate}
+            sx={{
+              bgcolor: "#2764A5",
+              color: "#ffffff",
+              borderRadius: "10px",
+              px: 3.5,
+              py: 1.5,
+              fontSize: 14,
+              fontWeight: font.weight.regular,
+              textTransform: "none",
+              whiteSpace: "nowrap",
+              "&:hover": {
+                bgcolor: "#1E5289",
+              },
+            }}
+          />
+        </Stack>
       </Stack>
 
-      {/* Filter Row: BaseSearchByDay */}
-      <Box
-        sx={{
-          mb: 3,
-          mt: 6,
-          borderTop: "1px solid",
-          pt: 6,
-          borderTopColor: palette.secondary[100],
+      <PaymentTemplateFilterDialog
+        open={filterDialogOpen}
+        onClose={() => setFilterDialogOpen(false)}
+        value={dateFilter}
+        onApply={(value) => {
+          setDateFilter(value);
+          setPage(0);
         }}
-      >
-        <BaseSearchByDay
-          search={search}
-          onSearchChange={(val) => {
-            setSearch(val);
-            setPage(0);
-          }}
-          dateFilter={dateFilter}
-          onDateFilterChange={(filter) => {
-            setDateFilter(filter);
-            setPage(0);
-          }}
-        />
-      </Box>
+      />
 
       {/* BaseTable (Open, flat modern style without nested box border) */}
       <BaseTable
@@ -354,11 +401,11 @@ export default function PaymentTemplatesTable({
         pagination={
           totalCount > ROWS_PER_PAGE
             ? {
-                count: totalCount,
-                page,
-                rowsPerPage: ROWS_PER_PAGE,
-                onPageChange: setPage,
-              }
+              count: totalCount,
+              page,
+              rowsPerPage: ROWS_PER_PAGE,
+              onPageChange: setPage,
+            }
             : undefined
         }
         paginationVariant="detailed"
