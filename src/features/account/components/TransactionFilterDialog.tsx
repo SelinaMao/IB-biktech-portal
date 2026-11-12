@@ -12,6 +12,10 @@ export interface TransactionFilterDialogProps {
   onClose: () => void;
   value?: BaseFilterValue;
   onApply: (value: BaseFilterValue) => void;
+  /** Lets each page name what it's filtering — "Transaction Filter",
+   *  "Account Filter", etc. Defaults to "Transaction Filter". */
+  title?: string;
+  subtitle?: string;
 }
 
 export default function TransactionFilterDialog({
@@ -19,6 +23,8 @@ export default function TransactionFilterDialog({
   onClose,
   value,
   onApply,
+  title = "Transaction Filter",
+  subtitle,
 }: TransactionFilterDialogProps) {
   const today = dayjs();
 
@@ -88,8 +94,8 @@ export default function TransactionFilterDialog({
       options={options}
       customOptionPosition="start"
       defaultOptionId="last1Month"
-      title="Filter"
-      subtitle="Transaction Filter"
+      title={title}
+      subtitle={subtitle}
       applyLabel="View Transaction"
       applyIcon={<Eye size={16} />}
     />

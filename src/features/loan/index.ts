@@ -11,6 +11,7 @@ export {
 } from "./loan.data";
 
 export { default as LoansSidebar, getLoanIndicatorColor, colorWithAlpha } from "./components/LoansSidebar";
+export { default as LoanSummary, type LoanSummaryProps } from "./components/LoanSummary";
 export { default as LoanOverviewCard } from "./components/LoanOverviewCard";
 export { default as LoanDetailCard } from "./components/LoanDetailCard";
 

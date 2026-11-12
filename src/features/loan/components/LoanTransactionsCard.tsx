@@ -622,8 +622,8 @@ export default function LoanTransactionsCard({
               bgcolor: "#1C64B4",
               color: "#FFFFFF",
               textTransform: "none",
-              fontSize: 13.5,
-              fontWeight: 600,
+              fontSize: 13,
+              fontWeight: 300,
               boxShadow: "none",
               whiteSpace: "nowrap",
               "&:hover": {

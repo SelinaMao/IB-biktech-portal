@@ -481,7 +481,7 @@ export default function BaseFilterDialog({
           sx={{
             justifyContent: "space-between",
             alignItems: "flex-start",
-            mb: 2.5,
+            mb: 6,
           }}
         >
           <Box>
@@ -517,7 +517,7 @@ export default function BaseFilterDialog({
         </Stack>
 
         {/* Period Section */}
-        <Box sx={{ mb: 1 }}>
+        <Box sx={{ mb: 2.5, }}>
           <Typography
             sx={{
               fontSize: 14,
@@ -623,8 +623,8 @@ export default function BaseFilterDialog({
           sx={{
             justifyContent: "flex-end",
             alignItems: "center",
-            mt: 3,
-            pt: 0.5,
+            mt: 5,
+            pt: 1,
           }}
         >
           <Button

@@ -206,13 +206,17 @@ export default function PreviewTransfer({
         setStep(0);
     };
 
-    const handleReviewNext = (e?: React.MouseEvent) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        // Button Transfer -> opens ChooseVerifyDialog
-        setChooseVerifyOpen(true);
+    // const handleReviewNext = (e?: React.MouseEvent) => {
+    //     if (e) {
+    //         e.preventDefault();
+    //         e.stopPropagation();
+    //     }
+    //     // Button Transfer -> opens ChooseVerifyDialog
+    //     setChooseVerifyOpen(false);
+    // };
+    const handleReviewNext = () => {
+        if (submit) void authorization.start();
+        else setConfirmOpen(true);
     };
 
     const handleSelectQr = () => {
@@ -462,7 +466,7 @@ export default function PreviewTransfer({
                         fontWeight: 700,
                         color: "#0F172A",
                         lineHeight: 1.25,
-                        textAlign:"center"
+                        textAlign: "center"
                     }}
                 >
                     {title}
@@ -597,10 +601,10 @@ export default function PreviewTransfer({
                                             value: explicitScheduleField?.value
                                                 ? explicitScheduleField.value
                                                 : frequencyField?.value
-                                                ? dateField?.value && dateField.value !== "-" && dateField.value !== "Immediately"
-                                                    ? `${frequencyField.value} • ${dateField.value}`
-                                                    : frequencyField.value
-                                                : dateField?.value ?? "Immediately",
+                                                    ? dateField?.value && dateField.value !== "-" && dateField.value !== "Immediately"
+                                                        ? `${frequencyField.value} • ${dateField.value}`
+                                                        : frequencyField.value
+                                                    : dateField?.value ?? "Immediately",
                                         }}
                                     />
                                     <ReviewRow
@@ -1037,7 +1041,7 @@ function TransferStepper({
                             gap: 0.5,
                         }}
                     >
-                     
+
                         {label}
                     </Typography>
                 </Stack>

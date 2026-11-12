@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Box, Grid } from "@mui/material";
+import { Box, Grid, Typography } from "@mui/material";
 import { resolveBaseDownloadRange, type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { showToast } from "@core/components/AppToast";
 import { useAppSelector } from "@/store/hooks";
@@ -25,6 +25,7 @@ import {
   loanSummary as mockLoanSummary,
   type LoanAccountListItem,
   LoanTransactionsCard,
+  LoanSummary,
 } from "@/features/loan";
 
 const STATEMENT_DOWNLOAD_FORMATS: Record<
@@ -163,8 +164,8 @@ export default function LoanPage() {
   const accountDetailResponse = useAppSelector(selectAccountDetailResponse);
   const detailReady = Boolean(
     accountDetailResponse &&
-      (accountDetailResponse.accountNumber === selectedLoanAccount?.number ||
-        accountDetailResponse.accountNumber === selectedLoanId),
+    (accountDetailResponse.accountNumber === selectedLoanAccount?.number ||
+      accountDetailResponse.accountNumber === selectedLoanId),
   );
   const accountInfoDetail = useMemo(
     () => (detailReady ? accountDetailResponse! : undefined),
@@ -200,6 +201,18 @@ export default function LoanPage() {
     };
   }, [selectedLoanDetails, selectedLoanAccount, borrower]);
 
+  const loanCashFlow = useMemo(
+    () =>
+      selectedLoanDetails.cashFlow.reduce(
+        (totals, point) => ({
+          expense: totals.expense + point.outflow,
+          income: totals.income + point.inflow,
+        }),
+        { expense: 0, income: 0 },
+      ),
+    [selectedLoanDetails.cashFlow],
+  );
+
   const handleExportStatements = async (value: BaseDownloadValue) => {
     if (!selectedLoanAccount?.number) return;
     try {
@@ -224,15 +237,38 @@ export default function LoanPage() {
       });
     }
   };
-  
+
   return (
     <Box sx={{ width: "100%" }}>
+      <LoanSummary
+        totalKHR={outstandingByCcy.khr}
+        totalUSD={outstandingByCcy.usd}
+        loans={loanAccounts}
+        expenseAmount={loanCashFlow.expense}
+        incomeAmount={loanCashFlow.income}
+        currency={schedule.currency ?? selectedLoanAccount?.currency ?? "USD"}
+      />
+      <Grid>
+        <Typography
+          sx={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: "#5A6B82",
+            lineHeight: 1.2,
+            mb: 1.5,
+            px: 0.5,
+          }}
+        >
+          Loan Accounts
+        </Typography>
+      </Grid>
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, lg: 3 }}>
           <LoansSidebar
             outstandingKhr={outstandingByCcy.khr}
             outstandingUsd={outstandingByCcy.usd}
             loans={loanAccounts}
+            hideSummary
             selectedId={selectedLoanAccount?.id}
             onSelect={(id) => setSelectedLoanId(id)}
           />
