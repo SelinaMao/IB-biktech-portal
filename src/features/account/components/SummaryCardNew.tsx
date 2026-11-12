@@ -93,7 +93,7 @@ function extractIncomeAndExpense(raw: unknown): { income: number | null; expense
     return { income: null, expense: null };
 }
 
-/** Renders amounts like "-$23,000.90" with smaller cents (.90) matching Figma */
+
 function renderAmount(val: string, color: string) {
     const dotIndex = val.lastIndexOf(".");
     if (dotIndex !== -1) {
@@ -458,7 +458,6 @@ export default function SummaryCardNew({
 
                 {/* Right Section: Divider + Cash Flow (Expense & Income) */}
                 <Stack
-
                     direction="row"
                     alignItems="center"
                     spacing={{ xs: 2.5, sm: 8 }}
