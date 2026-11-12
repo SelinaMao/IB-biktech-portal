@@ -3,19 +3,14 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { Box, Button, InputBase, Stack, Typography } from "@mui/material";
-import { Download, Search, SlidersHorizontal } from "lucide-react";
+import { FolderOutput, Search, SlidersHorizontal } from "lucide-react";
 
 import { font, padding, palette, radius } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
-import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
+import BaseDownloadPanel, { type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import type { BaseFilterValue } from "@core/components/BaseFilter";
-import { DEFAULT_PIE_COLORS } from "@core/components/PieChart";
-import {
-  CardBorderAccent,
-  StatementDownloadDialog,
-  TransactionFilterDialog,
-} from "@/features/account";
+import { TransactionFilterDialog } from "@/features/account";
 import type { LoanTransaction, TxnStatus } from "../loan.types";
 
 const ROWS_PER_PAGE = 5;
@@ -321,26 +316,15 @@ export interface LoanTransactionsCardProps {
   transactions?: LoanTransaction[];
   /** Show the status filter toggle. Default false. */
   showStatusToggle?: boolean;
-  accentColor?: string;
-  accountName?: string;
-  accountNumber?: string;
-  isDownloading?: boolean;
-  onDownload?: (value: BaseDownloadValue) => void;
 }
 
 export default function LoanTransactionsCard({
   transactions,
   showStatusToggle = false,
-  accentColor = DEFAULT_PIE_COLORS[0],
-  accountName = "",
-  accountNumber = "",
-  isDownloading = false,
-  onDownload,
 }: LoanTransactionsCardProps) {
   const dataSource = transactions ?? LOAN_TRANSACTIONS;
-  const status: TxnStatus = useMemo(
-    () => (dataSource.some((t) => t.status === "due") ? "due" : "upcoming"),
-    [dataSource],
+  const [status, setStatus] = useState<TxnStatus>(() =>
+    dataSource.some((t) => t.status === "due") ? "due" : "upcoming",
   );
   const [page, setPage] = useState(0);
   const [query, setQuery] = useState("");
@@ -350,7 +334,7 @@ export default function LoanTransactionsCard({
     to: null,
   });
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
-  const [statementDownloadOpen, setStatementDownloadOpen] = useState(false);
+  const [downloadAnchor, setDownloadAnchor] = useState<null | HTMLElement>(null);
 
   const hasActiveFilter = Boolean(dateFilter && dateFilter.type !== "all");
 
@@ -543,14 +527,12 @@ export default function LoanTransactionsCard({
     <Box
       sx={{
         bgcolor: "#FFFFFF",
-        position: "relative",
-        borderRadius: "20px",
+        borderRadius: `${radius.xl}px`,
         p: `${padding.xxl}px`,
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
         border: `1px solid ${palette.slate[200]}`,
       }}
     >
-      <CardBorderAccent color={accentColor} type="top-left" radius={20} length={28} />
       {/* Top Header Row */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -558,7 +540,7 @@ export default function LoanTransactionsCard({
         sx={{
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", sm: "center" },
-          mb: 2,
+          mb: 3,
         }}
       >
         <Typography
@@ -586,7 +568,7 @@ export default function LoanTransactionsCard({
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 1.25,
+              gap: 1,
               px: 1.5,
               height: 38,
               borderRadius: "8px",
@@ -633,8 +615,8 @@ export default function LoanTransactionsCard({
               bgcolor: hasActiveFilter ? "#F0F7FF" : "#FFFFFF",
               color: hasActiveFilter ? "#1C64B4" : palette.slate[900],
               textTransform: "none",
-              fontSize: 13,
-              fontWeight: 300,
+              fontSize: 13.5,
+              fontWeight: 400,
               boxShadow: "none",
               "&:hover": {
                 borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[300],
@@ -645,12 +627,11 @@ export default function LoanTransactionsCard({
             Filters
           </Button>
 
-          {/* Download Statement Button */}
+          {/* Export Button */}
           <Button
             variant="contained"
-            onClick={() => setStatementDownloadOpen(true)}
-            startIcon={<Download size={15} />}
-            disabled={isDownloading}
+            onClick={(e) => setDownloadAnchor(e.currentTarget)}
+            startIcon={<FolderOutput size={15} />}
             sx={{
               height: 38,
               px: 4,
@@ -668,8 +649,15 @@ export default function LoanTransactionsCard({
               },
             }}
           >
-            Download
+            Export
           </Button>
+          <BaseDownloadPanel
+            anchorEl={downloadAnchor}
+            onClose={() => setDownloadAnchor(null)}
+            onDownload={(_value: BaseDownloadValue) => {
+              setDownloadAnchor(null);
+            }}
+          />
         </Stack>
       </Stack>
 
@@ -694,7 +682,7 @@ export default function LoanTransactionsCard({
               bgcolor: isDue ? "#FFF0DD" : palette.slate[50],
               borderRadius: `${radius.md}px`,
             },
-            "& td": { borderBottom: `1px solid ${palette.slate[200]}` },
+            "& td": { borderBottom: `1px solid ${palette.slate[50]}` },
           };
         }}
         pagination={
@@ -719,18 +707,6 @@ export default function LoanTransactionsCard({
           setDateFilter(newVal);
           setPage(0);
         }}
-      />
-
-      {/* Statement Download Dialog */}
-      <StatementDownloadDialog
-        open={statementDownloadOpen}
-        onClose={() => setStatementDownloadOpen(false)}
-        accountName={accountName}
-        accountNumber={accountNumber}
-        onDownload={(value: BaseDownloadValue) => {
-          onDownload?.(value);
-        }}
-        isDownloading={isDownloading}
       />
     </Box>
   );

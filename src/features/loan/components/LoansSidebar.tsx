@@ -4,20 +4,9 @@ import { useMemo } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 
 import BaseBlurText from "@core/components/BaseBlurText";
-import { DEFAULT_PIE_COLORS } from "@core/components/PieChart";
 import { formatCCY } from "@/utils/format-ccy";
 import { formatAccountNumber } from "@/utils/format-account-number";
 import LoanSummary from "./LoanSummary";
-
-const LOAN_COLORS: string[] = [
-  ...DEFAULT_PIE_COLORS,
-  "#F472B6", // Pink
-  "#FACC15", // Yellow
-  "#14B8A6", // Teal
-  "#F87171", // Red
-  "#A3E635", // Lime
-  "#818CF8", // Indigo
-];
 
 export interface LoanEntry {
   id: string;
@@ -68,8 +57,32 @@ export const getLoanIndicatorColor = (
   index: number = 0,
 ): string => {
   if (loan?.color) return loan.color;
+  const name = (loan?.name || "").toLowerCase();
+  const type = (loan?.type || "").toLowerCase();
+  if (name.includes("housing") || name.includes("home") || type.includes("housing")) {
+    return "#74C0A8"; // Sage Green
+  }
+  if (name.includes("car") || name.includes("auto") || type.includes("car")) {
+    return "#5CAFE4"; // Sky Blue
+  }
+  if (name.includes("sme") || name.includes("business") || type.includes("sme")) {
+    return "#F1B96E"; // Warm Orange
+  }
+  if (name.includes("overdraft") || type.includes("overdraft")) {
+    return "#A78BFA"; // Purple
+  }
 
-  return LOAN_COLORS[index % LOAN_COLORS.length];
+  const palette = [
+    "#5CAFE4", // Sky Blue
+    "#F1B96E", // Warm Orange
+    "#74C0A8", // Sage Green
+    "#8DD4BE", // Mint Teal
+    "#A78BFA", // Purple
+    "#F472B6", // Pink
+    "#38BDF8", // Cyan
+  ];
+
+  return palette[index % palette.length];
 };
 
 export function getLoanTypeName(loan: LoanEntry): string {
@@ -277,7 +290,19 @@ export default function LoansSidebar({
 
       {/* ───────── Loan Accounts List Section ───────── */}
       {loans.length > 0 && (
-        <Box sx={{ mt: hideSummary ? 0 : 3 }}>
+        <Box sx={{ mt: 3 }}>
+          {/* <Typography
+            sx={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#5A6B82",
+              lineHeight: 1.2,
+              mb: 1.5,
+              px: 0.5,
+            }}
+          >
+            Loan Accounts
+          </Typography> */}
           <Stack spacing={1.5}>
             {loans.map((loan, index) => renderLoanCard(loan, index))}
           </Stack>
