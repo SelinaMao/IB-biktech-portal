@@ -451,8 +451,8 @@ export default function TransactionsList({
                 bgcolor: hasActiveFilter ? "#F0F7FF" : "#FFFFFF",
                 color: hasActiveFilter ? "#1C64B4" : palette.slate[900],
                 textTransform: "none",
-                fontSize: 13.5,
-                fontWeight: 500,
+                fontSize: 13,
+                fontWeight: 300,
                 boxShadow: "none",
                 "&:hover": {
                   borderColor: hasActiveFilter ? "#1C64B4" : palette.slate[300],
@@ -478,8 +478,8 @@ export default function TransactionsList({
                 bgcolor: "#1C64B4",
                 color: "#FFFFFF",
                 textTransform: "none",
-                fontSize: 13.5,
-                fontWeight: 600,
+                fontSize: 13,
+                fontWeight: 300,
                 boxShadow: "none",
                 whiteSpace: "nowrap",
                 "&:hover": {

@@ -417,7 +417,7 @@ export default function SummaryCardNew({
                                     <Typography
                                         sx={{
                                             fontSize: { xs: 18, sm: 20, md: 22 },
-                                            fontWeight: 700,
+                                            fontWeight: 600,
                                             color: "#0F172A",
                                             mt: 0.5,
                                             lineHeight: 1.2,
@@ -442,7 +442,7 @@ export default function SummaryCardNew({
                                     <Typography
                                         sx={{
                                             fontSize: { xs: 18, sm: 20, md: 22 },
-                                            fontWeight: 700,
+                                            fontWeight: 600,
                                             color: "#0F172A",
                                             mt: 0.5,
                                             lineHeight: 1.2,
