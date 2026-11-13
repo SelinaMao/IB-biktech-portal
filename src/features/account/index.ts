@@ -58,6 +58,6 @@ export { default as RolloverOptionsPanel } from "./components/RolloverOptionsPan
 export { default as ChangeRolloverOptionDialog } from "./components/ChangeRolloverOptionDialog";
 
 export { default as SummaryCard } from "./components/SummaryCard";
-export { default as SummaryCardNew } from "./components/SummaryCardNew";
+export { default as AccountSummaryPanel } from "./components/AccountSummaryPanel";
 export { default as CardBorderAccent } from "./components/CardBorderAccent";
 export { generateTransactionReceiptPdf } from "./utils/transaction-receipt-pdf";

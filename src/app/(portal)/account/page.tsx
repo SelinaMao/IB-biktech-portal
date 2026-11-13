@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Box, Grid, Typography } from "@mui/material";
+import { Box, Grid } from "@mui/material";
 
 import { resolveBaseDownloadRange, type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/BaseFilter";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import { showToast } from "@core/components/AppToast";
-import SummaryCardNew from "@/features/account/components/SummaryCardNew";
 import { useAppSelector } from "@/store/hooks";
 import {
   AccountsSidebar,
+  AccountSummaryPanel,
   getAccountIndicatorColor,
   ChangeRolloverOptionDialog,
   NewAccountDialog,
@@ -43,7 +43,7 @@ import { downloadBlob } from "@/utils/download-file";
 import AccountDetailsCard from "@/features/account/components/AccountDetailCard";
 import AccountInformationDetail from "@/features/account/components/AccountInformationDetail";
 
-const DEFAULT_TRANSACTIONS_FILTER: BaseFilterValue = { type: "all", from: null, to: null };
+const DEFAULT_TRANSACTIONS_FILTER: BaseFilterValue = { type: "last7Days", from: null, to: null };
 // "Latest Transactions" rows per page — each page is its own `listTransactions` call.
 const TRANSACTIONS_PAGE_SIZE = 5;
 // Maps BaseDownloadPanel's format to the API's `fileType` + the extension used for the saved file.
@@ -129,6 +129,31 @@ export default function AccountPage() {
     return getAccountIndicatorColor(selectedAccount, selectedIndex);
   }, [selectedAccount, selectedIndex]);
 
+  // Shown before any card is clicked: the Current/USD account if there is one, else the first account.
+  const defaultAccount = useMemo(
+    () =>
+      bankAccounts.find((a) => a.ccy === "USD" && a.accountType === "CA") ??
+      bankAccounts.find((a) => a.accountType === "CA") ??
+      bankAccounts[0],
+    [bankAccounts],
+  );
+  const defaultAccountIndex = useMemo(() => {
+    if (!defaultAccount) return 0;
+    const idx = bankAccounts.indexOf(defaultAccount);
+    return idx >= 0 ? idx : 0;
+  }, [bankAccounts, defaultAccount]);
+  const defaultAccountColor = useMemo(() => {
+    if (!defaultAccount) return "#8DD4BE";
+    return getAccountIndicatorColor(defaultAccount, defaultAccountIndex);
+  }, [defaultAccount, defaultAccountIndex]);
+
+  // Drives the Transactions table: the clicked account once there is one, the default account until then —
+  // so the table always has a real account's transactions, matching AccountSummaryPanel's "before selection" view.
+  const txnAccount = selectedAccount ?? defaultAccount;
+  const txnAccountNumber = txnAccount?.accountNumber;
+  const txnAccountType = txnAccount?.accountType ?? "";
+  const txnIsMockDeposit = txnAccount?.accountNumber === MOCK_DEPOSIT_ACCOUNT.accountNumber;
+
   const accountNumber = selectedAccount?.accountNumber;
   const isMockDeposit = selectedAccount?.accountNumber === MOCK_DEPOSIT_ACCOUNT.accountNumber;
 
@@ -153,7 +178,7 @@ export default function AccountPage() {
     setTxnQuery("");
     setTxnFilter(DEFAULT_TRANSACTIONS_FILTER);
     setTxnPage(0);
-  }, [accountNumber]);
+  }, [txnAccountNumber]);
 
   const [pendingRolloverOption, setPendingRolloverOption] = useState<RolloverOption | null>(null);
   const [rolloverQrOpen, setRolloverQrOpen] = useState(false);
@@ -183,18 +208,18 @@ export default function AccountPage() {
   const [isDownloadingStatement, setIsDownloadingStatement] = useState(false);
 
   useEffect(() => {
-    if (!accountNumber || isMockDeposit) return;
+    if (!txnAccountNumber || txnIsMockDeposit) return;
     const range = resolveBaseFilterRange(txnFilter);
     listTransactions({
-      accountNumber,
-      type: accounType,
+      accountNumber: txnAccountNumber,
+      type: txnAccountType,
       startedDate: range?.start.toISOString(),
       endedDate: range?.end.toISOString(),
       limit: TRANSACTIONS_PAGE_SIZE,
       offset: txnPage * TRANSACTIONS_PAGE_SIZE,
       search: debouncedTxnQuery || undefined,
     });
-  }, [accountNumber, accounType, txnFilter, debouncedTxnQuery, txnPage, isMockDeposit, listTransactions]);
+  }, [txnAccountNumber, txnAccountType, txnFilter, debouncedTxnQuery, txnPage, txnIsMockDeposit, listTransactions]);
 
   const handleDownloadCertificate = async () => {
     if (!accountNumber) return;
@@ -250,10 +275,10 @@ export default function AccountPage() {
     }
   };
 
-  const transactionsResponse = useAppSelector((state) => selectTransactionsForAccount(state, accountNumber));
+  const transactionsResponse = useAppSelector((state) => selectTransactionsForAccount(state, txnAccountNumber));
 
   const apiTransactions = useAppSelector((state) =>
-    selectAccountTransactions(state, accountNumber, selectedAccount?.accountName),
+    selectAccountTransactions(state, txnAccountNumber, txnAccount?.accountName),
   );
   const transactionsStatus = transactionsResponse?.status ?? "loading";
   const selectedTransactions = apiTransactions ?? [];
@@ -282,9 +307,9 @@ export default function AccountPage() {
 
   const effectiveInfo = isMockDeposit ? mockDepositDetail : accountInfoDetail;
   const effectiveFixedDeposit = isMockDeposit ? mockDepositDetail : fixedDepositDetail;
-  const effectiveTransactions = isMockDeposit ? MOCK_DEPOSIT_TRANSACTIONS : selectedTransactions;
-  const effectiveTxnStatus = isMockDeposit ? "loaded" : transactionsStatus;
-  const effectiveTxnTotal = isMockDeposit ? MOCK_DEPOSIT_TRANSACTIONS.length : transactionsTotal;
+  const effectiveTransactions = txnIsMockDeposit ? MOCK_DEPOSIT_TRANSACTIONS : selectedTransactions;
+  const effectiveTxnStatus = txnIsMockDeposit ? "loaded" : transactionsStatus;
+  const effectiveTxnTotal = txnIsMockDeposit ? MOCK_DEPOSIT_TRANSACTIONS.length : transactionsTotal;
 
   const selectedCompany = useMemo(
     () =>
@@ -301,38 +326,8 @@ export default function AccountPage() {
           : undefined,
     [effectiveInfo, selectedAccount],
   );
-  const chartData = useMemo(
-    () =>
-      bankAccounts.map((acc, i) => ({
-        name: acc.accountName || `Account ${i + 1}`,
-        value: 1,
-        color: getAccountIndicatorColor(acc, i),
-      })),
-    [bankAccounts],
-  );
   return (
     <Box sx={{ width: "100%" }}>
-
-      <SummaryCardNew
-        label="Available Balance"
-        accounts={bankAccounts}
-        summary={effectiveSummary}
-        accountSummary={selectedAccountSummary}
-        transactions={effectiveTransactions}
-        chartData={chartData}
-      />
-      <Grid><Typography
-        sx={{
-          fontSize: 15,
-          fontWeight: 700,
-          color: "#5A6B82",
-          lineHeight: 1.2,
-          mb: 1.5,
-          px: 0.5,
-        }}
-      >
-        Account List
-      </Typography> </Grid>
       <Grid container spacing={2.5}>
         {/* Left Column: Accounts Sidebar */}
         <Grid size={{ xs: 12, lg: 3 }}>
@@ -341,13 +336,13 @@ export default function AccountPage() {
             accounts={bankAccounts}
             selectedId={selectedAccountId}
             onSelect={(id) => setSelectedAccountId(id)}
-            hideSummary
+            onSelectSummary={() => setSelectedAccountId(undefined)}
           />
         </Grid>
 
         {/* Right Column: Account Detail Card + Transactions List */}
         <Grid size={{ xs: 12, lg: 9 }}>
-          {selectedAccount && (
+          {selectedAccount ? (
             <Grid container spacing={2.5}>
               {/* Top Right: Account Details Card */}
               <Grid size={12}>
@@ -398,6 +393,44 @@ export default function AccountPage() {
                   accountName={selectedAccount.accountName || effectiveInfo?.accountName}
                   accountNumber={selectedAccount.accountNumber}
                   accountType={selectedAccount.accountType}
+                  onViewCertificate={() => { }}
+                  onDownloadCertificate={() => { }}
+                />
+              </Grid>
+            </Grid>
+          ) : (
+            <Grid container spacing={2.5}>
+              {/* Top Right: compact accounts-by-currency summary, shown until a card is clicked */}
+              <Grid size={12}>
+                <AccountSummaryPanel accounts={bankAccounts} summary={effectiveSummary} />
+              </Grid>
+
+              {/* Bottom Right: Transactions List for the default account */}
+              <Grid size={12}>
+                <TransactionsList
+                  key={txnAccount?.id || txnAccountNumber}
+                  transactions={effectiveTransactions}
+                  accentColor={defaultAccountColor}
+                  isLoading={effectiveTxnStatus === "loading"}
+                  error={effectiveTxnStatus === "failed"}
+                  query={txnQuery}
+                  onQueryChange={setTxnQuery}
+                  showDateFilter
+                  dateFilter={txnFilter}
+                  onDateFilterChange={(value) => {
+                    setTxnFilter(value);
+                    setTxnPage(0);
+                  }}
+                  page={txnPage}
+                  total={effectiveTxnTotal}
+                  rowsPerPage={TRANSACTIONS_PAGE_SIZE}
+                  onPageChange={setTxnPage}
+                  showDownload={false}
+                  onSelectTransaction={setSelectedTransaction}
+                  isFixedDeposit={false}
+                  accountName={txnAccount?.accountName}
+                  accountNumber={txnAccount?.accountNumber}
+                  accountType={txnAccount?.accountType}
                   onViewCertificate={() => { }}
                   onDownloadCertificate={() => { }}
                 />

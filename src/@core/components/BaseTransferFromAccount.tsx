@@ -4,6 +4,7 @@ import React from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import type { SxProps, Theme } from "@mui/material/styles";
 import { ArrowRight } from "lucide-react";
 
 import { formatAccountNumber } from "@/utils/format-account-number";
@@ -12,16 +13,22 @@ export type TransferParty = {
   name?: string;
   accountNumber?: string;
   bankName?: string;
+  /** Shown in the sidebar's "From account" box; unused on the From/To review card. */
+  balance?: string;
+  currency?: string;
 };
 
 export type BaseTransferFromAccountProps = {
   from?: TransferParty;
   to?: TransferParty;
+  /** Merged onto the card's root Box — use to match a parent card's padding. */
+  sx?: SxProps<Theme>;
 };
 
 export default function BaseTransferFromAccount({
   from,
   to,
+  sx,
 }: BaseTransferFromAccountProps) {
   const fromName = from?.name || "Shiiping co., ltd.";
   const fromNumber = from?.accountNumber
@@ -35,12 +42,15 @@ export default function BaseTransferFromAccount({
 
   return (
     <Box
-      sx={{
-        bgcolor: "#FFFFFF",
-        borderRadius: "20px",
-        p: { xs: 3, md: 3.5 },
-        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-      }}
+      sx={[
+        {
+          bgcolor: "#FFFFFF",
+          borderRadius: "20px",
+          p: { xs: 3, md: 3.5 },
+          boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
     >
       <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
         {/* FROM */}

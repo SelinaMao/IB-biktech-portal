@@ -33,6 +33,16 @@ import type { ApprovalAuthority } from "../rbac.types";
 const STEPS = ["New", "Review", "Submit"];
 const ROLE_FORM_ID = "role-wizard-form";
 
+/** Matches the Transfer flow's footer buttons — same shape everywhere, color varies by role. */
+const ACTION_BUTTON_SX = {
+  height: 52,
+  borderRadius: "999px",
+  fontSize: 16,
+  fontWeight: 600,
+  textTransform: "none" as const,
+  boxShadow: "none",
+};
+
 /** This portal only administers the Corporate channel (see AGENTS.md/CLAUDE.md
  * scope), so Create Role has no channel picker — every role created here is
  * scoped to CORPORATE. */
@@ -159,7 +169,14 @@ export default function RoleFormDialog({ open, onClose, role }: RoleFormDialogPr
         activeStep={step}
         footer={
           isSuccess ? undefined : step === 0 ? (
-            <BaseButton title="Next" type="submit" form={ROLE_FORM_ID} variant="contained" fullWidth />
+            <BaseButton
+              title="Next"
+              type="submit"
+              form={ROLE_FORM_ID}
+              variant="contained"
+              fullWidth
+              sx={ACTION_BUTTON_SX}
+            />
           ) : (
             <Stack direction="row" spacing={1.5} px={6}>
               <BaseButton
@@ -169,12 +186,13 @@ export default function RoleFormDialog({ open, onClose, role }: RoleFormDialogPr
                 onClick={() => setStep(0)}
                 disabled={isSubmitting}
                 sx={{
-                  backgroundColor: "#DFDFDE",
-                  borderColor: "#DFDFDE",
-                  color: palette.text.primary,
+                  ...ACTION_BUTTON_SX,
+                  backgroundColor: "#EEF2F6",
+                  borderColor: "transparent",
+                  color: "#0F172A",
                   "&:hover": {
-                    backgroundColor: "#DFDFDE",
-                    borderColor: "#DFDFDE",
+                    backgroundColor: "#E2E8F0",
+                    borderColor: "transparent",
                   },
                 }}
               />
@@ -184,6 +202,7 @@ export default function RoleFormDialog({ open, onClose, role }: RoleFormDialogPr
                 fullWidth
                 onClick={handleReviewNext}
                 isLoading={isSubmitting}
+                sx={ACTION_BUTTON_SX}
               />
             </Stack>
           )

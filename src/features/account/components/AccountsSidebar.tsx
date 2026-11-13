@@ -14,6 +14,8 @@ export interface AccountsSidebarProps {
   accounts: CoreAccountEntry[];
   selectedId?: string;
   onSelect?: (id: string) => void;
+  /** Makes the Summary box clickable to return to the aggregate view (clears the account selection). */
+  onSelectSummary?: () => void;
   hideSummary?: boolean;
 }
 // First colors match the donut chart, extras prevent repeats when there are more accounts
@@ -103,19 +105,15 @@ export function getAccountTypeName(account: CoreAccountEntry): string {
 
 
 /**
- * Returns the indicator / theme color for each account:
- * 1. account.color from API (if present)
- * 2. color by account type (TYPE_COLORS)
- * 3. fallback by position (DEFAULT_PIE_COLORS)
+ * Returns the indicator / theme color for each account: 1 account = 1 color, by
+ * position in the list. Always index-based — the API's `account.color` isn't used
+ * here, since it isn't guaranteed distinct per account and would collapse the
+ * sidebar/donut/selected-highlight back to a single repeated color.
  */
 export const getAccountIndicatorColor = (
   account?: CoreAccountEntry | null,
   index: number = 0,
 ): string => {
-  // Color from API wins (remove this line if you never want it to override)
-  if (account?.color) return account.color;
-
-  // 1 account = 1 color, by position
   return ACCOUNT_COLORS[index % ACCOUNT_COLORS.length];
 };
 
@@ -137,8 +135,12 @@ export default function AccountsSidebar({
   accounts,
   selectedId,
   onSelect,
+  onSelectSummary,
   hideSummary = false,
 }: AccountsSidebarProps) {
+  // The aggregate Summary view is "active" whenever no specific account is picked.
+  const summaryActive = !selectedId;
+  const summaryAccentColor = "#8DD4BE";
   // Dynamic balances: prefer core summary totals, fallback to summing accounts list
   const { totalBalanceKHR, totalBalanceUSD } = useMemo(() => {
     const khr =
@@ -313,14 +315,37 @@ export default function AccountsSidebar({
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* Summary box (hidden when top SummaryCard is active) */}
+      {/* Summary box — also selectable: clicking it returns to the aggregate view */}
       {!hideSummary && (
         <Box
+          role={onSelectSummary ? "button" : undefined}
+          tabIndex={onSelectSummary ? 0 : undefined}
+          onClick={onSelectSummary}
+          onKeyDown={(e) => {
+            if (!onSelectSummary) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelectSummary();
+            }
+          }}
           sx={{
-            bgcolor: "#F4F7FB",
             borderRadius: "16px",
             p: "18px 20px",
-            border: "1px solid #EDF2F7",
+            bgcolor: "#FFFFFF",
+            border: `1px solid ${summaryActive ? summaryAccentColor : "#EDF2F7"}`,
+            borderLeft: summaryActive ? `4px solid ${summaryAccentColor}` : "1px solid #EDF2F7",
+            backgroundImage: summaryActive
+              ? `linear-gradient(90deg, ${colorWithAlpha(summaryAccentColor, 0.35)} 0%, ${colorWithAlpha(summaryAccentColor, 0.12)} 22%, ${colorWithAlpha(summaryAccentColor, 0.04)} 38%, rgba(255, 255, 255, 0) 50%, #FFFFFF 100%)`
+              : "none",
+            boxShadow: summaryActive
+              ? `0px 2px 8px ${colorWithAlpha(summaryAccentColor, 0.14)}`
+              : "0px 1px 3px rgba(15, 23, 42, 0.03)",
+            cursor: onSelectSummary ? "pointer" : "default",
+            outline: "none",
+            userSelect: "none",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            "&:hover": onSelectSummary && !summaryActive ? { borderColor: "#CBD5E1" } : undefined,
+            "&:focus-visible": { outline: "2px solid #3B82F6", outlineOffset: 2 },
           }}
         >
           <Typography
@@ -358,6 +383,18 @@ export default function AccountsSidebar({
       {/* Account list */}
       {accounts.length > 0 && (
         <Box sx={{ mt: hideSummary ? 0 : 3 }}>
+          <Typography
+            sx={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#5A6B82",
+              lineHeight: 1.2,
+              mb: 1.5,
+              px: 0.5,
+            }}
+          >
+            Account List
+          </Typography>
           <Stack spacing={1.5}>
             {accounts.map((account, index) => renderAccountCard(account, index))}
           </Stack>

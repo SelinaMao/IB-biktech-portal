@@ -69,14 +69,14 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
   const { accounts, loading: loadingAccounts } = useTransferAccounts(open);
   const quote = useTransferQuote();
   const [submitTransfer] = useSubmitOwnAccountTransferMutation();
-// Error is hidden on load; shown only when the user clicks the select with one account
+  // Error is hidden on load; shown only when the user clicks the select with one account
   const [showAccountError, setShowAccountError] = React.useState(false);
   const [selectOpen, setSelectOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
       setShowAccountError(false);
-     
+
     }
   }, [open]);
   const { control, watch, setValue, reset } = useForm({
@@ -152,10 +152,10 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
             values.frequency === "weekly"
               ? "Weekly"
               : values.frequency === "monthly"
-              ? "Monthly"
-              : values.frequency === "recurring"
-              ? "Recurring"
-              : "One-time",
+                ? "Monthly"
+                : values.frequency === "recurring"
+                  ? "Recurring"
+                  : "One-time",
         },
         { label: "Start Date", value: values.scheduleDate || "Immediately" },
       ]
@@ -186,13 +186,14 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
     }
     : {};
 
-   return (
+  return (
     <PreviewTransfer
+      splitView
       open={open}
       onClose={onClose}
       title="Own Account Transfer"
       icon={<User size={18} />}
-      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
+      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number, balance: fromAccount.balance, currency: fromAccount.currency } : undefined}
       toAccount={toAccount ? { name: toAccount.name, accountNumber: toAccount.number } : undefined}
       topSection={<BaseFromAccount name="fromAccountId" control={control} accounts={accounts} />}
       canSubmit={Boolean(fromAccount && toAccount && fromAccountId !== toAccountId && !Number.isNaN(amount))}
@@ -206,7 +207,7 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
         reset({ fromAccountId: accounts[0]?.id ?? "" });
         quote.reset();
         setShowAccountError(false);
-        
+
       }}
       onReview={priceTransfer}
       submit={submit}
@@ -225,12 +226,12 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
             placeholder="Select Your Account"
             helperText={showOneAccountError ? ONE_ACCOUNT_MESSAGE : undefined}
             slotProps={{
-    select: {
-      onOpen: () => {
-        if (onlyOneAccount) setShowAccountError(true); // show the message and open the menu
-      },
-    },
-  }}
+              select: {
+                onOpen: () => {
+                  if (onlyOneAccount) setShowAccountError(true); // show the message and open the menu
+                },
+              },
+            }}
             sx={{
               ...fieldSx,
               "& .MuiSelect-select": {

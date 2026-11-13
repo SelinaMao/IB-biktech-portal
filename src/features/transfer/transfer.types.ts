@@ -8,6 +8,8 @@ export interface TransferOption {
   icon: React.ReactNode;
   /** The catalogue functions it starts; the card is under maintenance when BOS has switched every one off. */
   functionCodes?: string[];
+  /** Accent color for the type's icon badge and sidebar stripe (hex). */
+  color?: string;
 }
 
 export interface TransferAccount {

@@ -9,11 +9,11 @@ import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import {
-  ChevronLeft,
   ChevronRight,
   MessageSquareText,
   QrCode,
   Smartphone,
+  X,
 } from "lucide-react";
 
 import { palette } from "@/theme/palette";
@@ -94,14 +94,14 @@ export default function ChooseVerifyDialog({
         },
       }}
     >
-      {/* Top Left Back Action */}
+      {/* Top Right Close Action */}
       <IconButton
         onClick={handleBack}
-        aria-label="Back"
+        aria-label="Close"
         sx={{
           position: "absolute",
           top: 20,
-          left: 20,
+          right: 20,
           width: 32,
           height: 32,
           bgcolor: "#EDF0F4",
@@ -114,7 +114,7 @@ export default function ChooseVerifyDialog({
           },
         }}
       >
-        <ChevronLeft size={18} />
+        <X size={18} />
       </IconButton>
 
       <Box

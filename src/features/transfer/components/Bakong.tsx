@@ -66,11 +66,12 @@ export default function Bakong({ open, onClose }: BakongProps) {
 
   return (
     <PreviewTransfer
+      splitView
       open={open}
       onClose={onClose}
       title="To Bakong"
       icon={<Settings size={18} />}
-      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
+      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number, balance: fromAccount.balance, currency: fromAccount.currency } : undefined}
       toAccount={{
         name: values.recipientName || "Bakong Recipient",
         accountNumber: values.bakongId,

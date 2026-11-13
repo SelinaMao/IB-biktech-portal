@@ -14,6 +14,7 @@ export {
   TRANSFER_VIEW_BY_SLUG,
 } from "./components/Transfer";
 export { default as TransferOptionCard } from "./components/TransferOptionCard";
+export { default as TransferTypeSidebar } from "./components/TransferTypeSidebar";
 export {
   default as PreviewTransfer,
   type TransferReviewRow,

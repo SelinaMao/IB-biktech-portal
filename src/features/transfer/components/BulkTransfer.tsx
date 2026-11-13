@@ -56,11 +56,12 @@ export default function BulkTransfer({ open, onClose }: BulkTransferProps) {
 
   return (
     <PreviewTransfer
+      splitView
       open={open}
       onClose={onClose}
       title="Bulk Transfer"
       icon={<Globe size={18} />}
-      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
+      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number, balance: fromAccount.balance, currency: fromAccount.currency } : undefined}
       toAccount={{
         name: "Bulk Recipients",
         accountNumber: fileName ?? "Batch file",

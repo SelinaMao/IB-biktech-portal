@@ -272,6 +272,16 @@ export const MODULE_GROUPS: ModuleGroup[] = [
 
 const ROLE_FORM_ID = "role-page-form";
 
+/** Matches the Transfer flow's footer buttons — same shape everywhere, color varies by role. */
+const ACTION_BUTTON_SX = {
+  height: 52,
+  borderRadius: "999px",
+  fontSize: 16,
+  fontWeight: 600,
+  textTransform: "none" as const,
+  boxShadow: "none",
+};
+
 const ROLE_CATEGORIES: { key: RoleCategory; label: string }[] = [
   { key: "viewer", label: "Viewer" },
   { key: "operator", label: "Operator" },
@@ -725,19 +735,15 @@ export default function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
                 variant="outlined"
                 onClick={handleCancel}
                 sx={{
+                  ...ACTION_BUTTON_SX,
                   minWidth: 88,
-                  height: 38,
                   px: 2.5,
-                  borderRadius: "8px",
-                  borderColor: palette.slate[200],
+                  borderColor: "transparent",
                   color: "#0F172A",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "13.5px",
-                  bgcolor: palette.white,
+                  bgcolor: "#EEF2F6",
                   "&:hover": {
-                    borderColor: palette.slate[300],
-                    bgcolor: palette.slate[50],
+                    borderColor: "transparent",
+                    bgcolor: "#E2E8F0",
                   },
                 }}
               />
@@ -747,16 +753,11 @@ export default function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
                 type="submit"
                 form={ROLE_FORM_ID}
                 sx={{
+                  ...ACTION_BUTTON_SX,
                   minWidth: 92,
-                  height: 38,
                   px: 3,
-                  borderRadius: "8px",
                   bgcolor: "#1B5299",
                   color: "#FFFFFF",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "13.5px",
-                  boxShadow: "none",
                   "&:hover": {
                     bgcolor: "#15427C",
                     boxShadow: "none",
@@ -857,19 +858,15 @@ export default function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
                 onClick={() => setStep(0)}
                 disabled={isSubmitting}
                 sx={{
+                  ...ACTION_BUTTON_SX,
                   minWidth: 88,
-                  height: 38,
                   px: 2.5,
-                  borderRadius: "8px",
-                  borderColor: palette.slate[200],
+                  borderColor: "transparent",
                   color: "#0F172A",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "13.5px",
-                  bgcolor: palette.white,
+                  bgcolor: "#EEF2F6",
                   "&:hover": {
-                    borderColor: palette.slate[300],
-                    bgcolor: palette.slate[50],
+                    borderColor: "transparent",
+                    bgcolor: "#E2E8F0",
                   },
                 }}
               />
@@ -879,16 +876,11 @@ export default function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
                 onClick={handleReviewNext}
                 isLoading={isSubmitting}
                 sx={{
+                  ...ACTION_BUTTON_SX,
                   minWidth: 120,
-                  height: 38,
                   px: 3,
-                  borderRadius: "8px",
                   bgcolor: "#1B5299",
                   color: "#FFFFFF",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "13.5px",
-                  boxShadow: "none",
                   "&:hover": {
                     bgcolor: "#15427C",
                     boxShadow: "none",
