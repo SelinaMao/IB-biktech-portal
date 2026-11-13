@@ -215,9 +215,9 @@ export default function CashFlowChart({
               >
                 Expense
               </Typography>
-              <Box sx={{ mt: 1.75 }}>
-                <BaseBlurText>
-                  {hideAmount ? "••••••" : renderAmount(displayExpense, "#E11D48")}
+              <Box sx={{ mt: 1.75,color: "#E11D48",fontSize:"20px",fontWeight:400 }}>
+                <BaseBlurText >
+                  {hideAmount ? "••••••" : displayExpense }
                 </BaseBlurText>
               </Box>
             </Box>
@@ -237,9 +237,9 @@ export default function CashFlowChart({
               >
                 Income
               </Typography>
-              <Box sx={{ mt: 1.75 }}>
+              <Box sx={{ mt: 1.75 ,fontSize:"20px",fontWeight:400,color:"#36A17E"}}>
                 <BaseBlurText>
-                  {hideAmount ? "••••••" : renderAmount(displayIncome, "#36A17E")}
+                  {hideAmount ? "••••••" : displayIncome}
                 </BaseBlurText>
               </Box>
             </Box>
