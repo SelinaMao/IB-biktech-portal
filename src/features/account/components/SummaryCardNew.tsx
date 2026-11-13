@@ -10,6 +10,7 @@ import { font, palette, radius } from "@/theme/palette";
 import type { SummaryCardProps, CoreAccountEntry } from "../account.types";
 import { useGetAccountSummaryMutation, useGetCashFlowMutation } from "../account.api";
 import { DollarSign } from "lucide-react";
+import { color } from "html2canvas/dist/types/css/types/color";
 
 /** Formats dynamic amount as "293,000.00 USD" or "120,293,000.00 KHR" */
 function formatCurrencySuffix(amount: number, ccy: "USD" | "KHR"): string {
@@ -93,58 +94,58 @@ function extractIncomeAndExpense(raw: unknown): { income: number | null; expense
     return { income: null, expense: null };
 }
 
-/** Renders amounts like "-$23,000.90" with smaller cents (.90) matching Figma */
-function renderAmount(val: string, color: string) {
-    const dotIndex = val.lastIndexOf(".");
-    if (dotIndex !== -1) {
-        const main = val.slice(0, dotIndex);
-        const decimals = val.slice(dotIndex);
-        return (
-            <Box
-                component="span"
-                sx={{ display: "inline-flex", alignItems: "flex-start", color }}
-            >
-                <Typography
-                    component="span"
-                    sx={{
-                        fontSize: { xs: 15, sm: 20 },
-                        fontWeight: 700,
-                        color: "inherit",
-                        lineHeight: 1.25,
-                    }}
-                >
-                    {main}
-                </Typography>
-                <Typography
-                    component="span"
-                    sx={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: "inherit",
-                        lineHeight: 1.25,
-                        ml: 0.1,
-                        mt: "1px",
-                    }}
-                >
-                    {decimals}
-                </Typography>
-            </Box>
-        );
-    }
-    return (
-        <Typography
-            component="span"
-            sx={{
-                fontSize: { xs: 15, sm: 16 },
-                fontWeight: 700,
-                color,
-                lineHeight: 1.25,
-            }}
-        >
-            {val}
-        </Typography>
-    );
-}
+
+// function renderAmount(val: string, color: string) {
+//     const dotIndex = val.lastIndexOf(".");
+//     if (dotIndex !== -1) {
+//         const main = val.slice(0, dotIndex);
+//         const decimals = val.slice(dotIndex);
+//         return (
+//             <Box
+//                 component="span"
+//                 sx={{ display: "inline-flex", alignItems: "flex-start", color }}
+//             >
+//                 <Typography
+//                     component="span"
+//                     sx={{
+//                         fontSize: { xs: 15, sm: 20 },
+//                         fontWeight: 700,
+//                         color: "inherit",
+//                         lineHeight: 1.25,
+//                     }}
+//                 >
+//                     {main}
+//                 </Typography>
+//                 <Typography
+//                     component="span"
+//                     sx={{
+//                         fontSize: 11,
+//                         fontWeight: 700,
+//                         color: "inherit",
+//                         lineHeight: 1.25,
+//                         ml: 0.1,
+//                         mt: "1px",
+//                     }}
+//                 >
+//                     {decimals}
+//                 </Typography>
+//             </Box>
+//         );
+//     }
+//     return (
+//         <Typography
+//             component="span"
+//             sx={{
+//                 fontSize: { xs: 15, sm: 16 },
+//                 fontWeight: 700,
+//                 color,
+//                 lineHeight: 1.25,
+//             }}
+//         >
+//             {val}
+//         </Typography>
+//     );
+// }
 
 export default function SummaryCardNew({
     label = "Available Balance",
@@ -458,7 +459,6 @@ export default function SummaryCardNew({
 
                 {/* Right Section: Divider + Cash Flow (Expense & Income) */}
                 <Stack
-
                     direction="row"
                     alignItems="center"
                     spacing={{ xs: 2.5, sm: 8 }}
@@ -501,9 +501,9 @@ export default function SummaryCardNew({
                             >
                                 Expense
                             </Typography>
-                            <Box sx={{ mt: 0.25 }}>
+                            <Box sx={{ mt: 0.25 ,color:"#DC2626",fontSize:"20px",fontWeight:600}}>
                                 <BaseBlurText >
-                                    {renderAmount(displayExpense, "#DC2626")}
+                                    {displayExpense}
                                 </BaseBlurText>
                             </Box>
                         </Box>
@@ -528,9 +528,9 @@ export default function SummaryCardNew({
                             >
                                 Income
                             </Typography>
-                            <Box sx={{ mt: 0.25 }}>
+                            <Box sx={{ mt: 0.25 ,color:"#16A34A",fontSize:"20px",fontWeight:600}}>
                                 <BaseBlurText>
-                                    {renderAmount(displayIncome, "#16A34A")}
+                                    {displayIncome}
                                 </BaseBlurText>
                             </Box>
                         </Box>

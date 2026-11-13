@@ -206,18 +206,18 @@ export default function PreviewTransfer({
         setStep(0);
     };
 
-    // const handleReviewNext = (e?: React.MouseEvent) => {
-    //     if (e) {
-    //         e.preventDefault();
-    //         e.stopPropagation();
-    //     }
-    //     // Button Transfer -> opens ChooseVerifyDialog
-    //     setChooseVerifyOpen(false);
-    // };
-    const handleReviewNext = () => {
-        if (submit) void authorization.start();
-        else setConfirmOpen(true);
+    const handleReviewNext = (e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        // Button Transfer -> opens ChooseVerifyDialog
+        setChooseVerifyOpen(false);
     };
+    // const handleReviewNext = () => {
+    //     if (submit) void authorization.start();
+    //     else setConfirmOpen(true);
+    // };
 
     const handleSelectQr = () => {
         setChooseVerifyOpen(false);

@@ -40,7 +40,65 @@ import { toToastError } from "@/utils/api-error";
 
 const ROWS_PER_PAGE = 5;
 const OPEN_STATUSES: InstanceStatus[] = ["PENDING", "IN_PROGRESS", "ESCALATED"];
+const R = 12;            // flare radius
+const CARD_RADIUS = 16;  // must match ApprovalTable's top-left radius
+const OVERLAP = 2;       // active tab sinks into the card to hide its top edge
+const PANEL_BG = "#FFFFFF";
+const ACTIVE_TEXT = "#2764A5";
 
+const tabSx = (active: boolean) => ({
+  border: "none",
+  outline: "none",
+  cursor: "pointer",
+  position: "relative" as const,
+  display: "inline-flex",
+  alignItems: "center",
+  boxSizing: "border-box" as const,
+  px: 3,
+  fontSize: `${font.size.sm}`,
+  fontFamily: "inherit",
+  transition: "background-color 0.15s ease, color 0.15s ease",
+
+  ...(active
+    ? {
+      height: 36 + OVERLAP,
+      pb: `${OVERLAP}px`,
+      mb: `-${OVERLAP}px`,
+      zIndex: 1,
+      borderRadius: `${R + 2}px ${R + 2}px 0 0`,
+      bgcolor: PANEL_BG,
+      color: ACTIVE_TEXT,
+      fontWeight: 600,
+      "&::before, &::after": {
+        content: '""',
+        position: "absolute",
+        bottom: `${OVERLAP}px`,
+        width: R,
+        height: R,
+        pointerEvents: "none",
+      },
+      // box-shadow trick: crisp concave corners, no gradient seam
+      "&::before": {
+        left: -R,
+        borderBottomRightRadius: R,
+        boxShadow: `${R / 2}px ${R / 2}px 0 ${R / 2}px ${PANEL_BG}`,
+      },
+      "&::after": {
+        right: -R,
+        borderBottomLeftRadius: R,
+        boxShadow: `-${R / 2}px ${R / 2}px 0 ${R / 2}px ${PANEL_BG}`,
+      },
+    }
+    : {
+      height: 29,
+      mb: 0.75, // lifted above the card (use mb: 2 for a bigger gap)
+      borderRadius: "10px",
+      bgcolor: "#EDF0F5",
+      color: "#0F172A",
+      fontWeight: 500,
+      "&:hover": { bgcolor: "#E3E8F0" },
+    }),
+});
 export default function ApprovalRequestsPage() {
   const canView = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);
   const canSeeTasks = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);
@@ -269,32 +327,17 @@ export default function ApprovalRequestsPage() {
         summary={approvalSummary}
       />
       {/* 3. Folder-style Tabs: Pending (5) & History */}
-      <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-end", mb: 0, mt: 4 }}>
+      <Stack
+        direction="row"
+        spacing={1.5}
+        useFlexGap
+        sx={{ alignItems: "flex-end", mt: 4, mb: 0, position: "relative", zIndex: 2 }}
+      >
         <Box
           component="button"
           type="button"
-          onClick={() => {
-            setSubTab("pending");
-            setPage(0);
-          }}
-          sx={{
-            border: "none",
-            outline: "none",
-            cursor: "pointer",
-            px: 3,
-            py: 1.35,
-            borderRadius: "14px 14px 0 0",
-            bgcolor: subTab === "pending" ? "#2764A5" : "transparent",
-            color: subTab === "pending" ? "#FFFFFF" : "#64748B",
-            fontSize: 14.5,
-            fontWeight: subTab === "pending" ? 600 : 500,
-            transition: "all 0.15s ease",
-            display: "inline-flex",
-            alignItems: "center",
-            "&:hover": {
-              color: subTab === "pending" ? "#FFFFFF" : "#0F172A",
-            },
-          }}
+          onClick={() => { setSubTab("pending"); setPage(0); }}
+          sx={[tabSx(subTab === "pending"), { ml: 10.5 }]}   // 36px marginLeft
         >
           {`Pending (${category === "financial" ? financialPending.length : localNonFinancialEntries.length})`}
         </Box>
@@ -302,28 +345,8 @@ export default function ApprovalRequestsPage() {
         <Box
           component="button"
           type="button"
-          onClick={() => {
-            setSubTab("history");
-            setPage(0);
-          }}
-          sx={{
-            border: "none",
-            outline: "none",
-            cursor: "pointer",
-            px: 3,
-            py: 1.35,
-            borderRadius: "14px 14px 0 0",
-            bgcolor: subTab === "history" ? "#2764A5" : "transparent",
-            color: subTab === "history" ? "#FFFFFF" : "#64748B",
-            fontSize: 14.5,
-            fontWeight: subTab === "history" ? 600 : 500,
-            transition: "all 0.15s ease",
-            display: "inline-flex",
-            alignItems: "center",
-            "&:hover": {
-              color: subTab === "history" ? "#FFFFFF" : "#0F172A",
-            },
-          }}
+          onClick={() => { setSubTab("history"); setPage(0); }}
+          sx={tabSx(subTab === "history")}
         >
           History
         </Box>
@@ -331,7 +354,7 @@ export default function ApprovalRequestsPage() {
 
       {/* 4. Transactions Card & Table matching new UI with BaseSearchButton, BaseFilterByDay, and BasePagination */}
       <ApprovalTable
-        sx={{ borderTopLeftRadius: subTab === "pending" ? 0 : "16px" }}
+        sx={{ borderTopLeftRadius: `${CARD_RADIUS}px`, border: "none" }}
         entries={pagedEntries}
         totalCount={filteredEntries.length}
         search={search}

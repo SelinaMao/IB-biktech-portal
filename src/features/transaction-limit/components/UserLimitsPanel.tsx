@@ -7,6 +7,7 @@ import Typography from "@mui/material/Typography";
 import { useCallback, useState } from "react";
 
 import BaseButton from "@core/components/BaseButton";
+import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import { palette, radius } from "@/theme/palette";
 import { showToast } from "@core/components/AppToast";
 import { toToastError } from "@/utils/api-error";
@@ -37,6 +38,8 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
   const [saveLimits, { isLoading: isSaving }] = useUpdateUserLimitsMutation();
   const [resetRow, { isLoading: isResetting }] = useResetUserLimitRowMutation();
   const [draft, setDraft] = useState<LimitDraft>({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [qrPayload, setQrPayload] = useState<string | undefined>(undefined);
 
   const isDirty = Object.keys(draft).length > 0;
 
@@ -65,15 +68,29 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
     if (payload.length === 0) return;
 
     try {
-      await saveLimits({ userId, rows: payload }).unwrap();
-      setDraft({});
-      showToast("success", {
-        title: "Limits saved",
-        message: `${userName ?? "This user"} now transacts within the limits you set.`,
-      });
+      const response = await saveLimits({ userId, rows: payload }).unwrap();
+      const maybeAuth = response as { authenticator?: { qrPayload?: string | null } | null } | undefined;
+      setQrPayload(maybeAuth?.authenticator?.qrPayload ?? undefined);
+      setConfirmOpen(true);
     } catch (error) {
       showToast("error", toToastError(error, "Couldn't save these limits"));
     }
+  };
+
+  const handleQrClose = () => {
+    setConfirmOpen(false);
+    setQrPayload(undefined);
+  };
+
+  const handleQrApprove = () => {
+    setConfirmOpen(false);
+    setQrPayload(undefined);
+    setDraft({});
+    void refetch();
+    showToast("success", {
+      title: "Limits saved",
+      message: `${userName ?? "This user"} now transacts within the limits you set.`,
+    });
   };
 
   const reset = async (row: TransactionLimitRow) => {
@@ -102,7 +119,8 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
   }
 
   return (
-    <Stack spacing={2}>
+    <>
+      <Stack spacing={2}>
       <Alert severity="info">
         A value of 0 means unlimited. Nothing here can go above what your bank allows the company —
         a higher value is rejected, and if the company limit is later lowered, this user follows it down.
@@ -150,7 +168,15 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
           </Stack>
         </Paper>
       )}
-    </Stack>
+      </Stack>
+
+      <QrConfirmationDialog
+        open={confirmOpen}
+        value={qrPayload}
+        onClose={handleQrClose}
+        onApprove={handleQrApprove}
+      />
+    </>
   );
 }
 
