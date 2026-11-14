@@ -18,6 +18,7 @@ import StatementDownloadDialog from "./StatementDownloadDialog";
 import { getAccountIndicatorColor } from "./AccountsSidebar";
 import CardBorderAccent from "@core/components/CardBorderAccent";
 import BaseCard from "@/@core/components/BaseCard";
+import { radius } from "@/theme/palette";
 
 export interface AccountDetailsProps {
   open?: boolean;
@@ -257,16 +258,16 @@ export default function AccountDetailCard({
     <BaseCard
       sx={{
         position: "relative",
-
         height: "196px",
         bgcolor: "#FFFFFF",
-        borderRadius: "20px",
+        borderRadius: `${radius.xl}px`,
         p: { xs: 2.5, sm: "20px 24px" },
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
         // border: "1px solid #EDF2F7",
       }}
     >
-      <CardBorderAccent color={accentColor} type="bottom-left" strokeWidth={2.5} tailLength={60} width={90} height={80} top={0} left={0} />
+     <CardBorderAccent color={cardAccentColor} type="bottom-left" radius={radius.xl} length={70} strokeWidth={3} />
+     
       <Stack
         direction={{ xs: "column", md: "row" }}
         spacing={3}

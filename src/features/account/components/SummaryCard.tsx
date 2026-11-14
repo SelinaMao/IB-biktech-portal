@@ -6,6 +6,7 @@ import BaseBlurText from "@core/components/BaseBlurText";
 import type { SummaryCardProps } from "../account.types";
 import { toggleHideAmount } from "@/store/global/global.slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { radius } from "@/theme/palette";
 
 export default function SummaryCard({
   label = "Summary",
@@ -18,8 +19,9 @@ export default function SummaryCard({
   return (
     <Box
       sx={{
+        height: "196px",
         width: "100%",
-        borderRadius: "20px",
+        borderRadius: `${radius.xl}px`,
         background: "linear-gradient(to bottom, #257DCF 0%, #1660A9 100%)",
         color: "#FFFFFF",
         p: { xs: 3, sm: 5 },
@@ -27,7 +29,7 @@ export default function SummaryCard({
         flexDirection: "column",
         justifyContent: "space-between",
         minHeight: 160,
-        mb:3,
+        mb: 3,
         // boxShadow: "0 8px 24px rgba(10, 76, 19, 0.22)",
       }}
     >
@@ -40,8 +42,9 @@ export default function SummaryCard({
       >
         <Typography
           sx={{
-            fontSize: 16,
-            fontWeight: 500,
+            fontSize: { xs: 20, md: 24 },
+            lineHeight: 1.25,
+            fontWeight: 700,
             color: "#FFFFFF",
             letterSpacing: 0.2,
           }}

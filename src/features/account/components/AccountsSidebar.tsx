@@ -333,7 +333,7 @@ export default function AccountsSidebar({
           sx={{
             borderRadius: "16px",
             p: "18px 20px",
-            bgcolor: "#FFFFFF",
+            bgcolor: "rgba(255, 255, 255, 0.3)",
             border: `1px solid ${summaryActive ? summaryAccentColor : "#EDF2F7"}`,
             borderLeft: summaryActive ? `4px solid ${summaryAccentColor}` : "1px solid #EDF2F7",
             backgroundImage: summaryActive

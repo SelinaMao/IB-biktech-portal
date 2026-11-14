@@ -75,7 +75,7 @@ export default function LoanDetailCard({
   const name = loanName || borrower?.name || "Car Loan";
   const rawAccNumber = accountNumber || borrower?.accountNumber || "";
   const formattedAccNumber =
-    formatAccountNumber(rawAccNumber) || rawAccNumber || "000 067 898";
+    formatAccountNumber(rawAccNumber) || rawAccNumber || "-";
   const type = loanType || schedule?.accountType || "Loan";
   const ccy = currency || schedule?.currency || "USD";
   const outstanding = outstandingAmount ?? schedule?.outstandingPrincipal ?? 0;

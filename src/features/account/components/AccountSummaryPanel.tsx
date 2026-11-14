@@ -38,7 +38,7 @@ function formatCurrencySuffix(amount: number, ccy: "USD" | "KHR"): string {
 export default function AccountSummaryPanel({ accounts, summary }: AccountSummaryPanelProps) {
   const pieData = useMemo<CategoryDonutDatum[]>(() => {
     if (!accounts || accounts.length === 0) {
-      return [{ name: "Savings", value: 1, color: DEFAULT_PIE_COLORS[0] }];
+      return [];
     }
     // Same resolver as AccountsSidebar's cards and the selected-account accent,
     // so a given account is always the same color everywhere on the page.
@@ -67,6 +67,7 @@ export default function AccountSummaryPanel({ accounts, summary }: AccountSummar
     <Box
       sx={{
         position: "relative",
+        height:"196px",
         bgcolor: "#FFFFFF",
         borderRadius: `${radius.xl}px`,
         border: `1px solid ${palette.slate[200]}`,
