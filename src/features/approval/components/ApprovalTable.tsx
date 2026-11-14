@@ -11,7 +11,7 @@ import { ArrowUpDown, Search } from "lucide-react";
 import { font, palette, radius } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
-import type { BaseFilterValue } from "@core/components/BaseFilter";
+import { BASE_FILTER_TYPE_LABELS, type BaseFilterValue } from "@core/components/BaseFilter";
 import BaseFilterButton from "@core/components/BaseFilterButton";
 import type { BaseFilterByDayValue } from "@core/components/BaseFilterByDay";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
@@ -405,7 +405,13 @@ export default function ApprovalTable({
           {/* Filters Button */}
           <BaseFilterButton
             active={hasActiveFilter}
-            onClick={() => setFilterDialogOpen(true)}
+            open={filterDialogOpen}
+            label={
+              dateFilter && (dateFilter as BaseFilterValue).type
+                ? (BASE_FILTER_TYPE_LABELS[(dateFilter as BaseFilterValue).type] ?? "Last 7 days")
+                : "Last 7 days"
+            }
+            onClick={() => setFilterDialogOpen((prev) => !prev)}
             inactiveTextColor={palette.slate[700]}
           />
         </Stack>

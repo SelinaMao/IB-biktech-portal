@@ -606,7 +606,8 @@ export default function LoanTransactionsCard({
           {/* Filters Button */}
           <BaseFilterButton
             active={hasActiveFilter}
-            onClick={() => setFilterDialogOpen(true)}
+            open={filterDialogOpen}
+            onClick={() => setFilterDialogOpen((prev) => !prev)}
             sx={{ fontWeight: 400 }}
           />
 

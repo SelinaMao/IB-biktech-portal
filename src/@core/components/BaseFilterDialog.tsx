@@ -164,11 +164,14 @@ export default function BaseFilterDialog({
       setSelectedOption(customOptionId);
       return;
     }
-    const match = options.find((o) => o.filterType === value.type);
+   const match = options.find((o) => o.filterType === value.type);
     if (match) {
       setSelectedOption(match.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // No preset in this dialog maps to the current filter (e.g. the page's
+    // default is "last7Days" but this dialog only lists month-based presets)
+    // — leave nothing selected rather than keeping whatever was picked last.
+    setSelectedOption(match ? match.id : "");
   }, [open, value]);
 
   const handleApply = () => {

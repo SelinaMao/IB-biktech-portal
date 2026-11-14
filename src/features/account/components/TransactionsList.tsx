@@ -478,8 +478,9 @@ export default function TransactionsList({
           {showDateFilter && (
             <BaseFilterButton
               active={hasActiveFilter}
-              label={BASE_FILTER_TYPE_LABELS[dateFilter.type]}
-              onClick={() => setFilterDialogOpen(true)}
+              open={filterDialogOpen}
+              label={BASE_FILTER_TYPE_LABELS[dateFilter.type] ?? "Last 7 days"}
+              onClick={() => setFilterDialogOpen((prev) => !prev)}
             />
           )}
 

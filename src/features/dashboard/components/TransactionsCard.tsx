@@ -431,7 +431,8 @@ export default function TransactionsCard({
           {/* Date Filter */}
           <BaseFilterButton
             active={dateFilter.type !== "all"}
-            onClick={() => setFilterDialogOpen(true)}
+            open={filterDialogOpen}
+            onClick={() => setFilterDialogOpen((prev) => !prev)}
           />
         </Box>
       </Box>

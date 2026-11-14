@@ -341,7 +341,8 @@ export default function PaymentTemplatesTable({
 
           <BaseFilterButton
             active={hasActiveFilter}
-            onClick={() => setFilterDialogOpen(true)}
+            open={filterDialogOpen}
+            onClick={() => setFilterDialogOpen((prev) => !prev)}
           />
 
           <BaseButton
