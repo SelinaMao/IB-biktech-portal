@@ -3,14 +3,14 @@
 import React, { useEffect, useMemo } from "react";
 import { Box, Divider, Stack, Typography } from "@mui/material";
 import BaseBlurText from "@core/components/BaseBlurText";
-import BaseCard from "@core/components/BaseCard";
 import BaseIconBadge from "@core/components/BaseIconBadge";
 import BasePieChart, { DEFAULT_PIE_COLORS, type PieDatum } from "@core/components/PieChart";
-import { font, palette, radius } from "@/theme/palette";
+import { font, palette } from "@/theme/palette";
 import type { SummaryCardProps, CoreAccountEntry } from "../account.types";
 import { useGetAccountSummaryMutation, useGetCashFlowMutation } from "../account.api";
 import { DollarSign } from "lucide-react";
-import { color } from "html2canvas/dist/types/css/types/color";
+import CardBorderAccent from "./CardBorderAccent";
+import BaseCard from "@/@core/components/BaseCard";
 
 /** Formats dynamic amount as "293,000.00 USD" or "120,293,000.00 KHR" */
 function formatCurrencySuffix(amount: number, ccy: "USD" | "KHR"): string {
@@ -148,7 +148,7 @@ function extractIncomeAndExpense(raw: unknown): { income: number | null; expense
 // }
 
 export default function SummaryCardNew({
-    label = "Available Balance",
+    label = "Account Summary",
     value,
     sub,
     accounts = [],
@@ -160,7 +160,8 @@ export default function SummaryCardNew({
     transactions,
     currency = "USD",
     sx,
-}: SummaryCardProps) {
+    showCashFlow = false,
+}: SummaryCardProps & { showCashFlow?: boolean }) {
     // Target account for dynamic cash-flow and account summary fetching, matching Dashboard
     const activeAccount = useMemo(() => {
         const matchingCcyAccount =
@@ -336,206 +337,216 @@ export default function SummaryCardNew({
         <BaseCard
             sx={[
                 {
-                    width: "100%",
-                    borderRadius: `${radius.xl}px`,
+                    height: "196px",
+                    borderRadius: "20px",
                     p: { xs: 2.5, sm: "20px 24px" },
                     bgcolor: "#FFFFFF",
-                    mb: { xs: 2.5, sm: 3.5 },
-                    border: `1px solid ${palette.slate[200]}`,
+                    position: "relative",
+                    // border: `1px solid ${palette.slate[200]}`,
                     boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
                 },
                 ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
             ]}
         >
+            {/* <CardBorderAccent
+                color="#74C0A8"
+                type="bottom-left"
+                width={95.89}
+                height={98.77}
+                top={-16.73}
+                left={-13.32}
+            /> */}
+            <CardBorderAccent color="#74C0A8" type="bottom-left" strokeWidth={2.5} tailLength={60} width={90} height={80} top={0} left={0} />
+
+            <Typography
+                sx={{
+                    fontSize: { xs: 20, md: 24 },
+                    fontWeight: 700,
+                    color: "#0F172A",
+                    lineHeight: 1.25,
+                    mb: 2.5,
+                }}
+            >
+                {label || "Account Summary"}
+            </Typography>
+
             <Stack
+                marginTop={5}
                 direction={{ xs: "column", lg: "row" }}
                 alignItems={{ xs: "flex-start", lg: "center" }}
                 justifyContent="space-between"
-                spacing={{ xs: 2, lg: 3 }}
+                spacing={{ xs: 2.5, lg: 4 }}
             >
                 {/* Left Section: 4-Color Donut Chart + Available Balance (KHR & USD) */}
                 <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    spacing={{ xs: 2, sm: 2.5, md: 3 }}
+                    direction={{ xs: "column", sm: "row" }}
+                    alignItems={{ xs: "flex-start", sm: "center" }}
+                    spacing={{ xs: 2.5, sm: 4, md: 7 }}
                     sx={{ flexWrap: { xs: "wrap", sm: "nowrap" } }}
                 >
                     {/* 4-Color Donut Chart with '4 accounts' centered */}
                     <BasePieChart
                         data={pieData}
-                        size={120}
-                        thickness={18}
+                        size={110}
+                        thickness={16}
                         startAngle={-45}
                         centerValue={totalAccountCount}
                         centerLabel={totalAccountCount === 1 ? "account" : "accounts"}
                         centerColor={palette.slate[900]}
                     />
 
-                    {/* Available Balance Stack */}
-                    <Stack spacing={2.75} paddingLeft={5} marginBottom={2}>
-                        <Typography
-                            sx={{
-                                fontSize: 12,
-                                color: palette.slate[500],
-                                fontWeight: 400,
-                                lineHeight: "16px",
-                            }}
-                        >
-                            {label || "Available Balance"}
-                        </Typography>
+                    {/* Balances stack */}
+                    <Stack
+                        direction={{ xs: "column", sm: "row" }}
+                        alignItems={{ xs: "flex-start", sm: "center" }}
+                        spacing={{ xs: 2, sm: 5, md: 7 }}
+                    >
+                        {/* KHR Item */}
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <BaseIconBadge
+                                direction="income"
+                                bgColor="#FFF4E8"
+                                icon={
+                                    <svg width="24" height="24" viewBox="0 0 28 28" aria-hidden="true">
+                                        <text
+                                            x="50%"
+                                            y="50%"
+                                            textAnchor="middle"
+                                            dominantBaseline="central"
+                                            fontSize="24"
+                                            fontWeight={font.weight.medium}
+                                            fill={palette.orange}
+                                        >
+                                            ៛
+                                        </text>
+                                    </svg>
+                                }
+                            />
+                            <Box>
+                                <Typography sx={{ fontSize: 13, color: "#64748B", fontWeight: 400, lineHeight: 1.2 }}>
+                                    KHR
+                                </Typography>
+                                <Typography
+                                    sx={{
+                                        fontSize: { xs: 17, sm: 19 },
+                                        fontWeight: 700,
+                                        color: "#0F172A",
+                                        mt: 0.5,
+                                        lineHeight: 1.2,
+                                    }}
+                                >
+                                    <BaseBlurText>{displayKhr}</BaseBlurText>
+                                </Typography>
+                            </Box>
+                        </Stack>
 
-                        <Stack
-                            direction={{ xs: "column", sm: "row" }}
-                            alignItems={{ xs: "flex-start", sm: "center" }}
-                            spacing={{ xs: 1.5, sm: 40 }}
-                        >
-                            {/* KHR Item */}
-                            <Stack direction="row" alignItems="center" spacing={1.5}>
-                                <BaseIconBadge
-                                    direction="income"
-                                    bgColor="#FFF4E8"
-                                    icon={
-                                        <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-                                            <text
-                                                x="50%"
-                                                y="50%"
-                                                textAnchor="middle"
-                                                dominantBaseline="central"
-                                                fontSize="24"
-                                                fontWeight={font.weight.medium}
-                                                fill={palette.orange}
-                                            >
-                                                ៛
-                                            </text>
-                                        </svg>
-                                    }
-                                />
-                                <Box>
-                                    <Typography sx={{ fontSize: 15, color: "#64748B", fontWeight: 300, lineHeight: 1.2 }}>
-                                        KHR
-                                    </Typography>
-                                    <Typography
-                                        sx={{
-                                            fontSize: { xs: 18, sm: 20, md: 22 },
-                                            fontWeight: 600,
-                                            color: "#0F172A",
-                                            mt: 0.5,
-                                            lineHeight: 1.2,
-                                        }}
-                                    >
-                                        <BaseBlurText>{displayKhr}</BaseBlurText>
-                                    </Typography>
-                                </Box>
-                            </Stack>
-
-                            {/* USD Item */}
-                            <Stack direction="row" alignItems="center" spacing={1.5}>
-                                <BaseIconBadge
-                                    direction="income"
-                                    bgColor="#EAF6EE"
-                                    icon={<DollarSign color="#16A34A" size={20} />}
-                                />
-                                <Box>
-                                    <Typography sx={{ fontSize: 15, color: "#64748B", fontWeight: 300, lineHeight: 1.2 }}>
-                                        USD
-                                    </Typography>
-                                    <Typography
-                                        sx={{
-                                            fontSize: { xs: 18, sm: 20, md: 22 },
-                                            fontWeight: 600,
-                                            color: "#0F172A",
-                                            mt: 0.5,
-                                            lineHeight: 1.2,
-                                        }}
-                                    >
-                                        <BaseBlurText>{displayUsd}</BaseBlurText>
-                                    </Typography>
-                                </Box>
-                            </Stack>
+                        {/* USD Item */}
+                        <Stack direction="row" alignItems="center" spacing={1.5}>
+                            <BaseIconBadge
+                                direction="income"
+                                bgColor="#EAF6EE"
+                                icon={<DollarSign color="#16A34A" size={20} />}
+                            />
+                            <Box>
+                                <Typography sx={{ fontSize: 13, color: "#64748B", fontWeight: 400, lineHeight: 1.2 }}>
+                                    USD
+                                </Typography>
+                                <Typography
+                                    sx={{
+                                        fontSize: { xs: 17, sm: 19 },
+                                        fontWeight: 700,
+                                        color: "#0F172A",
+                                        mt: 0.5,
+                                        lineHeight: 1.2,
+                                    }}
+                                >
+                                    <BaseBlurText>{displayUsd}</BaseBlurText>
+                                </Typography>
+                            </Box>
                         </Stack>
                     </Stack>
                 </Stack>
 
                 {/* Right Section: Divider + Cash Flow (Expense & Income) */}
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    spacing={{ xs: 2.5, sm: 8 }}
-                    sx={{
-
-                        alignSelf: { xs: "stretch", lg: "center" },
-                        justifyContent: { xs: "space-between", lg: "flex-end" },
-                        pt: { xs: 1, lg: 6 },
-                        borderTop: { xs: `1px solid ${palette.slate[100]}`, lg: "none" },
-                    }}
-                >
-                    <Divider
-                        orientation="vertical"
-                        flexItem
+                {showCashFlow && (
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={{ xs: 2.5, sm: 8 }}
                         sx={{
-                            borderColor: palette.slate[200],
-                            height: 70,
-                            alignSelf: "center",
-                            display: { xs: "none", lg: "block" },
-                            mr: { lg: 3 },
+                            alignSelf: { xs: "stretch", lg: "center" },
+                            justifyContent: { xs: "space-between", lg: "flex-end" },
+                            pt: { xs: 1, lg: 6 },
+                            borderTop: { xs: `1px solid ${palette.slate[100]}`, lg: "none" },
                         }}
-                    />
-
-                    {/* Expense Item */}
-                    <Stack direction="row" alignItems="center" spacing={2.5}>
-                        <BaseIconBadge
-                            direction="expense"
-                            iconSrc="/assets/icons/expense-icon.svg"
-                            size={36}
-                            iconSize={18}
+                    >
+                        <Divider
+                            orientation="vertical"
+                            flexItem
+                            sx={{
+                                borderColor: palette.slate[200],
+                                height: 70,
+                                alignSelf: "center",
+                                display: { xs: "none", lg: "block" },
+                                mr: { lg: 3 },
+                            }}
                         />
-                        <Box>
-                            <Typography
-                                sx={{
-                                    fontSize: 15,
-                                    color: palette.slate[500],
-                                    fontWeight: 300,
-                                    lineHeight: 1.2,
-                                }}
-                            >
-                                Expense
-                            </Typography>
-                            <Box sx={{ mt: 0.25 ,color:"#DC2626",fontSize:"20px",fontWeight:600}}>
-                                <BaseBlurText >
-                                    {displayExpense}
-                                </BaseBlurText>
-                            </Box>
-                        </Box>
-                    </Stack>
 
-                    {/* Income Item */}
-                    <Stack direction="row" alignItems="center" spacing={2.5}>
-                        <BaseIconBadge
-                            direction="income"
-                            iconSrc="/assets/icons/income-icon.svg"
-                            size={36}
-                            iconSize={18}
-                        />
-                        <Box>
-                            <Typography
-                                sx={{
-                                    fontSize: 15,
-                                    color: palette.slate[500],
-                                    fontWeight: 300,
-                                    lineHeight: 1.2,
-                                }}
-                            >
-                                Income
-                            </Typography>
-                            <Box sx={{ mt: 0.25 ,color:"#16A34A",fontSize:"20px",fontWeight:600}}>
-                                <BaseBlurText>
-                                    {displayIncome}
-                                </BaseBlurText>
+                        {/* Expense Item */}
+                        <Stack direction="row" alignItems="center" spacing={2.5}>
+                            <BaseIconBadge
+                                direction="expense"
+                                iconSrc="/assets/icons/expense-icon.svg"
+                                size={36}
+                                iconSize={18}
+                            />
+                            <Box>
+                                <Typography
+                                    sx={{
+                                        fontSize: 15,
+                                        color: palette.slate[500],
+                                        fontWeight: 300,
+                                        lineHeight: 1.2,
+                                    }}
+                                >
+                                    Expense
+                                </Typography>
+                                <Box sx={{ mt: 0.25, color: "#DC2626", fontSize: "20px", fontWeight: 600 }}>
+                                    <BaseBlurText>
+                                        {displayExpense}
+                                    </BaseBlurText>
+                                </Box>
                             </Box>
-                        </Box>
+                        </Stack>
+
+                        {/* Income Item */}
+                        <Stack direction="row" alignItems="center" spacing={2.5}>
+                            <BaseIconBadge
+                                direction="income"
+                                iconSrc="/assets/icons/income-icon.svg"
+                                size={36}
+                                iconSize={18}
+                            />
+                            <Box>
+                                <Typography
+                                    sx={{
+                                        fontSize: 15,
+                                        color: palette.slate[500],
+                                        fontWeight: 300,
+                                        lineHeight: 1.2,
+                                    }}
+                                >
+                                    Income
+                                </Typography>
+                                <Box sx={{ mt: 0.25, color: "#16A34A", fontSize: "20px", fontWeight: 600 }}>
+                                    <BaseBlurText>
+                                        {displayIncome}
+                                    </BaseBlurText>
+                                </Box>
+                            </Box>
+                        </Stack>
                     </Stack>
-                </Stack>
+                )}
             </Stack>
         </BaseCard>
     );

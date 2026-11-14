@@ -27,7 +27,7 @@ export const transferOptions: TransferOption[] = [
   },
   {
     slug: "other-sme-bank",
-    label: "Other SME Account",
+    label: "Other Bank Account",
     description: "Send money securely to another local commercial bank.",
     icon: <Image src="/assets/icons/vector_right.svg" alt="" width={20} height={20} />,
   },

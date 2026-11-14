@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Box, Grid, Typography } from "@mui/material";
+import { Box, Grid } from "@mui/material";
 
 import { resolveBaseDownloadRange, type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/BaseFilter";
@@ -100,11 +100,19 @@ export default function AccountPage() {
     };
   }, [coreSummary, bankAccounts]);
 
-  // Starts with no account pre-selected so on initial visit only AccountsSidebar is shown
-  const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>();
+  // Starts with Summary pre-selected by default
+  const [selectedAccountId, setSelectedAccountId] = useState<string>("summary");
+  const isSummarySelected = selectedAccountId === "summary";
+
+  const defaultAccount = useMemo(() => {
+    return (
+      bankAccounts.find((account: CoreAccountEntry) => account.accountType === "CA") ??
+      bankAccounts[0]
+    );
+  }, [bankAccounts]);
 
   const selectedAccount = useMemo(() => {
-    if (!selectedAccountId) return undefined;
+    if (!selectedAccountId || selectedAccountId === "summary") return undefined;
     return bankAccounts.find(
       (account) =>
         account.id === selectedAccountId ||
@@ -114,7 +122,7 @@ export default function AccountPage() {
   }, [bankAccounts, selectedAccountId]);
 
   const selectedIndex = useMemo(() => {
-    if (!selectedAccountId) return 0;
+    if (!selectedAccountId || selectedAccountId === "summary") return 0;
     const idx = bankAccounts.findIndex(
       (account) =>
         account.id === selectedAccountId ||
@@ -129,7 +137,10 @@ export default function AccountPage() {
     return getAccountIndicatorColor(selectedAccount, selectedIndex);
   }, [selectedAccount, selectedIndex]);
 
+  const queryAccount = selectedAccount ?? defaultAccount;
   const accountNumber = selectedAccount?.accountNumber;
+  const targetAccountNumber = queryAccount?.accountNumber;
+  const targetAccountType = queryAccount?.accountType ?? "CA";
   const isMockDeposit = selectedAccount?.accountNumber === MOCK_DEPOSIT_ACCOUNT.accountNumber;
 
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -153,7 +164,7 @@ export default function AccountPage() {
     setTxnQuery("");
     setTxnFilter(DEFAULT_TRANSACTIONS_FILTER);
     setTxnPage(0);
-  }, [accountNumber]);
+  }, [targetAccountNumber]);
 
   const [pendingRolloverOption, setPendingRolloverOption] = useState<RolloverOption | null>(null);
   const [rolloverQrOpen, setRolloverQrOpen] = useState(false);
@@ -172,10 +183,10 @@ export default function AccountPage() {
   const [getAccountSummary] = useGetAccountSummaryMutation();
 
   useEffect(() => {
-    if (accountNumber && !isMockDeposit) {
-      getAccountSummary({ accountNumber, type: accounType });
+    if (targetAccountNumber && !isMockDeposit) {
+      getAccountSummary({ accountNumber: targetAccountNumber, type: targetAccountType });
     }
-  }, [accountNumber, accounType, isMockDeposit, getAccountSummary]);
+  }, [targetAccountNumber, targetAccountType, isMockDeposit, getAccountSummary]);
 
   const [listTransactions] = useListTransactionsMutation();
 
@@ -183,18 +194,18 @@ export default function AccountPage() {
   const [isDownloadingStatement, setIsDownloadingStatement] = useState(false);
 
   useEffect(() => {
-    if (!accountNumber || isMockDeposit) return;
+    if (!targetAccountNumber || (selectedAccount && isMockDeposit)) return;
     const range = resolveBaseFilterRange(txnFilter);
     listTransactions({
-      accountNumber,
-      type: accounType,
+      accountNumber: targetAccountNumber,
+      type: targetAccountType,
       startedDate: range?.start.toISOString(),
       endedDate: range?.end.toISOString(),
       limit: TRANSACTIONS_PAGE_SIZE,
       offset: txnPage * TRANSACTIONS_PAGE_SIZE,
       search: debouncedTxnQuery || undefined,
     });
-  }, [accountNumber, accounType, txnFilter, debouncedTxnQuery, txnPage, isMockDeposit, listTransactions]);
+  }, [targetAccountNumber, targetAccountType, selectedAccount, isMockDeposit, txnFilter, debouncedTxnQuery, txnPage, listTransactions]);
 
   const handleDownloadCertificate = async () => {
     if (!accountNumber) return;
@@ -250,10 +261,10 @@ export default function AccountPage() {
     }
   };
 
-  const transactionsResponse = useAppSelector((state) => selectTransactionsForAccount(state, accountNumber));
+  const transactionsResponse = useAppSelector((state) => selectTransactionsForAccount(state, targetAccountNumber));
 
   const apiTransactions = useAppSelector((state) =>
-    selectAccountTransactions(state, accountNumber, selectedAccount?.accountName),
+    selectAccountTransactions(state, targetAccountNumber, selectedAccount?.accountName ?? defaultAccount?.accountName),
   );
   const transactionsStatus = transactionsResponse?.status ?? "loading";
   const selectedTransactions = apiTransactions ?? [];
@@ -267,11 +278,11 @@ export default function AccountPage() {
   );
   const accountSummaryResponse = useAppSelector(selectAccountSummaryResponse);
   const selectedAccountSummary = useMemo(() => {
-    if (!accountNumber || !accountSummaryResponse) return undefined;
-    return accountSummaryResponse.accountNumber === accountNumber
+    if (!targetAccountNumber || !accountSummaryResponse) return undefined;
+    return accountSummaryResponse.accountNumber === targetAccountNumber
       ? accountSummaryResponse.data
       : undefined;
-  }, [accountNumber, accountSummaryResponse]);
+  }, [targetAccountNumber, accountSummaryResponse]);
 
   const mockDepositDetail: IAccountDetailResponses = useMemo(() => ({
     ...MOCK_DEPOSIT_DETAIL,
@@ -284,7 +295,13 @@ export default function AccountPage() {
   const effectiveFixedDeposit = isMockDeposit ? mockDepositDetail : fixedDepositDetail;
   const effectiveTransactions = isMockDeposit ? MOCK_DEPOSIT_TRANSACTIONS : selectedTransactions;
   const effectiveTxnStatus = isMockDeposit ? "loaded" : transactionsStatus;
-  const effectiveTxnTotal = isMockDeposit ? MOCK_DEPOSIT_TRANSACTIONS.length : transactionsTotal;
+  const effectiveTxnTotal = isMockDeposit
+    ? MOCK_DEPOSIT_TRANSACTIONS.length
+    : transactionsTotal > 0
+      ? transactionsTotal
+      : isSummarySelected
+        ? 60
+        : selectedTransactions.length;
 
   const selectedCompany = useMemo(
     () =>
@@ -312,28 +329,7 @@ export default function AccountPage() {
   );
   return (
     <Box sx={{ width: "100%" }}>
-
-      <SummaryCardNew
-        label="Available Balance"
-        accounts={bankAccounts}
-        summary={effectiveSummary}
-        accountSummary={selectedAccountSummary}
-        transactions={effectiveTransactions}
-        chartData={chartData}
-      />
-      <Grid><Typography
-        sx={{
-          fontSize: 15,
-          fontWeight: 700,
-          color: "#5A6B82",
-          lineHeight: 1.2,
-          mb: 1.5,
-          px: 0.5,
-        }}
-      >
-        Account List
-      </Typography> </Grid>
-      <Grid container spacing={2.5}>
+      <Grid container spacing={3}>
         {/* Left Column: Accounts Sidebar */}
         <Grid size={{ xs: 12, lg: 3 }}>
           <AccountsSidebar
@@ -341,13 +337,56 @@ export default function AccountPage() {
             accounts={bankAccounts}
             selectedId={selectedAccountId}
             onSelect={(id) => setSelectedAccountId(id)}
-            hideSummary
           />
         </Grid>
 
-        {/* Right Column: Account Detail Card + Transactions List */}
-        <Grid size={{ xs: 12, lg: 9 }}>
-          {selectedAccount && (
+        {/* Right Column: Account Detail Card / Account Summary + Transactions List */}
+        <Grid size={{ xs: 12, lg: 9}}>
+          {isSummarySelected ? (
+            <Grid container spacing={2.5}>
+              {/* Top Right: Account Summary Card */}
+              <Grid size={12}>
+                <SummaryCardNew
+                  label="Account Summary"
+                  accounts={bankAccounts}
+                  summary={effectiveSummary}
+                  accountSummary={selectedAccountSummary}
+                  transactions={effectiveTransactions}
+                  chartData={chartData}
+                />
+              </Grid>
+
+              {/* Bottom Right: Transactions List */}
+              <Grid size={12}>
+                <TransactionsList
+                  key="summary-transactions"
+                  transactions={effectiveTransactions}
+                  accentColor="#74C0A8"
+                  isLoading={effectiveTxnStatus === "loading"}
+                  error={effectiveTxnStatus === "failed"}
+                  query={txnQuery}
+                  onQueryChange={setTxnQuery}
+                  showDateFilter
+                  dateFilter={txnFilter}
+                  onDateFilterChange={(value) => {
+                    setTxnFilter(value);
+                    setTxnPage(0);
+                  }}
+                  page={txnPage}
+                  total={effectiveTxnTotal}
+                  rowsPerPage={TRANSACTIONS_PAGE_SIZE}
+                  onPageChange={setTxnPage}
+                  showDownload={false}
+                  onSelectTransaction={setSelectedTransaction}
+                  accountName={defaultAccount?.accountName}
+                  accountNumber={defaultAccount?.accountNumber}
+                  accountType={defaultAccount?.accountType}
+                  onViewCertificate={() => { }}
+                  onDownloadCertificate={() => { }}
+                />
+              </Grid>
+            </Grid>
+          ) : selectedAccount ? (
             <Grid container spacing={2.5}>
               {/* Top Right: Account Details Card */}
               <Grid size={12}>
@@ -403,7 +442,7 @@ export default function AccountPage() {
                 />
               </Grid>
             </Grid>
-          )}
+          ) : null}
         </Grid>
       </Grid>
 

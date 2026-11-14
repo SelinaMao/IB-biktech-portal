@@ -31,10 +31,10 @@ export type BindPromptContentProps = {
 };
 
 export default function BindPromptContent({
-  title,
-  description,
+  title="Activate Account",
+  description="You're almost there! Activate your account to get started and access all features.",
   bodyExtra,
-  imageSrc = "/assets/icons/linked_device.svg",
+  imageSrc = "/assets/icons/ImageLinkMobile.svg",
   imageHeight = 300,
   imageOffsetTop = 0,
   imageInset,
@@ -52,15 +52,15 @@ export default function BindPromptContent({
   const image = <Image src={imageSrc} alt="" fill style={{ objectFit: "cover", objectPosition: "center" }} />;
 
   return (
-    <Stack sx={{ alignItems: "center", textAlign: "center", ...stackSx }} spacing={3}>
+    <Stack sx={{ alignItems: "center", textAlign: "center",padding:"24px", ...stackSx }} spacing={3}>
       <Box
         sx={{
+          padding:"20px",
+          marginTop:"30px",
           position: "relative",
-          width: "calc(100% + 48px)",
-          height: imageHeight,
+          width: "120px",
+          height: "120px",
           mt: imageOffsetTop,
-          borderRadius: `${radius.xl}px`,
-          backgroundColor: palette.slate[100],
           overflow: "hidden",
         }}
       >

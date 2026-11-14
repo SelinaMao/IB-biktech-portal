@@ -19,7 +19,7 @@ export interface AccountsSidebarProps {
 // First colors match the donut chart, extras prevent repeats when there are more accounts
 const ACCOUNT_COLORS: string[] = [
   ...DEFAULT_PIE_COLORS,
-  "#F472B6", // Pink
+  "#36A17E", // Pink
   "#FACC15", // Yellow
   "#14B8A6", // Teal
   "#F87171", // Red
@@ -113,7 +113,7 @@ export const getAccountIndicatorColor = (
   index: number = 0,
 ): string => {
   // Color from API wins (remove this line if you never want it to override)
-  if (account?.color) return account.color;
+  // if (account?.color) return account.color;
 
   // 1 account = 1 color, by position
   return ACCOUNT_COLORS[index % ACCOUNT_COLORS.length];
@@ -165,6 +165,7 @@ export default function AccountsSidebar({
     const key = account.id || `${account.accountNumber}-${account.accountType}`;
     const active = Boolean(
       selectedId &&
+      selectedId !== "summary" &&
       (account.id === selectedId ||
         account.accountNumber === selectedId ||
         `${account.accountNumber}-${account.accountType}` === selectedId),
@@ -311,16 +312,55 @@ export default function AccountsSidebar({
     );
   };
 
+  const isSummaryActive = Boolean(selectedId === "summary" || !selectedId);
+
   return (
     <Box sx={{ width: "100%" }}>
-      {/* Summary box (hidden when top SummaryCard is active) */}
+      {/* Summary box (default account / all accounts summary) */}
       {!hideSummary && (
         <Box
+          role={onSelect ? "button" : undefined}
+          tabIndex={onSelect ? 0 : undefined}
+          onClick={() => onSelect?.("summary")}
+          onKeyDown={(e) => {
+            if (!onSelect) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelect("summary");
+            }
+          }}
           sx={{
-            bgcolor: "#F4F7FB",
+         
+           bgcolor: "rgba(255, 255, 255, 0.4)",
             borderRadius: "16px",
-            p: "18px 20px",
-            border: "1px solid #EDF2F7",
+              p: "10px 14px",
+            outline: isSummaryActive ? "1.5px solid #36A17E" : "none",
+            borderLeft:isSummaryActive ?`4px solid #36A17E` : "none",
+             backgroundImage: isSummaryActive
+              ? `linear-gradient(90deg, ${colorWithAlpha( "#36A17E", 0.35)} 0%, ${colorWithAlpha("#36A17E", 0.12)} 22%, ${colorWithAlpha("#36A17E", 0.04)} 38%, rgba(255, 255, 255, 0) 50%, #FFFFFF 100%)`
+              : "none",
+            boxShadow: isSummaryActive
+              ? `0px 2px 8px ${colorWithAlpha("#36A17E", 0.14)}`
+              : "0px 1px 3px rgba(15, 23, 42, 0.03)",
+            // boxShadow: isSummaryActive
+            //   ? "0px 2px 8px rgba(141, 212, 190, 0.2)"
+            //   : "0px 1px 3px rgba(15, 23, 42, 0.03)",
+            cursor: onSelect ? "pointer" : "default",
+            // outline: "none",
+            userSelect: "none",
+            transition: "all 0.1s cubic-bezier(0.4, 0, 0.2, 1)",
+            "&:hover": {
+              ...(isSummaryActive
+                ? {}
+                : {
+                    bgcolor: "#F8FAFC",
+                    borderColor: "#CBD5E1",
+                  }),
+            },
+            "&:focus-visible": {
+              outline: "2px solid #36A17E",
+              outlineOffset: 2,
+            },
           }}
         >
           <Typography
@@ -355,9 +395,24 @@ export default function AccountsSidebar({
         </Box>
       )}
 
+      {/* Account List heading */}
+      <Typography
+        sx={{
+          fontSize: 15,
+          fontWeight: 700,
+          color: "#5A6B82",
+          lineHeight: 1.2,
+          mt: hideSummary ? 0 : 3,
+          mb: 1.5,
+          px: 0.5,
+        }}
+      >
+        Account List
+      </Typography>
+
       {/* Account list */}
       {accounts.length > 0 && (
-        <Box sx={{ mt: hideSummary ? 0 : 3 }}>
+        <Box>
           <Stack spacing={1.5}>
             {accounts.map((account, index) => renderAccountCard(account, index))}
           </Stack>

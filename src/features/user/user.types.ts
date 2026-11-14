@@ -110,7 +110,7 @@ export const MANAGE_ACCOUNT_OPTIONS: ManageAccountOption[] = [
  */
 export const LIMIT_CATEGORIES = [
   { key: "ownBankTransfer", label: "Own Bank Transfer" },
-  { key: "transferToOtherSme", label: "Transfer to Other SME" },
+  { key: "transferToOtherSme", label: "Transfer to Other Bank" },
   { key: "toLocalBankAccount", label: "To Local Bank- Account" },
   { key: "toLocalBankWallet", label: "To Local Bank- Wallet" },
   { key: "payrollUpload", label: "Payroll Upload" },

@@ -1,38 +1,38 @@
 "use client";
 
-import AppleIcon from "@mui/icons-material/Apple";
-import GoogleIcon from "@mui/icons-material/Google";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import QrCode2RoundedIcon from "@mui/icons-material/QrCode2Rounded";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { LogOut } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import BaseButton from "@core/components/BaseButton";
-import BaseDialog from "@core/components/BaseDialog";
-import { showToast } from "@core/components/AppToast";
-import BaseTermsLabel from "@core/components/BaseTermsLabel";
-import BaseCheckbox from "@core/form/BaseCheckbox";
-import BaseInput from "@core/form/BaseInput";
 import { useAuth } from "@/features/auth/use-auth";
 import { font, palette, radius } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
 import { formatDateTime } from "@/utils/date-time";
+import { showToast } from "@core/components/AppToast";
+import BaseButton from "@core/components/BaseButton";
+import BaseDialog from "@core/components/BaseDialog";
+import BaseTermsLabel from "@core/components/BaseTermsLabel";
+import BaseCheckbox from "@core/form/BaseCheckbox";
+import BaseInput from "@core/form/BaseInput";
 
+import { useAppSelector } from "@/store/hooks";
+import { Close } from "@mui/icons-material";
+import { Button, Link } from "@mui/material";
 import { useCreateDeviceBindingSessionMutation, useLazyDeviceBindingSessionStatusQuery, useUnlinkCurrentDeviceMutation } from "../bind.api";
 import type { DeviceBindingSession, DeviceBindingStatus } from "../bind.types";
 import BindPromptContent from "./BindPromptContent";
-import { useAppSelector } from "@/store/hooks";
+import { X } from "lucide-react";
 
 type DialogView = "starting" | "session" | "bound" | "error" | "getStarted";
 
@@ -320,25 +320,70 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
         ) : null}
 
         {dialogView === "session" && session ? (
-          <Stack sx={{ alignItems: "center", textAlign: "center" }} spacing={3}>
+          <Stack sx={{ alignItems: "start", textAlign: "center" }} spacing={3}>
             {status === "PENDING" ? (
               <>
-                <Typography variant="h5" sx={{ fontWeight: font.weight.regular, fontSize: font.size["xxl"], color: palette.slate[950] }}>
-                  {t("scan.title")}
-                </Typography>
-                <Typography variant="body2" sx={{ fontSize: font.size.base, color: palette.slate[950] }}>
-                  {t("scan.instruction")}{" "}
-                  <Box component="span" sx={{ fontWeight: font.weight.bold }}>
+                <Box sx={{ alignItems: "start", textAlign: "start", width: "100%" }}>
+                  <Stack
+                    direction="row"
+                    sx={{ width: "100%", alignItems: "center", justifyContent: "space-between" }}
+                  >
+                    <Typography
+                      sx={{
+                        fontWeight: font.weight.semibold,
+                        fontSize: font.size["xxl"],
+                        color: palette.slate[950],
+                      }}
+                    >
+                      {t("scan.title")}
+                    </Typography>
+
+                    {showSignOut ? <SignOutFooter /> : null}
+                  </Stack>
+
+                  <Typography variant="body2" sx={{ fontSize: font.size.base, fontWeight: font.weight.semibold, color: palette.slate[950], paddingTop: "32px" }}>
+                    {t("scan.instruction")}{" "}
+                    {/* <Box component="span" sx={{ fontWeight: font.weight.bold }}>
                     {t("scan.appName")}
-                  </Box>
-                </Typography>
-                <Box sx={{ lineHeight: 0 }}>
-                  <QRCodeSVG value={session.qrPayload} size={208} level="Q" marginSize={1} title={t("qrAlt")} />
+                  </Box> */}
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontSize: font.size.base, color: palette.slate[950] }}>
+
+                    <Box component="span" sx={{ fontWeight: font.weight.regular }}>
+                      {t.rich("scan.subTitle", {
+                        appName: "BiKTECH Banking App",
+                        link: (chunks) => (
+                          <Link
+                            href="https://example.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            underline="always"
+                          >
+                            {chunks}
+                          </Link>
+                        ),
+                      })}
+                    </Box>
+                  </Typography>
                 </Box>
-                <Typography variant="body2" sx={{ fontSize: font.size.base, color: palette.slate[400] }}>
-                  {t("scan.expireIn", { seconds: remainingSeconds })}
-                </Typography>
-                <Box sx={{ pt: 1 }}>
+                <Stack sx={{ width: "99%", bgcolor: `${palette.slate[100]}`, borderRadius: "12px" }}>
+                  <Box sx={{ lineHeight: 0, padding: "34px 15px", m: "auto" }}>
+                    <QRCodeSVG value={session.qrPayload} size={160} level="Q" marginSize={1} title={t("qrAlt")} />
+                  </Box>
+                </Stack>
+                <Stack sx={{ alignItems: "center", justifyContent: "center", width: "100%" }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontSize: font.size.base,
+                      color: palette.slate[400],
+                      textAlign: "center",
+                    }}
+                  >
+                    {t("scan.expireIn", { seconds: remainingSeconds })}
+                  </Typography>
+                </Stack>
+                {/* <Box sx={{ pt: 1 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: font.weight.bold, mb: 0.5, fontSize: font.size.lg, color: palette.slate[950] }}>
                     {t("scan.noAppQuestion")}
                   </Typography>
@@ -373,14 +418,16 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
                       }}
                     />
                   </Stack>
-                </Box>
+                </Box> */}
               </>
             ) : null}
 
             {status === "SCANNED" ? (
-              <Box
+              <Box 
                 sx={{
+                  
                   position: "relative",
+                  alignSelf: "center",
                   p: 2.5,
                   bgcolor: palette.white,
                   border: `1px solid ${palette.slate[200]}`,
@@ -389,7 +436,7 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
                   lineHeight: 0,
                 }}
               >
-                <QRCodeSVG value={session.qrPayload} size={208} level="Q" marginSize={1} title={t("qrAlt")} />
+                <QRCodeSVG value={session.qrPayload} size={208} level="Q" marginSize={3} title={t("qrAlt")} />
                 <Box
                   sx={{
                     position: "absolute",
@@ -472,8 +519,6 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
             ) : null}
           </Stack>
         ) : null}
-
-        {showSignOut ? <SignOutFooter /> : null}
       </BaseDialog>
 
       <BaseDialog
@@ -578,40 +623,22 @@ function SignOutFooter() {
   };
 
   return (
-    <Stack
-      direction="row"
+
+    <Button
+      onClick={() => void handleSignOut()}
+      disabled={isSigningOut}
+      aria-label={t("activatePrompt.signOut")}
+      title={t("activatePrompt.signOut")}
       sx={{
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 2,
-        mt: 3,
-        pt: 2,
-        borderTop: `1px solid ${palette.slate[200]}`,
+        minWidth: 0,
+        p: 1,
+        backgroundColor: palette.hover[10],
+        color: palette.black40,
+        "&:hover": { backgroundColor: palette.hover[10] },
       }}
     >
-      <Typography variant="body2" noWrap sx={{ minWidth: 0, fontSize: font.size.sm, color: palette.slate[400] }}>
-        {t.rich("signedInAs", {
-          name: username ?? "",
-          user: (chunks) => (
-            <Box component="span" sx={{ fontWeight: font.weight.medium, color: palette.slate[950] }}>
-              {chunks}
-            </Box>
-          ),
-        })}
-      </Typography>
-      <BaseButton
-        title={t("activatePrompt.signOut")}
-        startIcon={<LogOut size={16} aria-hidden />}
-        onClick={() => void handleSignOut()}
-        isLoading={isSigningOut}
-        sx={{
-          flexShrink: 0,
-          padding: "6px 10px",
-          backgroundColor: "transparent",
-          color: palette.danger[500],
-          "&:hover": { backgroundColor: palette.danger[50] },
-        }}
-      />
-    </Stack>
+      {isSigningOut ? <CircularProgress size={16} /> : <X size={16} aria-hidden />}
+    </Button>
+
   );
 }
