@@ -8,18 +8,14 @@ import Stack from "@mui/material/Stack";
 import { showToast } from "@core/components/AppToast";
 import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/BaseFilter";
 import { CLIENT_PERMISSIONS, useCan } from "@/features/auth";
-import { useListMyTasksQuery } from "@/features/workflow";
+import { useListMyTasksQuery, useActOnInstanceMutation } from "@/features/workflow";
 import { useListUsersQuery } from "@/features/user";
 import {
   ApprovalTable,
   ApprovalDetailDialog,
-  pendingApprovalEntries as initialPendingApprovalEntries,
-  nonFinancialApprovalEntries as initialNonFinancialEntries,
-  approvalHistoryEntries as initialApprovalHistoryEntries,
   type ApprovalEntry,
   type ApprovalTab,
   ApprovalSummaryCards,
-  approvalSummary,
 } from "@/features/approval";
 
 const ROWS_PER_PAGE = 5;
@@ -34,6 +30,12 @@ export default function ApprovalPage() {
     { status: "PENDING" },
     { skip: !canSeeTasks }
   );
+  const { data: allTasksData, isLoading: allTasksLoading } = useListMyTasksQuery(
+    undefined,
+    { skip: !canSeeTasks }
+  );
+  const [actOnInstance, { isLoading: isActing }] = useActOnInstanceMutation();
+
   const { data: usersData } = useListUsersQuery(
     { page: 0, size: 200 },
     { skip: !canViewUsers }
@@ -45,9 +47,9 @@ export default function ApprovalPage() {
   const [dateFilter, setDateFilter] = useState<BaseFilterValue>(DEFAULT_FILTER);
   const [page, setPage] = useState(0);
 
-  const [pendingEntries, setPendingEntries] = useState(initialPendingApprovalEntries);
-  const [nonFinancialEntries, setNonFinancialEntries] = useState(initialNonFinancialEntries);
-  const [historyEntries, setHistoryEntries] = useState(initialApprovalHistoryEntries);
+  const [pendingEntries, setPendingEntries] = useState<ApprovalEntry[]>([]);
+  const [nonFinancialEntries, setNonFinancialEntries] = useState<ApprovalEntry[]>([]);
+  const [historyEntries, setHistoryEntries] = useState<ApprovalEntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<ApprovalEntry | null>(null);
 
   // Map users for initiator names
@@ -59,29 +61,51 @@ export default function ApprovalPage() {
     return map;
   }, [usersData]);
 
-  // Synchronize dynamic API tasks into pendingEntries if API returns records
+  // Synchronize dynamic API tasks into pendingEntries
   useEffect(() => {
-    const tasks = myTasksData?.content;
-    if (tasks && tasks.length > 0) {
-      const mapped = tasks.map((task) => ({
+    const tasks = myTasksData?.content ?? [];
+    const mapped: ApprovalEntry[] = tasks.map((task) => ({
+      id: task.taskId,
+      creationDate: task.createdAt,
+      transactionType: task.functionName || "Approval Request",
+      transactionId: task.instanceId,
+      refNo: task.referenceId || task.taskId.slice(0, 12),
+      amount: (task as any).amount || 0,
+      fee: 0,
+      currency: (task as any).currency || "USD",
+      payToName: (task as any).payTo || nameByUserId.get(task.initiatedBy) || "Beneficiary",
+      payToAccountNo: (task as any).payToAccount || "",
+      sourceAccountName: (task as any).sourceAccount || "",
+      sourceAccountNo: (task as any).sourceAccountNo || "",
+      pendingOn: "You",
+      status: (task.status as any) || "PENDING",
+    }));
+    setPendingEntries(mapped);
+  }, [myTasksData, nameByUserId]);
+
+  // Synchronize dynamic history tasks from API
+  useEffect(() => {
+    if (allTasksData?.content) {
+      const nonPending = allTasksData.content.filter((task) => task.status !== "PENDING");
+      const mapped: ApprovalEntry[] = nonPending.map((task) => ({
         id: task.taskId,
         creationDate: task.createdAt,
-        transactionType: task.functionName,
+        transactionType: task.functionName || "Approval Request",
         transactionId: task.instanceId,
         refNo: task.referenceId || task.taskId.slice(0, 12),
         amount: (task as any).amount || 0,
         fee: 0,
         currency: (task as any).currency || "USD",
         payToName: (task as any).payTo || nameByUserId.get(task.initiatedBy) || "Beneficiary",
-        payToAccountNo: (task as any).payToAccount || "001 234 567",
-        sourceAccountName: (task as any).sourceAccount || "Operating Account",
-        sourceAccountNo: (task as any).sourceAccountNo || "0012 3456 7890",
+        payToAccountNo: (task as any).payToAccount || "",
+        sourceAccountName: (task as any).sourceAccount || "",
+        sourceAccountNo: (task as any).sourceAccountNo || "",
         pendingOn: "You",
-        status: "PENDING" as const,
+        status: (task.status as any) || "APPROVED",
       }));
-      setPendingEntries(mapped);
+      setHistoryEntries(mapped);
     }
-  }, [myTasksData, nameByUserId]);
+  }, [allTasksData, nameByUserId]);
 
   const activeCategoryEntries = category === "financial" ? pendingEntries : nonFinancialEntries;
   const sourceEntries = tab === "pending" ? activeCategoryEntries : historyEntries;
@@ -140,40 +164,60 @@ export default function ApprovalPage() {
     setPage(0);
   };
 
-  const handleApprove = (entry: ApprovalEntry) => {
-    if (category === "financial") {
-      setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
-    } else {
-      setNonFinancialEntries((prev) => prev.filter((e) => e.id !== entry.id));
+  const handleApprove = async (entry: ApprovalEntry) => {
+    try {
+      if (entry.transactionId) {
+        await actOnInstance({ id: entry.transactionId, decision: "APPROVE" }).unwrap();
+      }
+      if (category === "financial") {
+        setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
+      } else {
+        setNonFinancialEntries((prev) => prev.filter((e) => e.id !== entry.id));
+      }
+      setHistoryEntries((prev) => [{ ...entry, status: "APPROVED" }, ...prev]);
+      setSelectedEntry(null);
+      showToast("success", {
+        title: "Transaction approved",
+        message: `${entry.transactionType} to ${entry.payToName} has been approved.`,
+      });
+    } catch {
+      showToast("error", {
+        title: "Approval failed",
+        message: "Could not approve the transaction. Please try again.",
+      });
     }
-    setHistoryEntries((prev) => [{ ...entry, status: "APPROVED" }, ...prev]);
-    setSelectedEntry(null);
-    showToast("success", {
-      title: "Transaction approved",
-      message: `${entry.transactionType} to ${entry.payToName} has been approved.`,
-    });
   };
 
-  const handleReject = (entry: ApprovalEntry, reason: string) => {
-    if (category === "financial") {
-      setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
-    } else {
-      setNonFinancialEntries((prev) => prev.filter((e) => e.id !== entry.id));
+  const handleReject = async (entry: ApprovalEntry, reason: string) => {
+    try {
+      if (entry.transactionId) {
+        await actOnInstance({ id: entry.transactionId, decision: "REJECT", reason }).unwrap();
+      }
+      if (category === "financial") {
+        setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
+      } else {
+        setNonFinancialEntries((prev) => prev.filter((e) => e.id !== entry.id));
+      }
+      setHistoryEntries((prev) => [{ ...entry, status: "REJECTED", rejectReason: reason }, ...prev]);
+      setSelectedEntry(null);
+      showToast("error", {
+        title: "Transaction rejected",
+        message: `${entry.transactionType} to ${entry.payToName} has been rejected.`,
+      });
+    } catch {
+      showToast("error", {
+        title: "Rejection failed",
+        message: "Could not reject the transaction. Please try again.",
+      });
     }
-    setHistoryEntries((prev) => [{ ...entry, status: "REJECTED", rejectReason: reason }, ...prev]);
-    setSelectedEntry(null);
-    showToast("error", {
-      title: "Transaction rejected",
-      message: `${entry.transactionType} to ${entry.payToName} has been rejected.`,
-    });
   };
 
   return (
     <Box sx={{ width: "100%" }}>
       {/* 1. Summary Cards */}
-      <ApprovalSummaryCards summary={approvalSummary} entries={pendingEntries} />
+      <ApprovalSummaryCards entries={pendingEntries} isLoading={tasksLoading} />
 
-      {/* 2. Tabs: Pending (5) & History */}
+      {/* 2. Tabs: Pending & History */}
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mt: 4, mb: 2 }}>
         <Box
           component="button"
@@ -202,7 +246,7 @@ export default function ApprovalPage() {
             },
           }}
         >
-          Pending (5)
+          Pending ({pendingEntries.length})
         </Box>
 
         <Box
@@ -236,10 +280,10 @@ export default function ApprovalPage() {
         </Box>
       </Stack>
 
-      {/* 3. Transactions Card & Table matching photo */}
+      {/* 3. Transactions Card & Table */}
       <ApprovalTable
         entries={entries}
-        isLoading={tasksLoading}
+        isLoading={tab === "pending" ? tasksLoading : allTasksLoading}
         totalCount={filteredEntries.length}
         search={search}
         onSearchChange={handleSearchChange}
@@ -258,6 +302,8 @@ export default function ApprovalPage() {
         entry={selectedEntry}
         onApprove={handleApprove}
         onReject={handleReject}
+        isApproving={isActing}
+        isRejecting={isActing}
       />
     </Box>
   );

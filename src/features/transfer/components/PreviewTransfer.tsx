@@ -40,9 +40,6 @@ function maskAccount(acc?: string | null) {
     return `•••• ${last4}`;
 }
 
-const DEFAULT_MOCK_TRANSACTION_ID = "#TRX-28491024";
-const DEFAULT_MOCK_REFERENCE_NO = "SSM0499765223000";
-
 export type TransferReviewRow = { label: string; value: string };
 
 /** One bordered box on the Review step (From Account, Amount, Remark, ...). */
@@ -166,9 +163,9 @@ export default function PreviewTransfer({
     };
 
     // Sourced directly from quoteSummaryRows / buildTransferSummaryRows
-    const amountTransferred = summaryRows?.find((r) => /amount\s*transferred/i.test(r.label))?.value || "$900.90";
-    const transactionId = summaryRows?.find((r) => /transaction\s*id/i.test(r.label))?.value || DEFAULT_MOCK_TRANSACTION_ID;
-    const referenceNo = summaryRows?.find((r) => /reference\s*no/i.test(r.label))?.value || DEFAULT_MOCK_REFERENCE_NO;
+    const amountTransferred = summaryRows?.find((r) => /amount\s*transferred/i.test(r.label))?.value || "";
+    const transactionId = summaryRows?.find((r) => /transaction\s*id/i.test(r.label))?.value || "";
+    const referenceNo = summaryRows?.find((r) => /reference\s*no/i.test(r.label))?.value || "";
     const debitAmount = summaryRows?.find((r) => /debit\s*amount/i.test(r.label))?.value || amountTransferred;
     const otherSummaryRows = summaryRows?.filter(
         (r) => !/amount\s*transferred|transaction\s*id|reference\s*no|debit\s*amount/i.test(r.label)
@@ -225,12 +222,12 @@ export default function PreviewTransfer({
             }
             : null
     );
-    const displayFromName = result?.fromAccountName || resolvedFromAccount.name || "Shiiping co., ltd.";
-    const displayFromNumber = result?.fromAccountNumber || resolvedFromAccount.accountNumber || "0068";
-    const displayToName = result?.toAccountName || resolvedToAccount.name || "Sarah Jenkins";
-    const displayToNumber = result?.toAccountNumber || resolvedToAccount.accountNumber || "0567";
-    const displayTransactionId = result?.cbsReference || result?.referenceId || transactionId || DEFAULT_MOCK_TRANSACTION_ID;
-    const displayReferenceNo = result?.referenceId || referenceNo || DEFAULT_MOCK_REFERENCE_NO;
+    const displayFromName = result?.fromAccountName || resolvedFromAccount.name || "-";
+    const displayFromNumber = result?.fromAccountNumber || resolvedFromAccount.accountNumber || "-";
+    const displayToName = result?.toAccountName || resolvedToAccount.name || "-";
+    const displayToNumber = result?.toAccountNumber || resolvedToAccount.accountNumber || "-";
+    const displayTransactionId = result?.cbsReference || result?.referenceId || transactionId || "-";
+    const displayReferenceNo = result?.referenceId || referenceNo || "-";
     const completedDateStr = dayjs(result?.executedAt || result?.createdAt || new Date()).format("MMM D, YYYY • h:mm A");
     const displayAmountVal = result?.amount ? formatCCY(result.amount, result.currency || "USD") : amountTransferred;
     const displayFee = "$0.00";
@@ -249,15 +246,15 @@ export default function PreviewTransfer({
     const handleConfirmed = () => {
         setVerifyFlowOpen(false);
         setResult({
-            referenceId: referenceNo || DEFAULT_MOCK_REFERENCE_NO,
+            referenceId: referenceNo || result?.referenceId || "-",
             transferType: "TRANSFER",
             method: "MANUAL",
             functionCode: "TRANSFER",
             status: "COMPLETED",
-            fromAccountNumber: resolvedFromAccount?.accountNumber || "000 000 0068",
-            fromAccountName: resolvedFromAccount?.name || "Shiiping co., ltd.",
-            toAccountNumber: resolvedToAccount?.accountNumber || "000 000 0567",
-            toAccountName: resolvedToAccount?.name || "Sarah Jenkins",
+            fromAccountNumber: resolvedFromAccount?.accountNumber || "",
+            fromAccountName: resolvedFromAccount?.name || "",
+            toAccountNumber: resolvedToAccount?.accountNumber || "",
+            toAccountName: resolvedToAccount?.name || "",
             amount: parseTransferAmount(amountTransferred) || 900.9,
             currency: "USD",
             createdAt: new Date().toISOString(),

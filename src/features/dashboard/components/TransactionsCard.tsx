@@ -12,23 +12,27 @@ import BaseCard from "@core/components/BaseCard";
 import BaseFilterButton from "@core/components/BaseFilterButton";
 import BaseIconBadge from "@core/components/BaseIconBadge";
 import {
+  selectAccountsResponse,
   selectTransactionsResponse,
   TransactionFilterDialog,
   useListTransactionsMutation,
+  type CoreAccountEntry,
   type TxnStatus,
 } from "@/features/account";
 import type { TxnDirection } from "../dashboard.types";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
-import type { BaseFilterValue } from "@/@core/components/BaseFilter";
+import { resolveBaseFilterRange, BASE_FILTER_TYPE_LABELS, type BaseFilterValue } from "@core/components/BaseFilter";
 
 export interface TransactionItem {
   id?: string;
   title: string;
   ref: string;
   date: string;
+  rawDate?: string;
   time: string;
   account: string;
   amount: number;
+  currency?: string;
   direction: TxnDirection;
   status: TxnStatus;
 }
@@ -41,65 +45,7 @@ const STATUS_TABS = {
 
 type StatusTab = keyof typeof STATUS_TABS;
 
-const defaultTransactions: TransactionItem[] = [
-  {
-    id: "1",
-    title: "Bakong Payment",
-    ref: "2819700093P2429",
-    date: "11 Jun 2026",
-    account: "Savings - 000 067 898",
-    time: "3:48 PM",
-    amount: -25.0,
-    direction: "out",
-    status: "processed",
-  },
-  {
-    id: "2",
-    title: "Bakong Payment",
-    ref: "2819700093P2429",
-    date: "11 Jun 2026",
-    account: "Savings - 000 067 898",
-    time: "3:48 PM",
-    amount: 25.0,
-    direction: "in",
-    status: "processed",
-  },
-  {
-    id: "3",
-    title: "Bakong Payment",
-    ref: "2819700093P2429",
-    date: "11 Jun 2026",
-    account: "Savings - 000 067 898",
-    time: "3:48 PM",
-    amount: -25.0,
-    direction: "out",
-    status: "pending",
-  },
-  {
-    id: "4",
-    title: "Bakong Payment",
-    ref: "2819700093P2429",
-    date: "11 Jun 2026",
-    account: "Savings - 000 067 898",
-    time: "3:48 PM",
-    amount: -25.0,
-    direction: "out",
-    status: "processed",
-  },
-  {
-    id: "5",
-    title: "Bakong Payment",
-    ref: "2819700093P2429",
-    date: "11 Jun 2026",
-    account: "Savings - 000 067 898",
-    time: "3:48 PM",
-    amount: 25.0,
-    direction: "in",
-    status: "pending",
-  },
-];
-
-const FETCH_LIMIT = 20;
+const FETCH_LIMIT = 50;
 const ROWS_PER_PAGE = 5;
 
 /** Column widths, as the share of the table each one takes. To/From takes the
@@ -119,12 +65,15 @@ const HEAD_CELL_SX = {
 } as const;
 const BODY_CELL_SX = { py: 2.75 } as const;
 
-const formatTxnAmount = (amount: number) => {
+const formatTxnAmount = (amount: number, currency = "USD") => {
   const sign = amount < 0 ? "-" : "";
   const formatted = Math.abs(amount).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+  if (currency.toUpperCase() === "KHR") {
+    return `${sign}${formatted} KHR`;
+  }
   return `${sign}$${formatted}`;
 };
 
@@ -134,27 +83,33 @@ const formatTxnAmount = (amount: number) => {
  * three digits stay readable — everything between them becomes asterisks.
  */
 const splitAccount = (account: string) => {
+  if (!account || account === "-") {
+    return { label: "-", masked: "" };
+  }
   const [label, ...rest] = account.split(" - ");
-  const digits = rest.join(" - ").replace(/\D/g, "");
+  const rawNum = rest.join(" - ").trim();
+  const digits = rawNum.replace(/\D/g, "");
   const masked =
     digits.length > 6
       ? `${digits.slice(0, 3)}${"*".repeat(digits.length - 6)}${digits.slice(-3)}`
-      : digits;
-  return { label, masked };
+      : rawNum || "";
+  return { label: label || "Account", masked };
 };
 
 export interface TransactionsCardProps {
+  accounts?: CoreAccountEntry[];
   accountNumber?: string;
   type?: string;
 }
 
 export default function TransactionsCard({
+  accounts: externalAccounts,
   accountNumber,
   type,
 }: TransactionsCardProps) {
   const [statusTab, setStatusTab] = useState<StatusTab>("Processed");
   const [dateFilter, setDateFilter] = useState<BaseFilterValue>({
-    type: "all",
+    type: "last7Days",
     from: null,
     to: null,
   });
@@ -162,52 +117,119 @@ export default function TransactionsCard({
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
 
+  const [allTransactions, setAllTransactions] = useState<TransactionItem[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
+
+  const accountsResponse = useAppSelector(selectAccountsResponse);
   const [listTransactions] = useListTransactionsMutation();
+
   useEffect(() => {
-    if (!accountNumber) return;
-    listTransactions({
-      accountNumber,
-      type: type ?? "",
-      limit: FETCH_LIMIT,
-      offset: 0,
+    const targetAccounts =
+      externalAccounts && externalAccounts.length > 0
+        ? externalAccounts
+        : accountNumber
+        ? [
+            {
+              accountNumber,
+              accountType: type ?? "CA",
+              accountName: type === "CA" ? "Current Account" : "Savings Account",
+              ccy: "USD",
+            } as CoreAccountEntry,
+          ]
+        : (accountsResponse?.accounts ?? []);
+
+    if (targetAccounts.length === 0) {
+      setAllTransactions([]);
+      return;
+    }
+
+    let isMounted = true;
+    setIsFetching(true);
+
+    const range = resolveBaseFilterRange(dateFilter);
+    const fetchPromises = targetAccounts.map(async (acc) => {
+      try {
+        const res = await listTransactions({
+          accountNumber: acc.accountNumber,
+          type: acc.accountType ?? acc.type ?? "",
+          startedDate: range?.start.toISOString(),
+          endedDate: range?.end.toISOString(),
+          limit: FETCH_LIMIT,
+          offset: 0,
+        }).unwrap();
+        return { account: acc, rows: res.rows };
+      } catch {
+        return { account: acc, rows: [] };
+      }
     });
-  }, [accountNumber, type, listTransactions]);
+
+    Promise.all(fetchPromises)
+      .then((results) => {
+        if (!isMounted) return;
+        const mapped: TransactionItem[] = [];
+        results.forEach(({ account: acc, rows }) => {
+          rows.forEach((entry) => {
+            const isNegative =
+              entry.transactionType === "D" || entry.transactionAmount < 0;
+            const accountLabel =
+              acc.accountName ||
+              acc.accountClassDescription ||
+              (acc.accountType === "CA" ? "Current Account" : "Savings Account");
+            mapped.push({
+              id: entry.transactionId,
+              title:
+                entry.transactionDescription ||
+                entry.transactionCode ||
+                entry.toAccountName ||
+                "Transaction",
+              ref: entry.transactionReferenceCode || entry.transactionId || "-",
+              date: entry.transactionDate
+                ? dayjs(entry.transactionDate).format("DD MMM YYYY")
+                : "-",
+              rawDate: entry.transactionDate,
+              time:
+                entry.transactionTime ||
+                (entry.transactionDate
+                  ? dayjs(entry.transactionDate).format("h:mm A")
+                  : "-"),
+              account: `${accountLabel} - ${acc.accountNumber}`,
+              amount: entry.transactionAmount,
+              currency: entry.transactionCurrency || acc.ccy || "USD",
+              direction: isNegative ? "out" : "in",
+              status: "processed",
+            });
+          });
+        });
+
+        mapped.sort((a, b) => {
+          const timeA = a.rawDate ? dayjs(a.rawDate).valueOf() : 0;
+          const timeB = b.rawDate ? dayjs(b.rawDate).valueOf() : 0;
+          return timeB - timeA;
+        });
+
+        setAllTransactions(mapped);
+      })
+      .finally(() => {
+        if (isMounted) setIsFetching(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    externalAccounts,
+    accountNumber,
+    type,
+    dateFilter,
+    accountsResponse?.accounts,
+    listTransactions,
+  ]);
 
   useEffect(() => {
     setPage(0);
-  }, [accountNumber]);
+  }, [externalAccounts, accountNumber]);
 
-  const transactionsResponse = useAppSelector(selectTransactionsResponse);
-  const apiTransactions = useMemo(
-    () =>
-      transactionsResponse && transactionsResponse.accountNumber === accountNumber
-        ? transactionsResponse.data.map(
-          (entry): TransactionItem => ({
-            id: entry.transactionId,
-            title: entry.transactionDescription || entry.transactionCode || "Bakong Payment",
-            ref: entry.transactionId || "2819700093P2429",
-            date: entry.transactionDate
-              ? dayjs(entry.transactionDate).format("DD MMM YYYY")
-              : "11 Jun 2026",
-            time: entry.transactionDate
-              ? dayjs(entry.transactionDate).format("h:mm A")        // 3:48 PM
-              : "3:48 PM",
-            account: `Savings - ${accountNumber ?? "000 067 898"}`,
-            amount: entry.transactionAmount,
-            direction: entry.transactionAmount >= 0 ? "in" : "out",
-            // `CoreTransactionEntry` carries no status — the statement endpoint
-            // only returns posted rows, so everything it sends is processed.
-            // Swap this for the real field once the core exposes one.
-            status: "processed",
-          }),
-        )
-        : undefined,
-    [transactionsResponse, accountNumber],
-  );
-
-  const allRows = apiTransactions && apiTransactions.length > 0
-    ? apiTransactions
-    : defaultTransactions;
+  const allRows = allTransactions;
 
   const filteredRows = useMemo(() => {
     const wantedStatus = STATUS_TABS[statusTab];
@@ -353,7 +375,7 @@ export default function TransactionsCard({
             color: palette.slate[900],
           }}
         >
-          <BaseBlurText>{formatTxnAmount(t.amount)}</BaseBlurText>
+          <BaseBlurText>{formatTxnAmount(t.amount, t.currency)}</BaseBlurText>
         </Typography>
       ),
     },
@@ -430,8 +452,9 @@ export default function TransactionsCard({
 
           {/* Date Filter */}
           <BaseFilterButton
-            active={dateFilter.type !== "all"}
+            active={dateFilter.type !== "all" && dateFilter.type !== "last7Days"}
             open={filterDialogOpen}
+            label={BASE_FILTER_TYPE_LABELS[dateFilter.type] ?? "Last 7 days"}
             onClick={() => setFilterDialogOpen((prev) => !prev)}
           />
         </Box>
@@ -442,13 +465,14 @@ export default function TransactionsCard({
       <BaseTable
         columns={columns}
         rows={filteredRows}
-        getRowKey={(t) => t.id ?? t.ref}
+        getRowKey={(t) => `${t.id || t.ref}-${t.account}`}
         minWidth={640}
         rounded={false}
         headerBgColor={palette.white}
         headerBorderColor={palette.slate[200]}
         headerTextColor={palette.slate[500]}
         headerBorderTop={false}
+        isLoading={isFetching}
         emptyTitle={`No ${statusTab.toLowerCase()} transactions`}
         getRowSx={() => ({
           "&:hover": {

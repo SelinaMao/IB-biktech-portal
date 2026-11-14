@@ -14,7 +14,6 @@ import ControlledBaseInput from "@core/form/ControlledBaseInput";
 import ControlledBaseTextArea from "@core/form/ControlledBaseTextArea";
 import { useGetAccountDetailMutation } from "@/features/account";
 import { palette } from "@/theme/palette";
-import { otherSmeBankDirectory } from "../transfer.data";
 import {
   accountOptionLabel,
   amountPreviewValue,
@@ -22,7 +21,6 @@ import {
   currencyLabel,
   CURRENCY_OPTIONS,
   findAccount,
-  findOtherSmeBankAccountName,
 } from "../transfer.utils";
 import { useTransferAccounts } from "../use-transfer-accounts";
 import BaseFromAccount from "@core/components/BaseFromAccount";
@@ -91,7 +89,7 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
   }, [values.toAccountNumber, getAccountDetail]);
 
   const fromAccount = findAccount(accounts, values.fromAccountId) || accounts[0];
-  const toAccountName = accountDetail?.accountName || findOtherSmeBankAccountName(otherSmeBankDirectory, values.toAccountNumber);
+  const toAccountName = accountDetail?.accountName || "";
   const frequencyLabel =
     values.frequency === "weekly"
       ? "Weekly"

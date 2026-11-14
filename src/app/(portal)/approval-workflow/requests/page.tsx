@@ -16,10 +16,6 @@ import {
   ApprovalTable,
   ApprovalDetailDialog,
   ApprovalSummaryCards,
-  approvalSummary,
-  pendingApprovalEntries as initialPendingApprovalEntries,
-  nonFinancialApprovalEntries as initialNonFinancialEntries,
-  approvalHistoryEntries as initialApprovalHistoryEntries,
   type ApprovalEntry,
   type ApprovalTab,
 } from "@/features/approval";
@@ -111,10 +107,9 @@ export default function ApprovalRequestsPage() {
   const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
   const [page, setPage] = useState(0);
 
-  // Local fallback entries to guarantee the mockup is shown if the API returns empty
-  const [localPendingEntries, setLocalPendingEntries] = useState(initialPendingApprovalEntries);
-  const [localNonFinancialEntries, setLocalNonFinancialEntries] = useState(initialNonFinancialEntries);
-  const [localHistoryEntries, setLocalHistoryEntries] = useState(initialApprovalHistoryEntries);
+  const [localPendingEntries, setLocalPendingEntries] = useState<ApprovalEntry[]>([]);
+  const [localNonFinancialEntries, setLocalNonFinancialEntries] = useState<ApprovalEntry[]>([]);
+  const [localHistoryEntries, setLocalHistoryEntries] = useState<ApprovalEntry[]>([]);
 
   const [openWorkflowId, setOpenWorkflowId] = useState<string | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<ApprovalEntry | null>(null);
@@ -146,24 +141,24 @@ export default function ApprovalRequestsPage() {
     [instances.data, instances.isError],
   );
 
-  // Map real backend workflow tasks if present, otherwise fall back to fixed mock data
+  // Map real backend workflow tasks if present
   const financialPending = useMemo(() => {
     if (myTasks.length > 0) {
       return myTasks.map((task) => ({
         id: task.taskId,
         creationDate: task.createdAt,
-        transactionType: task.functionName,
+        transactionType: task.functionName || "Approval Request",
         transactionId: task.instanceId,
         refNo: task.referenceId || task.taskId.slice(0, 12),
         amount: (task as any).amount || 0,
         fee: 0,
         currency: (task as any).currency || "USD",
         payToName: (task as any).payTo || nameByUserId.get(task.initiatedBy) || "Beneficiary",
-        payToAccountNo: (task as any).payToAccount || "001 234 567",
-        sourceAccountName: (task as any).sourceAccount || "Operating",
-        sourceAccountNo: (task as any).sourceAccountNo || "0012 3456 7890",
+        payToAccountNo: (task as any).payToAccount || "",
+        sourceAccountName: (task as any).sourceAccount || "",
+        sourceAccountNo: (task as any).sourceAccountNo || "",
         pendingOn: "You",
-        status: "PENDING",
+        status: (task.status as any) || "PENDING",
       }));
     }
     return localPendingEntries;
@@ -324,7 +319,6 @@ export default function ApprovalRequestsPage() {
       <ApprovalSummaryCards
         pendingCount={financialPending.length}
         entries={financialPending}
-        summary={approvalSummary}
       />
       {/* 3. Folder-style Tabs: Pending (5) & History */}
       <Stack

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dayjs from "dayjs";
 import { Box, Grid } from "@mui/material";
 
 import { resolveBaseDownloadRange, type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
@@ -34,12 +35,11 @@ import {
   type RolloverOption,
   type CoreAccountEntry,
   type IAccountDetailResponses,
-  MOCK_DEPOSIT_ACCOUNT,
-  MOCK_DEPOSIT_DETAIL,
-  MOCK_DEPOSIT_TRANSACTIONS,
   ROLLOVER_OPTIONS,
+  mapCoreTransaction,
 } from "@/features/account";
 import { downloadBlob } from "@/utils/download-file";
+import { formatAccountNumber } from "@/utils/format-account-number";
 import AccountDetailsCard from "@/features/account/components/AccountDetailCard";
 import AccountInformationDetail from "@/features/account/components/AccountInformationDetail";
 
@@ -65,40 +65,8 @@ export default function AccountPage() {
   const rawBankAccounts = useMemo(() => accountsResponse?.accounts ?? [], [accountsResponse?.accounts]);
   const coreSummary = accountsResponse?.summary ?? null;
 
-  // Injects mock deposit account if no deposit / fixed deposit account is present in backend response
-  const bankAccounts = useMemo(() => {
-    const hasDeposit = rawBankAccounts.some(
-      (a) =>
-        a.accountType === "TD" ||
-        a.accountType === "FD" ||
-        (a.accountName || "").toLowerCase().includes("fixed") ||
-        (a.accountClassDescription || "").toLowerCase().includes("deposit"),
-    );
-
-    if (!hasDeposit) {
-      const companyName = rawBankAccounts[0]?.accountName || "BIKTECH SOLUTION CO., LTD.";
-      const depositAccount: CoreAccountEntry = {
-        ...MOCK_DEPOSIT_ACCOUNT,
-        accountName: companyName,
-      };
-      return [...rawBankAccounts, depositAccount];
-    }
-
-    return rawBankAccounts;
-  }, [rawBankAccounts]);
-
-  const effectiveSummary = useMemo(() => {
-    if (!coreSummary) return null;
-    const isMockDepositAdded = bankAccounts.some(
-      (a) => a.accountNumber === MOCK_DEPOSIT_ACCOUNT.accountNumber,
-    );
-    return {
-      totalBalanceKHR: coreSummary.totalBalanceKHR,
-      totalBalanceUSD:
-        coreSummary.totalBalanceUSD +
-        (isMockDepositAdded ? MOCK_DEPOSIT_ACCOUNT.availableBalance : 0),
-    };
-  }, [coreSummary, bankAccounts]);
+  const bankAccounts = rawBankAccounts;
+  const effectiveSummary = coreSummary;
 
   // Starts with no account pre-selected so on initial visit AccountsSidebar summary is selected
   const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>();
@@ -129,24 +97,7 @@ export default function AccountPage() {
     return getAccountIndicatorColor(selectedAccount, selectedIndex);
   }, [selectedAccount, selectedIndex]);
 
-  // Shown before any card is clicked: the Current/USD account if there is one, else the first account.
-  const defaultAccount = useMemo(
-    () =>
-      bankAccounts.find((a) => a.ccy === "USD" && a.accountType === "CA") ??
-      bankAccounts.find((a) => a.accountType === "CA") ??
-      bankAccounts[0],
-    [bankAccounts],
-  );
-
-  // Drives the Transactions table: the clicked account once there is one, the default account until then —
-  // so the table always has a real account's transactions, matching AccountSummaryPanel's "before selection" view.
-  const txnAccount = selectedAccount ?? defaultAccount;
-  const txnAccountNumber = txnAccount?.accountNumber;
-  const txnAccountType = txnAccount?.accountType ?? "";
-  const txnIsMockDeposit = txnAccount?.accountNumber === MOCK_DEPOSIT_ACCOUNT.accountNumber;
-
   const accountNumber = selectedAccount?.accountNumber;
-  const isMockDeposit = selectedAccount?.accountNumber === MOCK_DEPOSIT_ACCOUNT.accountNumber;
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [accountInformationDetail, setaccountInformationDetail] = useState(false);
@@ -169,7 +120,12 @@ export default function AccountPage() {
     setTxnQuery("");
     setTxnFilter(DEFAULT_TRANSACTIONS_FILTER);
     setTxnPage(0);
-  }, [txnAccountNumber]);
+  }, [selectedAccountId]);
+
+  // Combined transactions for all accounts when on the default "Account Summary" view
+  const [allAccountsTransactions, setAllAccountsTransactions] = useState<TTransactionDetailResponse[]>([]);
+  const [isAllTxnLoading, setIsAllTxnLoading] = useState(false);
+  const [allTxnError, setAllTxnError] = useState(false);
 
   const [pendingRolloverOption, setPendingRolloverOption] = useState<RolloverOption | null>(null);
   const [rolloverQrOpen, setRolloverQrOpen] = useState(false);
@@ -180,37 +136,135 @@ export default function AccountPage() {
   const [getAccountDetail] = useGetAccountDetailMutation();
 
   useEffect(() => {
-    if (accountNumber && !isMockDeposit) {
+    if (accountNumber) {
       getAccountDetail({ accountNumber, type: accounType });
     }
-  }, [accountNumber, accounType, isMockDeposit, getAccountDetail]);
+  }, [accountNumber, accounType, getAccountDetail]);
 
   const [getAccountSummary] = useGetAccountSummaryMutation();
 
   useEffect(() => {
-    if (accountNumber && !isMockDeposit) {
+    if (accountNumber) {
       getAccountSummary({ accountNumber, type: accounType });
     }
-  }, [accountNumber, accounType, isMockDeposit, getAccountSummary]);
+  }, [accountNumber, accounType, getAccountSummary]);
 
   const [listTransactions] = useListTransactionsMutation();
 
   const [isDownloadingTransaction, setIsDownloadingTransaction] = useState(false);
   const [isDownloadingStatement, setIsDownloadingStatement] = useState(false);
 
+  // Single-account transactions fetch: only runs when an individual account is selected
   useEffect(() => {
-    if (!txnAccountNumber || txnIsMockDeposit) return;
+    if (!selectedAccount?.accountNumber) return;
     const range = resolveBaseFilterRange(txnFilter);
     listTransactions({
-      accountNumber: txnAccountNumber,
-      type: txnAccountType,
+      accountNumber: selectedAccount.accountNumber,
+      type: selectedAccount.accountType,
       startedDate: range?.start.toISOString(),
       endedDate: range?.end.toISOString(),
       limit: TRANSACTIONS_PAGE_SIZE,
       offset: txnPage * TRANSACTIONS_PAGE_SIZE,
       search: debouncedTxnQuery || undefined,
     });
-  }, [txnAccountNumber, txnAccountType, txnFilter, debouncedTxnQuery, txnPage, txnIsMockDeposit, listTransactions]);
+  }, [
+    selectedAccount?.accountNumber,
+    selectedAccount?.accountType,
+    txnFilter,
+    debouncedTxnQuery,
+    txnPage,
+    listTransactions,
+  ]);
+
+  // All-accounts transactions fetch: runs in default Account Summary view (!selectedAccount)
+  useEffect(() => {
+    if (selectedAccount) return;
+    if (bankAccounts.length === 0) {
+      setAllAccountsTransactions([]);
+      return;
+    }
+
+    let isMounted = true;
+    setIsAllTxnLoading(true);
+    setAllTxnError(false);
+
+    const range = resolveBaseFilterRange(txnFilter);
+    const fetchPromises = bankAccounts.map(async (acc) => {
+      try {
+        const res = await listTransactions({
+          accountNumber: acc.accountNumber,
+          type: acc.accountType ?? acc.type ?? "",
+          startedDate: range?.start.toISOString(),
+          endedDate: range?.end.toISOString(),
+          limit: 50,
+          offset: 0,
+        }).unwrap();
+        return { account: acc, rows: res.rows };
+      } catch {
+        return { account: acc, rows: [] };
+      }
+    });
+
+    Promise.all(fetchPromises)
+      .then((results) => {
+        if (!isMounted) return;
+        const mapped: TTransactionDetailResponse[] = [];
+        results.forEach(({ account: acc, rows }) => {
+          rows.forEach((entry) => {
+            const item = mapCoreTransaction(entry, {
+              name: acc.accountName,
+              number: acc.accountNumber,
+            });
+            const label =
+              acc.accountName ||
+              acc.accountClassDescription ||
+              (acc.accountType === "CA" ? "Current Account" : "Savings Account");
+            (item as any).accountLabel = `${label} - ${formatAccountNumber(acc.accountNumber)}`;
+            (item as any).rawDate = entry.transactionDate;
+            mapped.push(item);
+          });
+        });
+
+        mapped.sort((a, b) => {
+          const timeA = (a as any).rawDate ? dayjs((a as any).rawDate).valueOf() : 0;
+          const timeB = (b as any).rawDate ? dayjs((b as any).rawDate).valueOf() : 0;
+          return timeB - timeA;
+        });
+
+        setAllAccountsTransactions(mapped);
+      })
+      .catch(() => {
+        if (isMounted) setAllTxnError(true);
+      })
+      .finally(() => {
+        if (isMounted) setIsAllTxnLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedAccount, bankAccounts, txnFilter, listTransactions]);
+
+  const filteredAllTransactions = useMemo(() => {
+    if (!debouncedTxnQuery.trim()) return allAccountsTransactions;
+    const q = debouncedTxnQuery.toLowerCase().trim();
+    return allAccountsTransactions.filter((t) => {
+      const desc = (t.transactionDescription || t.transactionCode || "").toLowerCase();
+      const ref = (t.transactionReferenceCode || t.transactionId || "").toLowerCase();
+      const toAcc = (t.toAccountNumber || t.toAccountName || "").toLowerCase();
+      const fromAcc = (t.fromAccountNumber || t.fromAccountName || "").toLowerCase();
+      const label = ((t as any).accountLabel || "").toLowerCase();
+      const amt = String(t.transactionAmount ?? "");
+      return (
+        desc.includes(q) ||
+        ref.includes(q) ||
+        toAcc.includes(q) ||
+        fromAcc.includes(q) ||
+        label.includes(q) ||
+        amt.includes(q)
+      );
+    });
+  }, [allAccountsTransactions, debouncedTxnQuery]);
 
   const handleDownloadCertificate = async () => {
     if (!accountNumber) return;
@@ -266,10 +320,12 @@ export default function AccountPage() {
     }
   };
 
-  const transactionsResponse = useAppSelector((state) => selectTransactionsForAccount(state, txnAccountNumber));
+  const transactionsResponse = useAppSelector((state) =>
+    selectTransactionsForAccount(state, selectedAccount?.accountNumber),
+  );
 
   const apiTransactions = useAppSelector((state) =>
-    selectAccountTransactions(state, txnAccountNumber, txnAccount?.accountName),
+    selectAccountTransactions(state, selectedAccount?.accountNumber, selectedAccount?.accountName),
   );
   const transactionsStatus = transactionsResponse?.status ?? "loading";
   const selectedTransactions = apiTransactions ?? [];
@@ -289,18 +345,17 @@ export default function AccountPage() {
       : undefined;
   }, [accountNumber, accountSummaryResponse]);
 
-  const mockDepositDetail: IAccountDetailResponses = useMemo(() => ({
-    ...MOCK_DEPOSIT_DETAIL,
-    accountName: selectedAccount?.accountName || "BIKTECH SOLUTION CO., LTD.",
-    accountSettlementNumber: bankAccounts[0]?.accountNumber || "101200000903",
-    settlementAccountName: selectedAccount?.accountName || "BIKTECH SOLUTION CO., LTD.",
-  }), [selectedAccount, bankAccounts]);
-
-  const effectiveInfo = isMockDeposit ? mockDepositDetail : accountInfoDetail;
-  const effectiveFixedDeposit = isMockDeposit ? mockDepositDetail : fixedDepositDetail;
-  const effectiveTransactions = txnIsMockDeposit ? MOCK_DEPOSIT_TRANSACTIONS : selectedTransactions;
-  const effectiveTxnStatus = txnIsMockDeposit ? "loaded" : transactionsStatus;
-  const effectiveTxnTotal = txnIsMockDeposit ? MOCK_DEPOSIT_TRANSACTIONS.length : transactionsTotal;
+  const effectiveInfo = accountInfoDetail;
+  const effectiveFixedDeposit = fixedDepositDetail;
+  const effectiveTransactions = selectedAccount ? selectedTransactions : filteredAllTransactions;
+  const effectiveTxnStatus = selectedAccount
+    ? transactionsStatus
+    : isAllTxnLoading
+      ? "loading"
+      : allTxnError
+        ? "failed"
+        : "loaded";
+  const effectiveTxnTotal = selectedAccount ? transactionsTotal : filteredAllTransactions.length;
 
   const selectedCompany = useMemo(
     () =>
@@ -397,10 +452,10 @@ export default function AccountPage() {
                 <AccountSummaryPanel accounts={bankAccounts} summary={effectiveSummary} />
               </Grid>
 
-              {/* Bottom Right: Transactions List for the default account */}
+              {/* Bottom Right: Transactions List for all accounts (summary view) */}
               <Grid size={12}>
                 <TransactionsList
-                  key={txnAccount?.id || txnAccountNumber}
+                  key="account-summary-all-transactions"
                   transactions={effectiveTransactions}
                   isLoading={effectiveTxnStatus === "loading"}
                   error={effectiveTxnStatus === "failed"}
@@ -419,9 +474,10 @@ export default function AccountPage() {
                   showDownload={false}
                   onSelectTransaction={setSelectedTransaction}
                   isFixedDeposit={false}
-                  accountName={txnAccount?.accountName}
-                  accountNumber={txnAccount?.accountNumber}
-                  accountType={txnAccount?.accountType}
+                  accountName="All Accounts"
+                  accountNumber=""
+                  accountType=""
+                  accentColor="#5AC0A0"
                   onViewCertificate={() => { }}
                   onDownloadCertificate={() => { }}
                 />

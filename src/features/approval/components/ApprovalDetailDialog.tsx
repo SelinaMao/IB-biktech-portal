@@ -62,16 +62,14 @@ export default function ApprovalDetailDialog({
       ? `$${entry.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : `${entry.currency} ${entry.amount.toLocaleString("en-US")}`;
 
-  const fromDisplay = entry.sourceAccountNo
-    ? `${entry.sourceAccountName || "Operating"} ${formatLast4(entry.sourceAccountNo)}`
-    : entry.sourceAccountName || "Operating •••• 4821";
+  const fromDisplay = [entry.sourceAccountName, formatLast4(entry.sourceAccountNo)].filter(Boolean).join(" ") || "—";
 
   const toDisplay =
     entry.payToAccountNo && entry.payToAccountNo !== "Bakong"
       ? `${entry.payToName} ${formatLast4(entry.payToAccountNo)}`
       : entry.payToName || "—";
 
-  const referenceDisplay = entry.refNo || entry.transactionId || "INV-2026-0912";
+  const referenceDisplay = entry.refNo || entry.transactionId || "—";
 
   const requestReject = () => {
     setRejectReason("");
