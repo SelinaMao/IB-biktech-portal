@@ -10,6 +10,8 @@ export interface CardBorderAccentProps {
   radius?: number;
   /** Max thickness of the accent at the middle of the corner */
   strokeWidth?: number;
+  /** Length of the accent along the card border */
+  length?: number;
   /** How far the tapered tails run along the card edges */
   tailLength?: number;
   /** Figma box size of the accent */
@@ -110,6 +112,8 @@ function Corner({
  * Curved corner accent in the active account's theme color.
  * The stroke is thick on the rounded corner and tapers to a point
  * along the adjacent card edges.
+ * Renders a curved corner border accent in a given theme color, with smooth
+ * gradients fading along adjacent card edges.
  *
  * - "top-left": top-left corner (Transactions card).
  * - "bottom-left": bottom-left corner (AccountDetailCard).
@@ -123,6 +127,7 @@ export default function CardBorderAccent({
   type = "top-left",
   radius = 20,
   strokeWidth = 3,
+  length,
   tailLength = 40,
   width = 95.89,
   height = 108.77,
@@ -130,7 +135,18 @@ export default function CardBorderAccent({
   bottom = -16.73,
   left = -23.32,
 }: CardBorderAccentProps) {
-  const common = { color, radius, strokeWidth, tailLength, width, height, left };
+  const effectiveTailLength = length ?? tailLength;
+  const effectiveWidth = length ? Math.max(width, length + 20) : width;
+  const effectiveHeight = length ? Math.max(height, length + 20) : height;
+  const common = {
+    color,
+    radius,
+    strokeWidth,
+    tailLength: effectiveTailLength,
+    width: effectiveWidth,
+    height: effectiveHeight,
+    left,
+  };
 
   if (type === "top-left") {
     return <Corner {...common} position="top" offsetY={top} withVerticalTail />;

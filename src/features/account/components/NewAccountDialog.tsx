@@ -18,6 +18,16 @@ import { palette } from "@/theme/palette";
 
 const STEPS = ["Details", "Review", "Success"];
 
+/** Matches the Transfer flow's footer buttons — same shape everywhere, color varies by role. */
+const ACTION_BUTTON_SX = {
+  height: 52,
+  borderRadius: "999px",
+  fontSize: 16,
+  fontWeight: 600,
+  textTransform: "none" as const,
+  boxShadow: "none",
+};
+
 const ACCOUNT_TYPE_OPTIONS = [
   { value: "current", label: "Current / CASA Account" },
   { value: "savings", label: "Savings Account" },
@@ -118,6 +128,7 @@ export default function NewAccountDialog({ open, onClose }: NewAccountDialogProp
             fullWidth
             disabled={!canSubmit}
             onClick={() => setStep(1)}
+            sx={ACTION_BUTTON_SX}
           />
         ) : step === 1 ? (
           <Stack direction="row" spacing={1.5}>
@@ -127,19 +138,20 @@ export default function NewAccountDialog({ open, onClose }: NewAccountDialogProp
               fullWidth
               onClick={() => setStep(0)}
               sx={{
-                backgroundColor: "#DFDFDE",
-                borderColor: "#DFDFDE",
-                color: palette.text.primary,
+                ...ACTION_BUTTON_SX,
+                backgroundColor: "#EEF2F6",
+                borderColor: "transparent",
+                color: "#0F172A",
                 "&:hover": {
-                  backgroundColor: "#DFDFDE",
-                  borderColor: "#DFDFDE",
+                  backgroundColor: "#E2E8F0",
+                  borderColor: "transparent",
                 },
               }}
             />
-            <BaseButton title="Submit" variant="contained" fullWidth onClick={() => setStep(2)} />
+            <BaseButton title="Submit" variant="contained" fullWidth onClick={() => setStep(2)} sx={ACTION_BUTTON_SX} />
           </Stack>
         ) : (
-          <BaseButton title="Done" variant="contained" fullWidth onClick={handleClose} />
+          <BaseButton title="Done" variant="contained" fullWidth onClick={handleClose} sx={ACTION_BUTTON_SX} />
         )
       }
     >

@@ -35,34 +35,34 @@ export default function TransferOptionCard({
         textAlign: "left",
         cursor: "pointer",
         transition: "box-shadow 0.2s ease, border-color 0.2s ease",
-        "&:hover": { boxShadow: 2},
+        "&:hover": { boxShadow: 2 },
       }}
     >
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
-       
+
         <Box sx={{ flex: 1, minWidth: 0 }}>
-           <Box
-          sx={{
-            width: 40,
-            height: 40,
-            border:0,
-            bgcolor:palette.hover[10],
-            borderRadius:"50%",
-            flexShrink: 0,
-            color: palette.primary[600],
-            display: "grid",
-            placeItems: "center",
-          }}
-        >
-          <BaseIconBadge 
-            direction="income"
-            size={40}
-            bgColor={palette.hover[10]}
-            color={palette.primary[600]}
-            icon={option.icon}
-          />
-        </Box>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between", marginTop:4}}>
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              border: 0,
+              bgcolor: palette.hover[10],
+              borderRadius: "50%",
+              flexShrink: 0,
+              color: palette.primary[600],
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <BaseIconBadge
+              direction="income"
+              size={40}
+              bgColor={palette.hover[10]}
+              color={palette.primary[600]}
+              icon={option.icon}
+            />
+          </Box>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
             <Typography sx={{ fontWeight: 600, fontSize: 14, color: "text.primary" }}>
               {option.label}
             </Typography>
@@ -70,7 +70,7 @@ export default function TransferOptionCard({
           </Stack>
           <Typography
             variant="caption"
-            sx={{ display: "block", mt: 0.25, color: palette.slate[400],marginTop:4 }}
+            sx={{ display: "block", mt: 0.25, color: palette.slate[400], marginTop: 4 }}
           >
             {option.description}
           </Typography>

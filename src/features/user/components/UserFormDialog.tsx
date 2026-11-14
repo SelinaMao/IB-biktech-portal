@@ -36,6 +36,16 @@ import UserFormAction from "./UserFormAction";
 const STEPS = ["Details", "Review", "Done"];
 const USER_FORM_ID = "user-form-dialog";
 
+/** Matches the Transfer flow's footer buttons — same shape everywhere, color varies by role. */
+const ACTION_BUTTON_SX = {
+  height: 52,
+  borderRadius: "999px",
+  fontSize: 16,
+  fontWeight: 600,
+  textTransform: "none" as const,
+  boxShadow: "none",
+};
+
 /** The chosen accounts as the form holds them: empty means every account. */
 const accountsOf = (scope?: UserAccountScope) =>
   scope?.scopeType === "SELECTED" ? scope.accountNumbers : [];
@@ -206,14 +216,9 @@ export default function UserFormDialog({
                 variant="contained"
                 fullWidth
                 sx={{
+                  ...ACTION_BUTTON_SX,
                   bgcolor: "#1B5299",
                   color: "#FFFFFF",
-                  borderRadius: "10px",
-                  height: 40,
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  textTransform: "none",
-                  boxShadow: "none",
                   "&:hover": {
                     bgcolor: "#15427C",
                     boxShadow: "none",
@@ -231,18 +236,13 @@ export default function UserFormDialog({
                   fullWidth
                   onClick={() => setStep(0)}
                   sx={{
-                    bgcolor: palette.white,
-                    borderColor: palette.slate[200],
+                    ...ACTION_BUTTON_SX,
+                    bgcolor: "#EEF2F6",
+                    borderColor: "transparent",
                     color: "#0F172A",
-                    borderRadius: "10px",
-                    height: 40,
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    textTransform: "none",
                     "&:hover": {
-                      borderColor: palette.slate[300],
-                      bgcolor: palette.slate[50],
-
+                      borderColor: "transparent",
+                      bgcolor: "#E2E8F0",
                     },
                   }}
                 />
@@ -253,14 +253,9 @@ export default function UserFormDialog({
                   onClick={handleSaveUser}
                   isLoading={isSubmitting}
                   sx={{
+                    ...ACTION_BUTTON_SX,
                     bgcolor: "#1B5299",
                     color: "#FFFFFF",
-                    borderRadius: "10px",
-                    height: 40,
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    textTransform: "none",
-                    boxShadow: "none",
                     "&:hover": {
                       bgcolor: "#15427C",
                       boxShadow: "none",

@@ -3,12 +3,12 @@
 import Box from "@mui/material/Box";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
-import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { ChevronDown, CreditCard } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Controller, type Control, type FieldValues, type Path } from "react-hook-form";
 
 import type { TransferAccount } from "../../features/transfer/transfer.types";
+import { accountOptionLabel } from "../../features/transfer/transfer.utils";
 
 export type BaseFromAccountProps<T extends FieldValues> = {
   name: Path<T>;
@@ -17,13 +17,7 @@ export type BaseFromAccountProps<T extends FieldValues> = {
   label?: string;
 };
 
-function maskAccount(acc?: string | null) {
-  if (!acc) return "•••• 4417";
-  const clean = acc.replace(/\D/g, "");
-  const last4 = clean.length > 4 ? clean.slice(-4) : clean || "4417";
-  return `•••• ${last4}`;
-}
-
+/** Same two-line name / account-number / balance layout as the To Account select. */
 export default function BaseFromAccount<T extends FieldValues>({
   name,
   control,
@@ -58,17 +52,7 @@ export default function BaseFromAccount<T extends FieldValues>({
               )}
               renderValue={(selectedId) => {
                 const acc = accounts.find((a) => a.id === selectedId) || selectedAccount;
-                const accountName = acc?.name?.includes("Saving") ? "Savings" : acc?.name || "Savings";
-                const masked = maskAccount(acc?.number);
-
-                return (
-                  <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-                    <CreditCard size={18} color="#475569" style={{ flexShrink: 0 }} />
-                    <Typography sx={{ fontSize: 15, fontWeight: 500, color: "#0F172A" }}>
-                      {accountName} · {masked}
-                    </Typography>
-                  </Stack>
-                );
+                return acc ? accountOptionLabel(acc) : null;
               }}
               sx={{
                 bgcolor: "#FFFFFF",
@@ -91,34 +75,12 @@ export default function BaseFromAccount<T extends FieldValues>({
                 },
               }}
             >
-              {accounts.map((acc) => {
-                const masked = maskAccount(acc.number);
-                return (
-                  <MenuItem key={acc.id} value={acc.id} sx={{ py: 1.25 }}>
-                    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", width: "100%", justifyContent: "space-between" }}>
-                      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-                        <CreditCard size={18} color="#64748B" />
-                        <Stack spacing={0.25}>
-                          <Typography sx={{ fontSize: 14, fontWeight: 600, color: "#0F172A" }}>
-                            {acc.name} · {masked}
-                          </Typography>
-                          <Typography sx={{ fontSize: 12, color: "#64748B" }}>
-                            {acc.number}
-                          </Typography>
-                        </Stack>
-                      </Stack>
-                      <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
-                        {acc.currency} {acc.balance}
-                      </Typography>
-                    </Stack>
-                  </MenuItem>
-                );
-              })}
+              {accounts.map((acc) => (
+                <MenuItem key={acc.id} value={acc.id} sx={{ py: 1.25 }}>
+                  {accountOptionLabel(acc)}
+                </MenuItem>
+              ))}
             </Select>
-
-            <Typography sx={{ fontSize: 12.5, color: "#64748B", mt: 1, px: 0.5 }}>
-              Available {selectedAccount?.currency ?? "USD"} {selectedAccount?.balance ?? "12,480.50"}
-            </Typography>
           </Box>
         );
       }}

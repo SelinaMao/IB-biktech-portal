@@ -124,11 +124,12 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
 
   return (
     <PreviewTransfer
+      splitView
       open={open}
       onClose={onClose}
       title="Other BiKTECH BANK Account"
       icon={<Landmark size={18} />}
-      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
+      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number, balance: fromAccount.balance, currency: fromAccount.currency } : undefined}
       toAccount={{
         name: toAccountName || values.toAccountNumber || "Sokha Chan",
         accountNumber: values.toAccountNumber,

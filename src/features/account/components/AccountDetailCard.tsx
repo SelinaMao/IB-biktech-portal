@@ -16,7 +16,7 @@ import type {
 import AccountDetails from "./AccountDetails";
 import StatementDownloadDialog from "./StatementDownloadDialog";
 import { getAccountIndicatorColor } from "./AccountsSidebar";
-import CardBorderAccent from "./CardBorderAccent";
+import CardBorderAccent from "@core/components/CardBorderAccent";
 import BaseCard from "@/@core/components/BaseCard";
 
 export interface AccountDetailsProps {
@@ -68,7 +68,7 @@ export default function AccountDetailCard({
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [statementDialogOpen, setStatementDialogOpen] = useState(false);
 
-  const cardAccentColor = accentColor || (selectedAccount ? getAccountIndicatorColor(selectedAccount, 0) : "#8DD4BE");
+  const cardAccentColor = accentColor || (selectedAccount ? getAccountIndicatorColor(selectedAccount, 0) : "#5AC0A0");
 
   const target = fixedDeposit || info;
   const ccy = (

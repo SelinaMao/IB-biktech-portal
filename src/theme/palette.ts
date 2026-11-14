@@ -17,28 +17,28 @@ export const palette = {
     dark: "#15427C",
     light: "#EBF3FC",
   },
-  hover:{
-    10:"#E2E8F0"
+  hover: {
+    10: "#E2E8F0"
   },
-  orange:"#F57C00",
-  IconTransfer:{
+  orange: "#F57C00",
+  IconTransfer: {
     to: "#FFF3E0",
-    from:"#E6F5F0"
+    from: "#E6F5F0"
   },
   // Secondary accents — a subset of Twine (light tan + brand tan).
-  secondary: { 
+  secondary: {
     light: "#ead8be",
     main: "#cc9966",
     dark: "#b56e41",
-    100:"#C0E8DC",
-    200:"#8DD4BE",
-    500:"#2C8468",
-    600:"#226852"
+    100: "#C0E8DC",
+    200: "#8DD4BE",
+    500: "#2C8468",
+    600: "#226852"
   },
 
   // Info — Minsk (indigo). `main`/`bg` for chips + alerts.
   info: {
-    40:"#2764A514",
+    40: "#2764A514",
     50: "#eef2ff",
     100: "#e0e7ff",
     200: "#c7d1fe",
@@ -49,13 +49,13 @@ export const palette = {
     700: "#4437cb",
     800: "#382fa4",
     900: "#2f2b7a",
-    950: "#1f1b4b",
+    950: "#2764A5",
     main: "#6263f2",
     bg: "#E8ECF4",
   },
   // Success — Malachite (green).
   success: {
-    active:"#1A7F37",
+    active: "#1A7F37",
     50: "#f1fcf3",
     100: "#defae3",
     200: "#bff3c9",
@@ -106,9 +106,10 @@ export const palette = {
 
   // Neutrals — cool-grey scaffolding for surfaces, borders and muted text.
   slate: {
-    20:"#8896B8",
+    20: "#8896B8",
     25: "#ADADAD",
     50: "#F8FAFC",
+    52: "#1369cf1a",
     100: "#F1F5F9", // app background
     200: "#E2E8F0", // borders
     300: "#CBD5E1",
@@ -118,8 +119,9 @@ export const palette = {
     700: "#334155",
     900: "#1E293B",
     950: "#111827",
+
   },
-  link :"#0969DA",
+  link: "#0969DA",
   // Text — warm near-blacks. `heading` is the brand-tinted dark; `primary` is the neutral body colour.
   text: { primary: "#0a0a0a", heading: "#0F172A", label: "#ffffff", secondary: "#676766" },
 
@@ -130,7 +132,7 @@ export const palette = {
   white50: "#ffffff45",
 
   black40: "#000000",
-  black30:"#3D4550",
+  black30: "#3D4550",
 
   // Status — shared indicator color for Dormant & Frozen account states.
   status: { dormantFrozen: "#FFCC00" },

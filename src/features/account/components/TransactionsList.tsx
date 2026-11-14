@@ -9,11 +9,11 @@ import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseIconBadge from "@core/components/BaseIconBadge";
 import BaseFilterButton from "@core/components/BaseFilterButton";
-import type { BaseFilterValue } from "@core/components/BaseFilter";
+import { BASE_FILTER_TYPE_LABELS, type BaseFilterValue } from "@core/components/BaseFilter";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import StatementDownloadDialog from "./StatementDownloadDialog";
 import TransactionFilterDialog from "./TransactionFilterDialog";
-import CardBorderAccent from "./CardBorderAccent";
+import CardBorderAccent from "@core/components/CardBorderAccent";
 import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { isIncomingTransaction } from "../account.slice";
 import type { TTransactionDetailResponse } from "../account.types";
@@ -218,13 +218,15 @@ export default function TransactionsList({
   accountName = "",
   accountNumber = "",
   accountType,
-  accentColor = "#74C0A8",
+  accentColor = "#5AC0A0",
 }: TransactionsListProps) {
   const [statementDownloadOpen, setStatementDownloadOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null);
 
-  const hasActiveFilter = Boolean(dateFilter && dateFilter.type !== "all");
+  // "all"/"last7Days" are the resting defaults (button shows the period, not highlighted);
+  // anything else means the user explicitly picked a different range.
+  const hasActiveFilter = Boolean(dateFilter && dateFilter.type !== "all" && dateFilter.type !== "last7Days");
 
   const displayTransactions = useMemo(() => {
     const list =
@@ -394,8 +396,8 @@ export default function TransactionsList({
   return (
     <Box
       sx={{
-        bgcolor: "#FFFFFF",
         position: "relative",
+        bgcolor: "#FFFFFF",
         borderRadius: "20px",
         p: `${padding.xxl}px`,
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
@@ -476,6 +478,7 @@ export default function TransactionsList({
           {showDateFilter && (
             <BaseFilterButton
               active={hasActiveFilter}
+              label={BASE_FILTER_TYPE_LABELS[dateFilter.type]}
               onClick={() => setFilterDialogOpen(true)}
             />
           )}

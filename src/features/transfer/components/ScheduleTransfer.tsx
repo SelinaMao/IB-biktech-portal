@@ -79,11 +79,12 @@ export default function ScheduleTransfer({ open, onClose }: ScheduleTransferProp
 
   return (
     <PreviewTransfer
+      splitView
       open={open}
       onClose={onClose}
       title="Schedule Transfer"
       icon={<Landmark size={18} />}
-      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number } : undefined}
+      fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number, balance: fromAccount.balance, currency: fromAccount.currency } : undefined}
       toAccount={toAccount ? { name: toAccount.name, accountNumber: toAccount.number } : undefined}
       topSection={
         <BaseFromAccount
