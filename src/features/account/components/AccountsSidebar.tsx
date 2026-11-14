@@ -21,7 +21,7 @@ export interface AccountsSidebarProps {
 // First colors match the donut chart, extras prevent repeats when there are more accounts
 const ACCOUNT_COLORS: string[] = [
   ...DEFAULT_PIE_COLORS,
-  "#F472B6", // Pink
+  "#36A17E", // Pink
   "#FACC15", // Yellow
   "#14B8A6", // Teal
   "#F87171", // Red
@@ -139,7 +139,7 @@ export default function AccountsSidebar({
   hideSummary = false,
 }: AccountsSidebarProps) {
   // The aggregate Summary view is "active" whenever no specific account is picked.
-  const summaryActive = !selectedId;
+  const summaryActive = !selectedId || selectedId === "summary";
   // Matches DEFAULT_PIE_COLORS[0] — the donut's own mint-green for the first slot.
   const summaryAccentColor = "#5AC0A0";
   // Dynamic balances: prefer core summary totals, fallback to summing accounts list
@@ -168,6 +168,7 @@ export default function AccountsSidebar({
     const key = account.id || `${account.accountNumber}-${account.accountType}`;
     const active = Boolean(
       selectedId &&
+      selectedId !== "summary" &&
       (account.id === selectedId ||
         account.accountNumber === selectedId ||
         `${account.accountNumber}-${account.accountType}` === selectedId),

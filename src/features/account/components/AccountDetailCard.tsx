@@ -17,6 +17,7 @@ import AccountDetails from "./AccountDetails";
 import StatementDownloadDialog from "./StatementDownloadDialog";
 import { getAccountIndicatorColor } from "./AccountsSidebar";
 import CardBorderAccent from "@core/components/CardBorderAccent";
+import BaseCard from "@/@core/components/BaseCard";
 
 export interface AccountDetailsProps {
   open?: boolean;
@@ -233,37 +234,39 @@ export default function AccountDetailCard({
   const metric1Label = isTD
     ? "Deposit Amount"
     : isCL
-    ? "Approved Limit"
-    : "Available Balance";
+      ? "Approved Limit"
+      : "Available Balance";
   const metric1Value = isTD
     ? depositAmount
     : isCL
-    ? approvedLimit
-    : availableBal;
+      ? approvedLimit
+      : availableBal;
 
   const metric2Label = isTD
     ? "Amount on Maturity"
     : isCL
-    ? "Outstanding amount"
-    : "Total Balance";
+      ? "Outstanding amount"
+      : "Total Balance";
   const metric2Value = isTD
     ? maturityAmount
     : isCL
-    ? outstandingAmount
-    : totalBal;
+      ? outstandingAmount
+      : totalBal;
 
   return (
-    <Box
+    <BaseCard
       sx={{
         position: "relative",
+
+        height: "196px",
         bgcolor: "#FFFFFF",
         borderRadius: "20px",
         p: { xs: 2.5, sm: "20px 24px" },
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
-        border: "1px solid #EDF2F7",
+        // border: "1px solid #EDF2F7",
       }}
     >
-      <CardBorderAccent color={cardAccentColor} type="bottom-left" radius={20} length={28} />
+      <CardBorderAccent color={accentColor} type="bottom-left" strokeWidth={2.5} tailLength={60} width={90} height={80} top={0} left={0} />
       <Stack
         direction={{ xs: "column", md: "row" }}
         spacing={3}
@@ -529,6 +532,6 @@ export default function AccountDetailCard({
           onExportStatements?.(val);
         }}
       />
-    </Box>
+    </BaseCard>
   );
 }

@@ -42,11 +42,11 @@ export default function ActivateAppPromptDialog({ open, onClose, onGetStarted }:
       <BindPromptContent
         title={t("activatePrompt.title")}
         description={t("activatePrompt.description")}
-        imageHeight={320}
-        imageOffsetTop={-5}
-        stackSx={{ pt: 0, pb: 1 }}
+        // imageHeight={320}
+        // imageOffsetTop={-5}
+        stackSx={{ pt: 8, pb: 4 }}
         textBoxSx={{ py: 4 }}
-        secondaryActionTitle={t("activatePrompt.signOut")}
+        // secondaryActionTitle={t("activatePrompt.signOut")}
         onSecondaryAction={() => void handleSignOut()}
         secondaryActionLoading={isSigningOut}
         primaryActionTitle={t("activatePrompt.getStarted")}

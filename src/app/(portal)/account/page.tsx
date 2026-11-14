@@ -100,11 +100,11 @@ export default function AccountPage() {
     };
   }, [coreSummary, bankAccounts]);
 
-  // Starts with no account pre-selected so on initial visit only AccountsSidebar is shown
+  // Starts with no account pre-selected so on initial visit AccountsSidebar summary is selected
   const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>();
 
   const selectedAccount = useMemo(() => {
-    if (!selectedAccountId) return undefined;
+    if (!selectedAccountId || selectedAccountId === "summary") return undefined;
     return bankAccounts.find(
       (account) =>
         account.id === selectedAccountId ||
@@ -114,7 +114,7 @@ export default function AccountPage() {
   }, [bankAccounts, selectedAccountId]);
 
   const selectedIndex = useMemo(() => {
-    if (!selectedAccountId) return 0;
+    if (!selectedAccountId || selectedAccountId === "summary") return 0;
     const idx = bankAccounts.findIndex(
       (account) =>
         account.id === selectedAccountId ||
@@ -137,6 +137,7 @@ export default function AccountPage() {
       bankAccounts[0],
     [bankAccounts],
   );
+
   // Drives the Transactions table: the clicked account once there is one, the default account until then —
   // so the table always has a real account's transactions, matching AccountSummaryPanel's "before selection" view.
   const txnAccount = selectedAccount ?? defaultAccount;
@@ -316,6 +317,7 @@ export default function AccountPage() {
           : undefined,
     [effectiveInfo, selectedAccount],
   );
+
   return (
     <Box sx={{ width: "100%" }}>
       <Grid container spacing={2.5}>

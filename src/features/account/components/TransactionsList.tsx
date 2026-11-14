@@ -98,6 +98,40 @@ const DEFAULT_MOCK_TRANSACTIONS: TTransactionDetailResponse[] = [
     amountBalance: 2475.0,
     fields: [],
   },
+  {
+    transactionId: "2819700093P2428-4",
+    transactionCode: "BAKONG",
+    transactionType: "D",
+    transactionAmount: -25.0,
+    transactionCurrency: "USD",
+    transactionDate: "2026-06-11",
+    transactionTime: "15:48:00",
+    transactionDescription: "Bakong Payment",
+    transactionReferenceCode: "2819700093P2428",
+    fromAccountName: "Savings",
+    fromAccountNumber: "000067898",
+    toAccountName: "Bakong Merchant",
+    toAccountNumber: "000067898",
+    amountBalance: 2475.0,
+    fields: [],
+  },
+  {
+    transactionId: "2819700093P2429-5",
+    transactionCode: "BAKONG",
+    transactionType: "C",
+    transactionAmount: 25.0,
+    transactionCurrency: "USD",
+    transactionDate: "2026-06-11",
+    transactionTime: "15:48:00",
+    transactionDescription: "Bakong Payment",
+    transactionReferenceCode: "2819700093P2429",
+    fromAccountName: "Bakong Sender",
+    fromAccountNumber: "000067898",
+    toAccountName: "Savings",
+    toAccountNumber: "000067898",
+    amountBalance: 2500.0,
+    fields: [],
+  },
 ];
 
 /** Column widths, as the share of the table each one takes. Matches dashboard TransactionsCard. */
@@ -370,7 +404,7 @@ export default function TransactionsList({
         border: `1px solid ${palette.slate[200]}`,
       }}
     >
-      <CardBorderAccent color={accentColor} type="top-left" radius={20} length={28} />
+    <CardBorderAccent color={accentColor} type="top-left" strokeWidth={2.5} tailLength={40} width={90} height={80} top={0} left={0} />
       {/* Top Header Row */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
