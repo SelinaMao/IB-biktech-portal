@@ -122,7 +122,6 @@ export default function ApprovalTypeBreakdownCard({
                 onClick={onItemClick ? () => onItemClick(item) : undefined}
                 sx={{
                   alignItems: "center",
-                  justifyContent: "space-between",
                   cursor: onItemClick ? "pointer" : "default",
                   borderRadius: "6px",
                   py: 0.25,
@@ -139,6 +138,8 @@ export default function ApprovalTypeBreakdownCard({
                     fontSize: 13,
                     color: palette.slate[900],
                     fontWeight: 400,
+                    flexShrink: 0,
+                    width: 90,
                   }}
                 >
                   {item.label}
@@ -147,7 +148,7 @@ export default function ApprovalTypeBreakdownCard({
                 <Stack
                   direction="row"
                   spacing={1.25}
-                  sx={{ alignItems: "center" }}
+                  sx={{ alignItems: "center", justifyContent: "center", flex: 1 }}
                 >
                   <Typography
                     sx={{

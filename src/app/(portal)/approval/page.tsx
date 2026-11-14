@@ -23,7 +23,7 @@ import {
 } from "@/features/approval";
 
 const ROWS_PER_PAGE = 5;
-const DEFAULT_FILTER: BaseFilterValue = { type: "all", from: null, to: null };
+const DEFAULT_FILTER: BaseFilterValue = { type: "last7Days", from: null, to: null };
 
 export default function ApprovalPage() {
   const canSeeTasks = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);

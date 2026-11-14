@@ -11,12 +11,12 @@ import { ArrowUpDown, Search } from "lucide-react";
 import { font, palette, radius } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseCard from "@core/components/BaseCard";
-import BaseFilter, { type BaseFilterValue } from "@core/components/BaseFilter";
+import type { BaseFilterValue } from "@core/components/BaseFilter";
 import BaseFilterButton from "@core/components/BaseFilterButton";
-import BaseFilterTypeContent from "@core/components/BaseFilterTypeContent";
 import type { BaseFilterByDayValue } from "@core/components/BaseFilterByDay";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import { formatDate } from "@/utils/date-time";
+import { TransactionFilterDialog } from "@/features/account";
 import type { ApprovalEntry } from "../approval.types";
 import ApprovalStatusChip from "./ApprovalStatusChip";
 
@@ -116,10 +116,10 @@ export default function ApprovalTable({
     }
   };
 
-  // Date filter Popover state (using BaseFilter)
-  const [filterAnchorEl, setFilterAnchorEl] = useState<HTMLElement | null>(null);
+  // Date filter dialog state (matches account's TransactionFilterDialog)
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [internalDateFilter, setInternalDateFilter] = useState<BaseFilterValue>({
-    type: "all",
+    type: "last7Days",
     from: null,
     to: null,
   });
@@ -320,7 +320,10 @@ export default function ApprovalTable({
   ];
 
   const hasActiveFilter = Boolean(
-    dateFilter && (dateFilter.type !== "all" || dateFilter.from || dateFilter.to),
+    dateFilter &&
+    dateFilter.type !== "all" &&
+    dateFilter.type !== "last7Days" &&
+    (dateFilter.type || dateFilter.from || dateFilter.to),
   );
 
   const dialogFilterValue: BaseFilterValue = dateFilter
@@ -402,24 +405,22 @@ export default function ApprovalTable({
           {/* Filters Button */}
           <BaseFilterButton
             active={hasActiveFilter}
-            onClick={(e) => setFilterAnchorEl(e.currentTarget)}
+            onClick={() => setFilterDialogOpen(true)}
             inactiveTextColor={palette.slate[700]}
           />
-
-          {/* BaseFilter Dropdown */}
-          <BaseFilter anchorEl={filterAnchorEl} onClose={() => setFilterAnchorEl(null)}>
-            <BaseFilterTypeContent
-              onClose={() => setFilterAnchorEl(null)}
-              defaultValue={dialogFilterValue}
-              onApply={(newVal) => {
-                handleDateFilterChange(newVal);
-                setFilterAnchorEl(null);
-                handlePageChange(0);
-              }}
-            />
-          </BaseFilter>
         </Stack>
       </Stack>
+
+      {/* Date Filter Dialog — matches account's TransactionFilterDialog */}
+      <TransactionFilterDialog
+        open={filterDialogOpen}
+        onClose={() => setFilterDialogOpen(false)}
+        onApply={(newVal) => {
+          handleDateFilterChange(newVal);
+          handlePageChange(0);
+        }}
+        value={dialogFilterValue}
+      />
 
       {/* BaseTable with built-in compact pagination */}
       <BaseTable

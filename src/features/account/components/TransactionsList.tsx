@@ -9,7 +9,7 @@ import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseIconBadge from "@core/components/BaseIconBadge";
 import BaseFilterButton from "@core/components/BaseFilterButton";
-import { BASE_FILTER_TYPE_LABELS, type BaseFilterValue } from "@core/components/BaseFilter";
+import type { BaseFilterValue } from "@core/components/BaseFilter";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import StatementDownloadDialog from "./StatementDownloadDialog";
 import TransactionFilterDialog from "./TransactionFilterDialog";
@@ -444,7 +444,6 @@ export default function TransactionsList({
           {showDateFilter && (
             <BaseFilterButton
               active={hasActiveFilter}
-              label={BASE_FILTER_TYPE_LABELS[dateFilter.type]}
               onClick={() => setFilterDialogOpen(true)}
             />
           )}
