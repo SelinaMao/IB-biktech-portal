@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Box, Grid, Typography } from "@mui/material";
+import { Box, Grid } from "@mui/material";
 import { resolveBaseDownloadRange, type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { DEFAULT_PIE_COLORS } from "@core/components/PieChart";
 import { showToast } from "@core/components/AppToast";
@@ -20,13 +20,13 @@ import {
   LoanDetailsPanel,
   LoanDetailCard,
   LoansSidebar,
+  LoanSummaryPanel,
   getLoanIndicatorColor,
   loanDetailsById,
   loanAccounts as mockLoanAccounts,
   loanSummary as mockLoanSummary,
   type LoanAccountListItem,
   LoanTransactionsCard,
-  LoanSummary,
 } from "@/features/loan";
 
 const STATEMENT_DOWNLOAD_FORMATS: Record<
@@ -202,28 +202,6 @@ export default function LoanPage() {
     };
   }, [selectedLoanDetails, selectedLoanAccount, borrower]);
 
-  const loanCashFlow = useMemo(
-    () =>
-      selectedLoanDetails.cashFlow.reduce(
-        (totals, point) => ({
-          expense: totals.expense + point.outflow,
-          income: totals.income + point.inflow,
-        }),
-        { expense: 0, income: 0 },
-      ),
-    [selectedLoanDetails.cashFlow],
-  );
-
-  const chartData = useMemo(
-    () =>
-      loanAccounts.map((loan, i) => ({
-        name: loan.name || `Loan ${i + 1}`,
-        value: 1,
-        color: getLoanIndicatorColor(loan, i),
-      })),
-    [loanAccounts],
-  );
-
   const handleExportStatements = async (value: BaseDownloadValue) => {
     if (!selectedLoanAccount?.number) return;
     try {
@@ -251,43 +229,20 @@ export default function LoanPage() {
 
   return (
     <Box sx={{ width: "100%" }}>
-      <LoanSummary
-        totalKHR={outstandingByCcy.khr}
-        totalUSD={outstandingByCcy.usd}
-        loans={loanAccounts}
-        chartData={chartData}
-        expenseAmount={loanCashFlow.expense}
-        incomeAmount={loanCashFlow.income}
-        currency={schedule.currency ?? selectedLoanAccount?.currency ?? "USD"}
-      />
-      <Grid>
-        <Typography
-          sx={{
-            fontSize: 15,
-            fontWeight: 700,
-            color: "#5A6B82",
-            lineHeight: 1.2,
-            mb: 1.5,
-            px: 0.5,
-          }}
-        >
-          Loan Accounts
-        </Typography>
-      </Grid>
       <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, lg: 3 }}>
           <LoansSidebar
             outstandingKhr={outstandingByCcy.khr}
             outstandingUsd={outstandingByCcy.usd}
             loans={loanAccounts}
-            hideSummary
             selectedId={selectedLoanAccount?.id}
             onSelect={(id) => setSelectedLoanId(id)}
+            onSelectSummary={() => setSelectedLoanId(undefined)}
           />
         </Grid>
 
         <Grid size={{ xs: 12, lg: 9 }}>
-          {selectedLoanAccount && (
+          {selectedLoanAccount ? (
             <Grid container spacing={2.5}>
               <Grid size={12}>
                 <LoanDetailCard
@@ -320,6 +275,23 @@ export default function LoanPage() {
               <Grid size={12}>
                 <LoanTransactionsCard
                   key={selectedLoanAccount.id}
+                  transactions={selectedLoanDetails.transactions}
+                />
+              </Grid>
+            </Grid>
+          ) : (
+            <Grid container spacing={2.5}>
+              <Grid size={12}>
+                <LoanSummaryPanel
+                  loans={loanAccounts}
+                  totalKHR={outstandingByCcy.khr}
+                  totalUSD={outstandingByCcy.usd}
+                />
+              </Grid>
+
+              <Grid size={12}>
+                <LoanTransactionsCard
+                  key="default-loan"
                   transactions={selectedLoanDetails.transactions}
                 />
               </Grid>

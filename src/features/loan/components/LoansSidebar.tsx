@@ -7,7 +7,6 @@ import BaseBlurText from "@core/components/BaseBlurText";
 import { DEFAULT_PIE_COLORS } from "@core/components/PieChart";
 import { formatCCY } from "@/utils/format-ccy";
 import { formatAccountNumber } from "@/utils/format-account-number";
-import LoanSummary from "./LoanSummary";
 
 const LOAN_COLORS: string[] = [
   ...DEFAULT_PIE_COLORS,
@@ -36,6 +35,8 @@ export interface LoansSidebarProps {
   hideSummary?: boolean;
   selectedId?: string;
   onSelect?: (id: string) => void;
+  /** Makes the Summary box clickable to return to the aggregate view (clears the loan selection). */
+  onSelectSummary?: () => void;
 }
 
 /** Converts any hex or rgb color to rgba with custom alpha for soft gradients */
@@ -63,14 +64,27 @@ export function colorWithAlpha(color: string, alpha: number): string {
   return trimmed;
 }
 
+/**
+ * Returns the indicator / theme color for each loan: 1 loan = 1 color, by
+ * position in the list. Always index-based — see getAccountIndicatorColor
+ * in AccountsSidebar for why an API-provided color field isn't used here.
+ */
 export const getLoanIndicatorColor = (
   loan?: LoanEntry | null,
   index: number = 0,
 ): string => {
-  if (loan?.color) return loan.color;
-
   return LOAN_COLORS[index % LOAN_COLORS.length];
 };
+
+/** Formats dynamic amount as "KHR 120,293,000.00" or "USD 293,000.00" — matches AccountsSidebar's Summary box. */
+function formatSummaryCurrency(amount: number | string | undefined | null, ccy: string): string {
+  const num = Number(amount ?? 0);
+  const formatted = (isNaN(num) ? 0 : num).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${ccy} ${formatted}`;
+}
 
 export function getLoanTypeName(loan: LoanEntry): string {
   const type = (loan.type || "").trim();
@@ -98,7 +112,13 @@ export default function LoansSidebar({
   hideSummary = false,
   selectedId,
   onSelect,
+  onSelectSummary,
 }: LoansSidebarProps) {
+  // The aggregate Summary view is "active" whenever no specific loan is picked.
+  const summaryActive = !selectedId;
+  // Matches DEFAULT_PIE_COLORS[0] — the donut's own mint-green for the first slot.
+  const summaryAccentColor = "#5AC0A0";
+
   // Prefer totals from props, fallback to summing the loans list
   const { totalKHR, totalUSD } = useMemo(() => {
     const khr =
@@ -267,17 +287,77 @@ export default function LoansSidebar({
 
   return (
     <Box sx={{ width: "100%" }}>
+      {/* Summary box — also selectable: clicking it returns to the aggregate view */}
       {!hideSummary && (
-        <LoanSummary
-          totalKHR={totalKHR}
-          totalUSD={totalUSD}
-          loans={loans}
-        />
+        <Box
+          role={onSelectSummary ? "button" : undefined}
+          tabIndex={onSelectSummary ? 0 : undefined}
+          onClick={onSelectSummary}
+          onKeyDown={(e) => {
+            if (!onSelectSummary) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelectSummary();
+            }
+          }}
+          sx={{
+            borderRadius: "16px",
+            p: "18px 20px",
+            bgcolor: "#FFFFFF",
+            border: `1px solid ${summaryActive ? summaryAccentColor : "#EDF2F7"}`,
+            borderLeft: summaryActive ? `4px solid ${summaryAccentColor}` : "1px solid #EDF2F7",
+            backgroundImage: summaryActive
+              ? `linear-gradient(90deg, ${colorWithAlpha(summaryAccentColor, 0.35)} 0%, ${colorWithAlpha(summaryAccentColor, 0.12)} 22%, ${colorWithAlpha(summaryAccentColor, 0.04)} 38%, rgba(255, 255, 255, 0) 50%, #FFFFFF 100%)`
+              : "none",
+            boxShadow: summaryActive
+              ? `0px 2px 8px ${colorWithAlpha(summaryAccentColor, 0.14)}`
+              : "0px 1px 3px rgba(15, 23, 42, 0.03)",
+            cursor: onSelectSummary ? "pointer" : "default",
+            outline: "none",
+            userSelect: "none",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+            "&:hover": onSelectSummary && !summaryActive ? { borderColor: "#CBD5E1" } : undefined,
+            "&:focus-visible": { outline: "2px solid #3B82F6", outlineOffset: 2 },
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: "#718096",
+              mb: 1.25,
+              lineHeight: 1.2,
+            }}
+          >
+            Summary
+          </Typography>
+
+          <Stack spacing={0.75}>
+            <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#0F172A", lineHeight: 1.35 }}>
+              <BaseBlurText>{formatSummaryCurrency(totalKHR, "KHR")}</BaseBlurText>
+            </Typography>
+            <Typography sx={{ fontSize: 16, fontWeight: 700, color: "#0F172A", lineHeight: 1.35 }}>
+              <BaseBlurText>{formatSummaryCurrency(totalUSD, "USD")}</BaseBlurText>
+            </Typography>
+          </Stack>
+        </Box>
       )}
 
       {/* ───────── Loan Accounts List Section ───────── */}
       {loans.length > 0 && (
         <Box sx={{ mt: hideSummary ? 0 : 3 }}>
+          <Typography
+            sx={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: "#5A6B82",
+              lineHeight: 1.2,
+              mb: 1.5,
+              px: 0.5,
+            }}
+          >
+            Loan Accounts
+          </Typography>
           <Stack spacing={1.5}>
             {loans.map((loan, index) => renderLoanCard(loan, index))}
           </Stack>

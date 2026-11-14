@@ -125,7 +125,7 @@ export default function AccountPage() {
   }, [bankAccounts, selectedAccountId]);
 
   const selectedAccountColor = useMemo(() => {
-    if (!selectedAccount) return "#8DD4BE";
+    if (!selectedAccount) return "#5AC0A0";
     return getAccountIndicatorColor(selectedAccount, selectedIndex);
   }, [selectedAccount, selectedIndex]);
 
@@ -137,16 +137,6 @@ export default function AccountPage() {
       bankAccounts[0],
     [bankAccounts],
   );
-  const defaultAccountIndex = useMemo(() => {
-    if (!defaultAccount) return 0;
-    const idx = bankAccounts.indexOf(defaultAccount);
-    return idx >= 0 ? idx : 0;
-  }, [bankAccounts, defaultAccount]);
-  const defaultAccountColor = useMemo(() => {
-    if (!defaultAccount) return "#8DD4BE";
-    return getAccountIndicatorColor(defaultAccount, defaultAccountIndex);
-  }, [defaultAccount, defaultAccountIndex]);
-
   // Drives the Transactions table: the clicked account once there is one, the default account until then —
   // so the table always has a real account's transactions, matching AccountSummaryPanel's "before selection" view.
   const txnAccount = selectedAccount ?? defaultAccount;
@@ -410,7 +400,6 @@ export default function AccountPage() {
                 <TransactionsList
                   key={txnAccount?.id || txnAccountNumber}
                   transactions={effectiveTransactions}
-                  accentColor={defaultAccountColor}
                   isLoading={effectiveTxnStatus === "loading"}
                   error={effectiveTxnStatus === "failed"}
                   query={txnQuery}

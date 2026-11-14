@@ -12,8 +12,8 @@ export interface CardBorderAccentProps {
 }
 
 /**
- * Renders a curved corner border accent in the active account's theme color,
- * with smooth gradients fading along adjacent card edges.
+ * Renders a curved corner border accent in a given theme color, with smooth
+ * gradients fading along adjacent card edges.
  *
  * - "top-left": Renders a glowing accent on the top-left rounded corner
  *   fading out along both the top edge and left edge (used on Transactions card).

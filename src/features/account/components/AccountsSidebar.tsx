@@ -140,7 +140,8 @@ export default function AccountsSidebar({
 }: AccountsSidebarProps) {
   // The aggregate Summary view is "active" whenever no specific account is picked.
   const summaryActive = !selectedId;
-  const summaryAccentColor = "#8DD4BE";
+  // Matches DEFAULT_PIE_COLORS[0] — the donut's own mint-green for the first slot.
+  const summaryAccentColor = "#5AC0A0";
   // Dynamic balances: prefer core summary totals, fallback to summing accounts list
   const { totalBalanceKHR, totalBalanceUSD } = useMemo(() => {
     const khr =

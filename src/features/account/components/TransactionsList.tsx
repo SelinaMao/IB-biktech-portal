@@ -13,7 +13,7 @@ import { BASE_FILTER_TYPE_LABELS, type BaseFilterValue } from "@core/components/
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import StatementDownloadDialog from "./StatementDownloadDialog";
 import TransactionFilterDialog from "./TransactionFilterDialog";
-import CardBorderAccent from "./CardBorderAccent";
+import CardBorderAccent from "@core/components/CardBorderAccent";
 import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { isIncomingTransaction } from "../account.slice";
 import type { TTransactionDetailResponse } from "../account.types";
@@ -184,7 +184,7 @@ export default function TransactionsList({
   accountName = "",
   accountNumber = "",
   accountType,
-  accentColor = "#74C0A8",
+  accentColor = "#5AC0A0",
 }: TransactionsListProps) {
   const [statementDownloadOpen, setStatementDownloadOpen] = useState(false);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
@@ -362,8 +362,8 @@ export default function TransactionsList({
   return (
     <Box
       sx={{
-        bgcolor: "#FFFFFF",
         position: "relative",
+        bgcolor: "#FFFFFF",
         borderRadius: "20px",
         p: `${padding.xxl}px`,
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
