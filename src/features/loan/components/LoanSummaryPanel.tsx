@@ -9,7 +9,7 @@ import BaseIconBadge from "@core/components/BaseIconBadge";
 import CardBorderAccent from "@core/components/CardBorderAccent";
 import CategoryDonutChart, { type CategoryDonutDatum } from "@core/components/CategoryDonutChart";
 import { DEFAULT_PIE_COLORS } from "@core/components/PieChart";
-import { font, palette, radius } from "@/theme/palette";
+import { font, padding, palette, radius } from "@/theme/palette";
 import { getLoanIndicatorColor, type LoanEntry } from "./LoansSidebar";
 
 // Matches DEFAULT_PIE_COLORS[0] — the donut's own mint-green for the first slot.
@@ -53,11 +53,12 @@ export default function LoanSummaryPanel({ loans, totalKHR, totalUSD }: LoanSumm
     <Box
       sx={{
         position: "relative",
+        height: "196px",
         bgcolor: "#FFFFFF",
         borderRadius: `${radius.xl}px`,
         border: `1px solid ${palette.slate[200]}`,
         boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
-        p: { xs: 2.5, sm: "20px 24px" },
+        p: `${padding.xxl}px`,
       }}
     >
       <CardBorderAccent color={SUMMARY_ACCENT_COLOR} type="bottom-left" radius={radius.xl} length={70} strokeWidth={3} />
@@ -77,7 +78,7 @@ export default function LoanSummaryPanel({ loans, totalKHR, totalUSD }: LoanSumm
         direction="row"
         alignItems="center"
         spacing={{ xs: 3, sm: 7, md: 10 }}
-        sx={{ flexWrap: "wrap" }}
+        sx={{ flexWrap: "wrap", gap: { xs: 1, sm: 2 } }}
       >
         <CategoryDonutChart
           data={pieData}

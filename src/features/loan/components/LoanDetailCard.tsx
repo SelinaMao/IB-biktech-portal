@@ -8,6 +8,9 @@ import dayjs from "dayjs";
 import { formatAccountNumber } from "@/utils/format-account-number";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseButton from "@core/components/BaseButton";
+import BaseCard from "@/@core/components/BaseCard";
+import CardBorderAccent from "@core/components/CardBorderAccent";
+import { radius } from "@/theme/palette";
 import type { BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import type { BorrowerProfile, LoanScheduleDetails } from "../loan.types";
 
@@ -97,17 +100,23 @@ export default function LoanDetailCard({
   };
 
   return (
-    <Box
+    <BaseCard
       sx={{
+        position: "relative",
+        height: "196px",
         bgcolor: "#FFFFFF",
-        borderRadius: "24px",
-        p: { xs: 2.5, sm: "16px 16px" },
+        borderRadius: `${radius.xl}px`,
+        p: { xs: 2.5, sm: "20px 24px" },
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
-        border: "1px solid #EDF2F7",
-        borderLeft: `4px solid ${cardAccentColor}`,
-        transition: "border-left-color 0.2s ease-in-out",
       }}
     >
+      <CardBorderAccent
+        color={cardAccentColor}
+        type="bottom-left"
+        radius={radius.xl}
+        length={70}
+        strokeWidth={3}
+      />
       <Stack
         direction={{ xs: "column", md: "row" }}
         spacing={3}
@@ -292,6 +301,6 @@ export default function LoanDetailCard({
           </Stack>
         </Box>
       </Stack>
-    </Box>
+    </BaseCard>
   );
 }

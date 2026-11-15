@@ -87,16 +87,17 @@ export default function ApprovalSteps({ instance, nameByUserId }: Props) {
         // and reading the count off the first task alone would hide the second.
         const requirements = [
           ...tasks
-            .reduce((map, task) => {
-              map.set(task.quotaIndex, [...(map.get(task.quotaIndex) ?? []), task]);
+            .reduce((map, task, idx) => {
+              const qIndex = task.quotaIndex ?? idx;
+              map.set(qIndex, [...(map.get(qIndex) ?? []), task]);
               return map;
             }, new Map<number, InstanceTask[]>())
             .entries(),
         ]
           .sort(([a], [b]) => a - b)
-          .map(([quotaIndex, quotaTasks]) => ({
-            quotaIndex,
-            required: quotaTasks[0].requiredCount,
+          .map(([quotaIndex, quotaTasks], idx) => ({
+            quotaIndex: quotaIndex ?? idx,
+            required: quotaTasks[0]?.requiredCount ?? 1,
             approved: quotaTasks.filter((task) => task.status === "APPROVED").length,
           }));
 
@@ -109,7 +110,7 @@ export default function ApprovalSteps({ instance, nameByUserId }: Props) {
         const pendingHere = tasks.filter((task) => task.status === "PENDING").length;
 
         return (
-          <Step key={level} active={isCurrent} completed={satisfied && !rejected} expanded>
+          <Step key={`step-level-${level}`} active={isCurrent} completed={satisfied && !rejected} expanded>
             <StepLabel
               error={rejected}
               optional={
@@ -129,9 +130,9 @@ export default function ApprovalSteps({ instance, nameByUserId }: Props) {
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   {isOverride ? "Override authority" : `Level ${level}`}
                 </Typography>
-                {requirements.map((requirement) => (
+                {requirements.map((requirement, reqIndex) => (
                   <Chip
-                    key={requirement.quotaIndex}
+                    key={`level-${level}-req-${requirement.quotaIndex}-${reqIndex}`}
                     size="small"
                     variant="outlined"
                     color={requirement.approved >= requirement.required ? "success" : "default"}
@@ -150,7 +151,7 @@ export default function ApprovalSteps({ instance, nameByUserId }: Props) {
 
             <StepContent>
               <Stack spacing={0.75} sx={{ mt: 0.5 }}>
-                {tasks.map((task) => {
+                {tasks.map((task, taskIdx) => {
                   const name = String(nameByUserId.get(task.assignedTo) ?? task.assignedTo);
                   const done = task.status !== "PENDING";
                   const canActNow =
@@ -160,7 +161,7 @@ export default function ApprovalSteps({ instance, nameByUserId }: Props) {
                     (!sequential || nextUp?.id === task.id);
 
                   return (
-                    <Stack key={task.id} direction="row" alignItems="center" sx={{ gap: 1 }}>
+                    <Stack key={task.id || `task-${level}-${taskIdx}`} direction="row" alignItems="center" sx={{ gap: 1 }}>
                       <Avatar
                         sx={{
                           width: 24,
@@ -224,8 +225,12 @@ export default function ApprovalSteps({ instance, nameByUserId }: Props) {
                 <Stack spacing={0.25} sx={{ mt: 1 }}>
                   {tasks
                     .filter((t) => t.reason)
-                    .map((t) => (
-                      <Typography key={t.id} variant="caption" color="text.secondary">
+                    .map((t, reasonIdx) => (
+                      <Typography
+                        key={t.id ? `reason-${t.id}` : `reason-${level}-${reasonIdx}`}
+                        variant="caption"
+                        color="text.secondary"
+                      >
                         &ldquo;{t.reason}&rdquo; — {nameByUserId.get(t.actedBy ?? "") ?? "approver"}
                       </Typography>
                     ))}

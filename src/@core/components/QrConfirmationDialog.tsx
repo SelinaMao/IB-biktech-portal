@@ -144,12 +144,19 @@ export default function QrConfirmationDialog({
         </Typography>
 
         <Box
+          onClick={() => {
+            if (onApprove) onApprove();
+          }}
           sx={{
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             my: { xs: 4, sm: 5 },
+            cursor: onApprove ? "pointer" : "default",
+            transition: "transform 0.15s ease",
+            "&:hover": onApprove ? { transform: "scale(1.02)" } : undefined,
           }}
+          title={onApprove ? "Click to simulate mobile scan" : undefined}
         >
           <QRCodeSVG
             value={value || qrSeed || "bank-mobile-qr-confirmation"}

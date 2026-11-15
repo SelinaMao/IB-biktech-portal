@@ -43,12 +43,16 @@ export default function ApprovalDetailDialog({
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectTouched, setRejectTouched] = useState(false);
-  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
+  const [qrConfirmOpen, setQrConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
 
   useEffect(() => {
     if (!open) {
-      setApproveConfirmOpen(false);
+      setQrConfirmOpen(false);
+      setPendingAction(null);
       setRejectDialogOpen(false);
+      setRejectReason("");
+      setRejectTouched(false);
     }
   }, [open]);
 
@@ -82,20 +86,28 @@ export default function ApprovalDetailDialog({
       setRejectTouched(true);
       return;
     }
-    onReject?.(entry, rejectReason.trim());
     setRejectDialogOpen(false);
-    onClose();
+    setPendingAction("reject");
+    setQrConfirmOpen(true);
   };
 
   const rejectReasonInvalid = rejectTouched && !rejectReason.trim();
 
   const requestApprove = () => {
-    setApproveConfirmOpen(true);
+    setPendingAction("approve");
+    setQrConfirmOpen(true);
   };
 
-  const handleQrApprove = () => {
-    setApproveConfirmOpen(false);
-    onApprove?.(entry);
+  const handleQrConfirm = () => {
+    const action = pendingAction;
+    const reason = rejectReason.trim();
+    setQrConfirmOpen(false);
+    setPendingAction(null);
+    if (action === "approve") {
+      onApprove?.(entry);
+    } else if (action === "reject") {
+      onReject?.(entry, reason);
+    }
     onClose();
   };
 
@@ -365,8 +377,15 @@ export default function ApprovalDetailDialog({
         </Stack>
       </BaseDialog>
 
-      {/* QR Confirmation for Approve */}
-      <QrConfirmationDialog open={approveConfirmOpen} onApprove={handleQrApprove} />
+      {/* QR Confirmation for both Approve and Reject */}
+      <QrConfirmationDialog
+        open={qrConfirmOpen}
+        onClose={() => {
+          setQrConfirmOpen(false);
+          setPendingAction(null);
+        }}
+        onApprove={handleQrConfirm}
+      />
     </>
   );
 }
