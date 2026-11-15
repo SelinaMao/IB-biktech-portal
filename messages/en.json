@@ -183,8 +183,10 @@
     "scan": {
       "title": "Secure Your Account",
       "instruction": "Scan QR Code",
-      "appName": "BiKTECH BANK Biz App",
-      "subTitle": "Use <link>{appName}</link> to scan QR code",
+      "appName": "Biktech Banking App",
+      "subTitle": "Use <link>{appName}</link> to scan the QR code",
+      "useSms": "Use SMS",
+      "useSmsDesc": "Use SMS Code to Verify",
       "expireIn": "Expire in {seconds}s",
       "noAppQuestion": "No BiKTECH BANK Biz App in phone?",
       "availableIn": "Available in",

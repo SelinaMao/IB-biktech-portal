@@ -109,6 +109,7 @@ export default function VerifyActionFlow({
         open={open && step === "qr"}
         onClose={backToChoose}
         onApprove={handleVerified}
+        onUseSms={handleSelectSms}
       />
     </>
   );

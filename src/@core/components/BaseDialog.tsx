@@ -1,6 +1,6 @@
 "use client";
 
-import Dialog from "@mui/material/Dialog";
+import Dialog, { type DialogProps } from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import type { Breakpoint } from "@mui/material/styles";
 import type { ButtonProps } from "@mui/material/Button";
+import type { PaperProps } from "@mui/material/Paper";
 import type { SxProps, Theme } from "@mui/material/styles";
 
 import { controlBTNHeight, font } from "@/theme/palette";
@@ -53,6 +54,10 @@ export type BaseDialogProps = {
   titleSx?: SxProps<Theme>;
   /** Override the DialogContent's own sx (e.g. to disable scrolling for short, fixed-height content). */
   contentSx?: SxProps<Theme>;
+  /** Custom styles for the dialog Paper surface. */
+  paperSx?: SxProps<Theme>;
+  /** Custom PaperProps passed to MUI Dialog. */
+  paperProps?: Partial<PaperProps>;
 };
 
 /**
@@ -83,10 +88,13 @@ export default function BaseDialog({
   variant = "standard",
   titleSx,
   contentSx,
+  paperSx,
+  paperProps,
 }: BaseDialogProps) {
   const isAction = variant === "action";
   const spacingSx = isAction ? { p: { xs: 4, sm: 4.5, md: 6 } } : undefined;
   const showDividers = dividers ?? isAction;
+  const isHeaderHidden = !title && !subtitle && hideCloseButton;
 
   return (
     <Dialog
@@ -96,56 +104,61 @@ export default function BaseDialog({
       }
       maxWidth={maxWidth}
       fullWidth
-      PaperProps={
-        maxHeight
-          ? { sx: (theme) => ({ maxHeight: theme.breakpoints.values[maxHeight] }) }
-          : undefined
-      }
+      PaperProps={{
+        ...paperProps,
+        sx: [
+          ...(maxHeight ? [(theme: Theme) => ({ maxHeight: theme.breakpoints.values[maxHeight] })] : []),
+          ...(Array.isArray(paperProps?.sx) ? (paperProps.sx as unknown[]) : [paperProps?.sx]),
+          ...(Array.isArray(paperSx) ? (paperSx as unknown[]) : [paperSx]),
+        ] as SxProps<Theme>,
+      }}
     >
-      <DialogTitle
-        sx={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 2,
-          pb: subtitle ? 1 : undefined,
-          ...spacingSx,
-          ...titleSx,
-        }}
-      >
-        <span>
-          {isAction ? (
-            <Typography
-              variant="h6"
-              component="span"
-              sx={{ fontWeight: font.weight.semibold, fontSize: font.size.xxl }}
+      {!isHeaderHidden && (
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 2,
+            pb: subtitle ? 1 : undefined,
+            ...spacingSx,
+            ...titleSx,
+          }}
+        >
+          <span>
+            {isAction ? (
+              <Typography
+                variant="h6"
+                component="span"
+                sx={{ fontWeight: font.weight.semibold, fontSize: font.size.xxl }}
+              >
+                {title}
+              </Typography>
+            ) : (
+              title
+            )}
+            {subtitle ? (
+              <Typography
+                variant="body2"
+                sx={{ color: "text.secondary", mt: 0.25 }}
+              >
+                {subtitle}
+              </Typography>
+            ) : null}
+          </span>
+          {!hideCloseButton && (
+            <IconButton
+              size="small"
+              onClick={onClose}
+              disabled={isLoading}
+              aria-label="Close dialog"
+              sx={{ mt: -0.5, mr: -1 }}
             >
-              {title}
-            </Typography>
-          ) : (
-            title
+              <CloseRoundedIcon fontSize="small" sx={{ color: "#1F1F1F" }} />
+            </IconButton>
           )}
-          {subtitle ? (
-            <Typography
-              variant="body2"
-              sx={{ color: "text.secondary", mt: 0.25 }}
-            >
-              {subtitle}
-            </Typography>
-          ) : null}
-        </span>
-        {!hideCloseButton && (
-          <IconButton
-            size="small"
-            onClick={onClose}
-            disabled={isLoading}
-            aria-label="Close dialog"
-            sx={{ mt: -0.5, mr: -1 }}
-          >
-            <CloseRoundedIcon fontSize="small" sx={{ color: "#1F1F1F" }} />
-          </IconButton>
-        )}
-      </DialogTitle>
+        </DialogTitle>
+      )}
 
       <DialogContent
         dividers={showDividers}
