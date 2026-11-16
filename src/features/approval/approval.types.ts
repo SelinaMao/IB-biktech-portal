@@ -12,7 +12,7 @@
 
 export type ApprovalTab = "pending" | "history";
 
-export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | (string & {});
+export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | (string & {});
 
 type ChipColor = "success" | "warning" | "default" | "error" | "info";
 
@@ -24,6 +24,7 @@ export const APPROVAL_STATUS_META: Record<
   PENDING: { label: "Pending", color: "warning" },
   APPROVED: { label: "Approved", color: "success" },
   REJECTED: { label: "Rejected", color: "error" },
+  CANCELLED: { label: "Cancelled", color: "default" },
 };
 
 export const approvalStatusMeta = (status: ApprovalStatus) =>
@@ -52,6 +53,8 @@ export type ApprovalEntry = {
   rejectReason?: string;
   /** Requester / Initiator name */
   requestedBy?: string;
+  /** User ID of the initiator */
+  initiatedBy?: string;
   /** Financial or Non-financial category */
   category?: "financial" | "non-financial";
 };

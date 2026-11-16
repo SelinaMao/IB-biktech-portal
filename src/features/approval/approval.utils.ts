@@ -143,6 +143,7 @@ export function mapWorkflowToApprovalEntry(
     status,
     rejectReason: rejectReason ? String(rejectReason) : undefined,
     requestedBy: initiatorName,
+    initiatedBy: initiatorId,
     category: isFinancial ? "financial" : "non-financial",
   };
 }
