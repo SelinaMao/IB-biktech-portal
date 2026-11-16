@@ -27,32 +27,50 @@ export type LoginFormFields = {
   agreedTerms: boolean;
 };
 
+const PRESET_PASSWORD = "@STRONGPASSWORd1";
+
 const PRESET_ACCOUNTS = [
-  {
-    label: "seavinh.001",
-    role: "Corporate",
-    username: "seavinh.001",
-    password: "@STRONGPASSWORd1",
-  },
-  {
-    label: "vattana.001",
-    role: "Corporate",
-    username: "vattana.001",
-    password: "@STRONGPASSWORd1",
-  },
-  {
-    label: "selina.001",
-    role: "Corporate",
-    username: "selina.001",
-    password: "@STRONGPASSWORd1",
-  },
-  {
-    label: "Chiven.001",
-    role: "Corporate",
-    username: "Chiven.001",
-    password: "@STRONGPASSWORd1",
-  },
+  { label: "Vattana · Non-Individual Super Admin", role: "Super Admin", username: "ni.vattana.super.admin", password: PRESET_PASSWORD },
+  { label: "Vattana · Non-Individual Maker", role: "Maker", username: "ni.vattana.maker", password: PRESET_PASSWORD },
+  { label: "Vattana · Non-Individual Checker", role: "Checker", username: "ni.vattana.checker", password: PRESET_PASSWORD },
+  { label: "Vattana · Individual Super Admin", role: "Super Admin", username: "i.vattana.super.admin", password: PRESET_PASSWORD },
+  { label: "Seavinh · Non-Individual Super Admin", role: "Super Admin", username: "ni.seavinh.super.admin", password: PRESET_PASSWORD },
+  { label: "Seavinh · Non-Individual Maker", role: "Maker", username: "ni.seavinh.maker", password: PRESET_PASSWORD },
+  { label: "Seavinh · Non-Individual Checker", role: "Checker", username: "ni.seavinh.checker", password: PRESET_PASSWORD },
+  { label: "Seavinh · Individual Super Admin", role: "Super Admin", username: "i.seavinh.super.admin", password: PRESET_PASSWORD },
+  { label: "Ethan · Non-Individual Super Admin", role: "Super Admin", username: "ni.ethan.super.admin", password: PRESET_PASSWORD },
+  { label: "Ethan · Non-Individual Maker", role: "Maker", username: "ni.ethan.maker", password: PRESET_PASSWORD },
+  { label: "Ethan · Non-Individual Checker", role: "Checker", username: "ni.ethan.checker", password: PRESET_PASSWORD },
+  { label: "Ethan · Individual Super Admin", role: "Super Admin", username: "i.ethan.super.admin", password: PRESET_PASSWORD },
+  { label: "Selina · Non-Individual Super Admin", role: "Super Admin", username: "ni.selina.super.admin", password: PRESET_PASSWORD },
+  { label: "Selina · Non-Individual Maker", role: "Maker", username: "ni.selina.maker", password: PRESET_PASSWORD },
+  { label: "Selina · Non-Individual Checker", role: "Checker", username: "ni.selina.checker", password: PRESET_PASSWORD },
+  { label: "Selina · Individual Super Admin", role: "Super Admin", username: "i.selina.super.admin", password: PRESET_PASSWORD },
+  { label: "Din · Non-Individual Super Admin", role: "Super Admin", username: "ni.din.super.admin", password: PRESET_PASSWORD },
+  { label: "Din · Non-Individual Maker", role: "Maker", username: "ni.din.maker", password: PRESET_PASSWORD },
+  { label: "Din · Non-Individual Checker", role: "Checker", username: "ni.din.checker", password: PRESET_PASSWORD },
+  { label: "Din · Individual Super Admin", role: "Super Admin", username: "i.din.super.admin", password: PRESET_PASSWORD },
+  { label: "Logan · Non-Individual Super Admin", role: "Super Admin", username: "ni.logan.super.admin", password: PRESET_PASSWORD },
+  { label: "Logan · Non-Individual Maker", role: "Maker", username: "ni.logan.maker", password: PRESET_PASSWORD },
+  { label: "Logan · Non-Individual Checker", role: "Checker", username: "ni.logan.checker", password: PRESET_PASSWORD },
+  { label: "Logan · Individual Super Admin", role: "Super Admin", username: "i.logan.super.admin", password: PRESET_PASSWORD },
+  { label: "Jin · Non-Individual Super Admin", role: "Super Admin", username: "ni.jin.super.admin", password: PRESET_PASSWORD },
+  { label: "Jin · Non-Individual Maker", role: "Maker", username: "ni.jin.maker", password: PRESET_PASSWORD },
+  { label: "Jin · Non-Individual Checker", role: "Checker", username: "ni.jin.checker", password: PRESET_PASSWORD },
+  { label: "Jin · Individual Super Admin", role: "Super Admin", username: "i.jin.super.admin", password: PRESET_PASSWORD },
+  { label: "Denny · Non-Individual Super Admin", role: "Super Admin", username: "ni.denny.super.admin", password: PRESET_PASSWORD },
+  { label: "Denny · Non-Individual Maker", role: "Maker", username: "ni.denny.maker", password: PRESET_PASSWORD },
+  { label: "Denny · Non-Individual Checker", role: "Checker", username: "ni.denny.checker", password: PRESET_PASSWORD },
+  { label: "Denny · Individual Super Admin", role: "Super Admin", username: "i.denny.super.admin", password: PRESET_PASSWORD },
+
+  
+  { label: "Thearin · Non-Individual Super Admin", role: "Super Admin", username: "ni.thearin.super.admin", password: PRESET_PASSWORD },
+  { label: "Thearin · Non-Individual Maker", role: "Maker", username: "ni.thearin.maker", password: PRESET_PASSWORD },
+  { label: "Thearin · Non-Individual Checker", role: "Checker", username: "ni.thearin.checker", password: PRESET_PASSWORD },
+  { label: "Thearin · Individual Super Admin", role: "Super Admin", username: "i.thearin.super.admin", password: PRESET_PASSWORD },
 ];
+
+
 
 export default function ClientLoginPage() {
   const router = useRouter();

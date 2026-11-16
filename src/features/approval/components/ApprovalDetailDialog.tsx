@@ -43,12 +43,16 @@ export default function ApprovalDetailDialog({
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectTouched, setRejectTouched] = useState(false);
-  const [approveConfirmOpen, setApproveConfirmOpen] = useState(false);
+  const [qrConfirmOpen, setQrConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
 
   useEffect(() => {
     if (!open) {
-      setApproveConfirmOpen(false);
+      setQrConfirmOpen(false);
+      setPendingAction(null);
       setRejectDialogOpen(false);
+      setRejectReason("");
+      setRejectTouched(false);
     }
   }, [open]);
 
@@ -62,16 +66,14 @@ export default function ApprovalDetailDialog({
       ? `$${entry.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : `${entry.currency} ${entry.amount.toLocaleString("en-US")}`;
 
-  const fromDisplay = entry.sourceAccountNo
-    ? `${entry.sourceAccountName || "Operating"} ${formatLast4(entry.sourceAccountNo)}`
-    : entry.sourceAccountName || "Operating •••• 4821";
+  const fromDisplay = [entry.sourceAccountName, formatLast4(entry.sourceAccountNo)].filter(Boolean).join(" ") || "—";
 
   const toDisplay =
     entry.payToAccountNo && entry.payToAccountNo !== "Bakong"
       ? `${entry.payToName} ${formatLast4(entry.payToAccountNo)}`
       : entry.payToName || "—";
 
-  const referenceDisplay = entry.refNo || entry.transactionId || "INV-2026-0912";
+  const referenceDisplay = entry.refNo || entry.transactionId || "—";
 
   const requestReject = () => {
     setRejectReason("");
@@ -84,20 +86,28 @@ export default function ApprovalDetailDialog({
       setRejectTouched(true);
       return;
     }
-    onReject?.(entry, rejectReason.trim());
     setRejectDialogOpen(false);
-    onClose();
+    setPendingAction("reject");
+    setQrConfirmOpen(true);
   };
 
   const rejectReasonInvalid = rejectTouched && !rejectReason.trim();
 
   const requestApprove = () => {
-    setApproveConfirmOpen(true);
+    setPendingAction("approve");
+    setQrConfirmOpen(true);
   };
 
-  const handleQrApprove = () => {
-    setApproveConfirmOpen(false);
-    onApprove?.(entry);
+  const handleQrConfirm = () => {
+    const action = pendingAction;
+    const reason = rejectReason.trim();
+    setQrConfirmOpen(false);
+    setPendingAction(null);
+    if (action === "approve") {
+      onApprove?.(entry);
+    } else if (action === "reject") {
+      onReject?.(entry, reason);
+    }
     onClose();
   };
 
@@ -367,8 +377,15 @@ export default function ApprovalDetailDialog({
         </Stack>
       </BaseDialog>
 
-      {/* QR Confirmation for Approve */}
-      <QrConfirmationDialog open={approveConfirmOpen} onApprove={handleQrApprove} />
+      {/* QR Confirmation for both Approve and Reject */}
+      <QrConfirmationDialog
+        open={qrConfirmOpen}
+        onClose={() => {
+          setQrConfirmOpen(false);
+          setPendingAction(null);
+        }}
+        onApprove={handleQrConfirm}
+      />
     </>
   );
 }

@@ -14,12 +14,7 @@ import BaseFilterByDay, {
 import BaseSwitch from "@core/form/BaseSwitch";
 import {
   ApprovalTable,
-  ApprovalDetailDialog,
   ApprovalSummaryCards,
-  approvalSummary,
-  pendingApprovalEntries as initialPendingApprovalEntries,
-  nonFinancialApprovalEntries as initialNonFinancialEntries,
-  approvalHistoryEntries as initialApprovalHistoryEntries,
   type ApprovalEntry,
   type ApprovalTab,
 } from "@/features/approval";
@@ -34,6 +29,8 @@ import {
   useRaiseApprovalAuthenticatorMutation,
   useListMyTasksQuery,
   type InstanceStatus,
+  DetailDialog,
+  type DetailDialogEntry,
 } from "@/features/workflow";
 import { font, palette } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
@@ -111,13 +108,14 @@ export default function ApprovalRequestsPage() {
   const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
   const [page, setPage] = useState(0);
 
-  // Local fallback entries to guarantee the mockup is shown if the API returns empty
-  const [localPendingEntries, setLocalPendingEntries] = useState(initialPendingApprovalEntries);
-  const [localNonFinancialEntries, setLocalNonFinancialEntries] = useState(initialNonFinancialEntries);
-  const [localHistoryEntries, setLocalHistoryEntries] = useState(initialApprovalHistoryEntries);
+  const [localPendingEntries, setLocalPendingEntries] = useState<ApprovalEntry[]>([]);
+  const [localNonFinancialEntries, setLocalNonFinancialEntries] = useState<ApprovalEntry[]>([]);
+  const [localHistoryEntries, setLocalHistoryEntries] = useState<ApprovalEntry[]>([]);
 
   const [openWorkflowId, setOpenWorkflowId] = useState<string | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<ApprovalEntry | null>(null);
+  // Toggle for DetailDialog (if set to false, InstanceDetailDialog is used directly)
+  const [showDetailDialog, setShowDetailDialog] = useState(true);
 
   const tasks = useListMyTasksQuery({ status: "PENDING" }, { skip: !canSeeTasks });
   const instances = useListInstancesQuery({ size: 50 }, { skip: !canView });
@@ -146,24 +144,24 @@ export default function ApprovalRequestsPage() {
     [instances.data, instances.isError],
   );
 
-  // Map real backend workflow tasks if present, otherwise fall back to fixed mock data
+  // Map real backend workflow tasks if present
   const financialPending = useMemo(() => {
     if (myTasks.length > 0) {
       return myTasks.map((task) => ({
         id: task.taskId,
         creationDate: task.createdAt,
-        transactionType: task.functionName,
+        transactionType: task.functionName || "Approval Request",
         transactionId: task.instanceId,
         refNo: task.referenceId || task.taskId.slice(0, 12),
         amount: (task as any).amount || 0,
         fee: 0,
         currency: (task as any).currency || "USD",
         payToName: (task as any).payTo || nameByUserId.get(task.initiatedBy) || "Beneficiary",
-        payToAccountNo: (task as any).payToAccount || "001 234 567",
-        sourceAccountName: (task as any).sourceAccount || "Operating",
-        sourceAccountNo: (task as any).sourceAccountNo || "0012 3456 7890",
+        payToAccountNo: (task as any).payToAccount || "",
+        sourceAccountName: (task as any).sourceAccount || "",
+        sourceAccountNo: (task as any).sourceAccountNo || "",
         pendingOn: "You",
-        status: "PENDING",
+        status: (task.status as any) || "PENDING",
       }));
     }
     return localPendingEntries;
@@ -217,38 +215,74 @@ export default function ApprovalRequestsPage() {
   };
 
   const handleRowClick = (entry: ApprovalEntry) => {
-    if (entry.transactionId && allInstances.some((i) => i.id === entry.transactionId)) {
-      setOpenWorkflowId(entry.transactionId);
-    } else {
+    const isWorkflowInstance = Boolean(
+      entry.transactionId && allInstances.some((i) => i.id === entry.transactionId)
+    );
+
+    if (showDetailDialog) {
+      // New event: open DetailDialog
       setSelectedEntry(entry);
+      if (isWorkflowInstance) {
+        setOpenWorkflowId(entry.transactionId);
+      }
+    } else {
+      // Old event: if DetailDialog is hidden, open InstanceDetailDialog directly for workflow items
+      if (isWorkflowInstance) {
+        setOpenWorkflowId(entry.transactionId);
+      } else {
+        setSelectedEntry(entry);
+      }
     }
   };
 
-  const handleApprove = (entry: ApprovalEntry) => {
-    if (category === "financial") {
-      setLocalPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
-    } else {
-      setLocalNonFinancialEntries((prev) => prev.filter((e) => e.id !== entry.id));
+  const handleApprove = async (entry?: DetailDialogEntry | null) => {
+    const target = (entry as ApprovalEntry) || selectedEntry;
+    if (!target) return;
+    if (target.transactionId && canAct) {
+      try {
+        await act({ id: target.transactionId, decision: "APPROVE" }).unwrap();
+      } catch {
+        // Continue with local update
+      }
     }
-    setLocalHistoryEntries((prev) => [{ ...entry, status: "APPROVED" }, ...prev]);
+    if (category === "financial") {
+      setLocalPendingEntries((prev) => prev.filter((e) => e.id !== target.id));
+    } else {
+      setLocalNonFinancialEntries((prev) => prev.filter((e) => e.id !== target.id));
+    }
+    setLocalHistoryEntries((prev) => [{ ...target, status: "APPROVED" }, ...prev]);
     setSelectedEntry(null);
+    setOpenWorkflowId(null);
     showToast("success", {
       title: "Transaction approved",
-      message: `${entry.transactionType} to ${entry.payToName} has been approved.`,
+      message: `${target.transactionType} to ${target.payToName} has been approved.`,
     });
   };
 
-  const handleReject = (entry: ApprovalEntry, reason: string) => {
-    if (category === "financial") {
-      setLocalPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
-    } else {
-      setLocalNonFinancialEntries((prev) => prev.filter((e) => e.id !== entry.id));
+  const handleReject = async (entry?: DetailDialogEntry | null, reason?: string) => {
+    const target = (entry as ApprovalEntry) || selectedEntry;
+    if (!target) return;
+    if (target.transactionId && canAct) {
+      try {
+        await act({ id: target.transactionId, decision: "REJECT", reason }).unwrap();
+      } catch {
+        // Continue with local update
+      }
     }
-    setLocalHistoryEntries((prev) => [{ ...entry, status: "REJECTED", rejectReason: reason }, ...prev]);
+    if (category === "financial") {
+      setLocalPendingEntries((prev) => prev.filter((e) => e.id !== target.id));
+    } else {
+      setLocalNonFinancialEntries((prev) => prev.filter((e) => e.id !== target.id));
+    }
+    setLocalHistoryEntries((prev) => [
+      { ...target, status: "REJECTED", rejectReason: reason || "No reason provided" },
+      ...prev,
+    ]);
     setSelectedEntry(null);
+    setOpenWorkflowId(null);
     showToast("error", {
       title: "Transaction rejected",
-      message: `${entry.transactionType} to ${entry.payToName} has been rejected.`,
+      message: `${target.transactionType} to ${target.payToName} has been rejected.`,
     });
   };
 
@@ -324,7 +358,6 @@ export default function ApprovalRequestsPage() {
       <ApprovalSummaryCards
         pendingCount={financialPending.length}
         entries={financialPending}
-        summary={approvalSummary}
       />
       {/* 3. Folder-style Tabs: Pending (5) & History */}
       <Stack
@@ -367,16 +400,22 @@ export default function ApprovalRequestsPage() {
         onRowClick={handleRowClick}
       />
 
-      {/* Dialogs */}
-      <ApprovalDetailDialog
-        open={Boolean(selectedEntry)}
-        onClose={() => setSelectedEntry(null)}
-        entry={selectedEntry}
-        onApprove={handleApprove}
-        onReject={handleReject}
-      />
+      {/* New Event: Transaction Detail Dialog with dynamic action button colors */}
+      {showDetailDialog && (
+        <DetailDialog
+          open={Boolean(selectedEntry)}
+          onClose={() => {
+            setSelectedEntry(null);
+            setOpenWorkflowId(null);
+          }}
+          entry={selectedEntry}
+          onApprove={handleApprove}
+          onReject={handleReject}
+        />
+      )}
 
-      {openWorkflowId && (
+      {/* Old Event: InstanceDetailDialog (works if showDetailDialog is false OR when DetailDialog is not active) */}
+      {openWorkflowId && (!showDetailDialog || !selectedEntry) && (
         <InstanceDetailDialog
           instanceId={openWorkflowId}
           nameByUserId={nameByUserId}

@@ -19,6 +19,10 @@ export interface BorrowerProfile {
   status: LoanStatus;
   /** Secondary badge next to the status pill, e.g. "No Credit". */
   creditRemark?: string;
+  businessSector?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
 }
 
 export interface LoanStat {
@@ -55,6 +59,7 @@ export interface LoanScheduleDetails {
   disbursementDate: string;
   maturityDate: string;
   repaymentMethod: string;
+  repaymentFrequency?: string;
   /** Installments left to pay, out of `totalInstallments` — drives the donut ring. */
   remainingInstallments: number;
   totalInstallments: number;

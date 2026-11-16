@@ -9,7 +9,7 @@ import { font, palette, radius, padding } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseIconBadge from "@core/components/BaseIconBadge";
 import BaseFilterButton from "@core/components/BaseFilterButton";
-import type { BaseFilterValue } from "@core/components/BaseFilter";
+import { BASE_FILTER_TYPE_LABELS, type BaseFilterValue } from "@core/components/BaseFilter";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import StatementDownloadDialog from "./StatementDownloadDialog";
 import TransactionFilterDialog from "./TransactionFilterDialog";
@@ -44,61 +44,6 @@ export interface TransactionsListProps {
   accountType?: string;
   accentColor?: string;
 }
-
-/** Fallback mock data matching design mockup */
-const DEFAULT_MOCK_TRANSACTIONS: TTransactionDetailResponse[] = [
-  {
-    transactionId: "2819700093P2429-1",
-    transactionCode: "BAKONG",
-    transactionType: "D",
-    transactionAmount: -25.0,
-    transactionCurrency: "USD",
-    transactionDate: "2026-06-11",
-    transactionTime: "15:48:00",
-    transactionDescription: "Bakong Payment",
-    transactionReferenceCode: "2819700093P2429",
-    fromAccountName: "Savings",
-    fromAccountNumber: "000067898",
-    toAccountName: "Bakong Merchant",
-    toAccountNumber: "000067898",
-    amountBalance: 2475.0,
-    fields: [],
-  },
-  {
-    transactionId: "2819700093P2429-2",
-    transactionCode: "BAKONG",
-    transactionType: "C",
-    transactionAmount: 25.0,
-    transactionCurrency: "USD",
-    transactionDate: "2026-06-11",
-    transactionTime: "15:48:00",
-    transactionDescription: "Bakong Payment",
-    transactionReferenceCode: "2819700093P2429",
-    fromAccountName: "Bakong Sender",
-    fromAccountNumber: "000067898",
-    toAccountName: "Savings",
-    toAccountNumber: "000067898",
-    amountBalance: 2500.0,
-    fields: [],
-  },
-  {
-    transactionId: "2819700093P2429-3",
-    transactionCode: "BAKONG",
-    transactionType: "D",
-    transactionAmount: -25.0,
-    transactionCurrency: "USD",
-    transactionDate: "2026-06-11",
-    transactionTime: "15:48:00",
-    transactionDescription: "Bakong Payment",
-    transactionReferenceCode: "2819700093P2429",
-    fromAccountName: "Savings",
-    fromAccountNumber: "000067898",
-    toAccountName: "Bakong Merchant",
-    toAccountNumber: "000067898",
-    amountBalance: 2475.0,
-    fields: [],
-  },
-];
 
 /** Column widths, as the share of the table each one takes. Matches dashboard TransactionsCard. */
 const COLUMN_WIDTHS = ["46%", "23%", "17%", "14%"] as const;
@@ -142,6 +87,9 @@ function getAccountLabel(
   accountType?: string,
   isFixedDeposit?: boolean,
 ) {
+  if ((t as any).accountLabel) {
+    return (t as any).accountLabel;
+  }
   if (isFixedDeposit && t.transactionMemo) {
     return t.transactionMemo;
   }
@@ -158,7 +106,7 @@ function getAccountLabel(
     t.toAccountNumber ||
     t.fromAccountNumber ||
     fallbackAccountNum ||
-    "000067898";
+    "-";
   const formattedNum = formatAccountNumber(rawNum) || rawNum;
   return `${typeLabel} - ${formattedNum}`;
 }
@@ -195,10 +143,7 @@ export default function TransactionsList({
   const hasActiveFilter = Boolean(dateFilter && dateFilter.type !== "all" && dateFilter.type !== "last7Days");
 
   const displayTransactions = useMemo(() => {
-    const list =
-      transactions && transactions.length > 0
-        ? transactions
-        : DEFAULT_MOCK_TRANSACTIONS;
+    const list = transactions ?? [];
     if (!sortDirection) return list;
     return [...list].sort((a, b) => {
       const amtA = Number(a.transactionAmount) || 0;
@@ -241,7 +186,7 @@ export default function TransactionsList({
                   lineHeight: 1.25,
                 }}
               >
-                {t.transactionDescription || "Bakong Payment"}
+                {t.transactionDescription || t.transactionCode || "Transaction"}
               </Typography>
               <Typography
                 sx={{
@@ -370,7 +315,7 @@ export default function TransactionsList({
         border: `1px solid ${palette.slate[200]}`,
       }}
     >
-      <CardBorderAccent color={accentColor} type="top-left" radius={20} length={28} />
+    <CardBorderAccent color={accentColor} type="top-left" strokeWidth={2.5} tailLength={40} width={90} height={80} top={0} left={0} />
       {/* Top Header Row */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -444,7 +389,9 @@ export default function TransactionsList({
           {showDateFilter && (
             <BaseFilterButton
               active={hasActiveFilter}
-              onClick={() => setFilterDialogOpen(true)}
+              open={filterDialogOpen}
+              label={BASE_FILTER_TYPE_LABELS[dateFilter.type] ?? "Last 7 days"}
+              onClick={() => setFilterDialogOpen((prev) => !prev)}
             />
           )}
 

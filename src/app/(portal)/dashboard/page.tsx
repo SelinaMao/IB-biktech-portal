@@ -90,8 +90,7 @@ export default function ClientDashboardPage() {
               />
 
               <TransactionsCard
-                accountNumber={defaultAccount?.accountNumber}
-                type={defaultAccount?.accountType}
+                accounts={bankAccounts}
               />
             </Stack>
           </Grid>

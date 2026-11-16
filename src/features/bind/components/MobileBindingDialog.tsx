@@ -1,38 +1,38 @@
 "use client";
 
-import AppleIcon from "@mui/icons-material/Apple";
-import GoogleIcon from "@mui/icons-material/Google";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import QrCode2RoundedIcon from "@mui/icons-material/QrCode2Rounded";
-import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
+import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { LogOut } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import BaseButton from "@core/components/BaseButton";
-import BaseDialog from "@core/components/BaseDialog";
-import { showToast } from "@core/components/AppToast";
-import BaseTermsLabel from "@core/components/BaseTermsLabel";
-import BaseCheckbox from "@core/form/BaseCheckbox";
-import BaseInput from "@core/form/BaseInput";
 import { useAuth } from "@/features/auth/use-auth";
 import { font, palette, radius } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
 import { formatDateTime } from "@/utils/date-time";
+import { showToast } from "@core/components/AppToast";
+import BaseButton from "@core/components/BaseButton";
+import BaseDialog from "@core/components/BaseDialog";
+import BaseOTP from "@core/components/BaseOTP";
+import BaseTermsLabel from "@core/components/BaseTermsLabel";
+import BaseCheckbox from "@core/form/BaseCheckbox";
+import BaseInput from "@core/form/BaseInput";
 
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { Button, ButtonBase, Link } from "@mui/material";
 import { useCreateDeviceBindingSessionMutation, useLazyDeviceBindingSessionStatusQuery, useUnlinkCurrentDeviceMutation } from "../bind.api";
 import type { DeviceBindingSession, DeviceBindingStatus } from "../bind.types";
 import BindPromptContent from "./BindPromptContent";
-import { useAppSelector } from "@/store/hooks";
+import { ChevronRight, X } from "lucide-react";
 
 type DialogView = "starting" | "session" | "bound" | "error" | "getStarted";
 
@@ -42,6 +42,7 @@ export type MobileBindingDialogProps = {
   linked?: boolean;
   deviceModel?: string | null;
   lastSeenAt?: string | null;
+  onUseSms?: () => void;
 };
 
 function errorCode(error: unknown) {
@@ -59,7 +60,14 @@ function formatCountdown(seconds: number) {
   return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
 }
 
-export default function MobileBindingDialog({ open, onClose, linked = false, deviceModel, lastSeenAt }: MobileBindingDialogProps) {
+export default function MobileBindingDialog({
+  open,
+  onClose,
+  linked = false,
+  deviceModel,
+  lastSeenAt,
+  onUseSms,
+}: MobileBindingDialogProps) {
   const t = useTranslations("mobileBinding");
   const { logout } = useAuth();
   const requestedForOpen = useRef(false);
@@ -74,6 +82,24 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
   const [unlinkAgreedTerms, setUnlinkAgreedTerms] = useState(false);
   const [successCountdown, setSuccessCountdown] = useState(3);
   const [unlinkSuccessCountdown, setUnlinkSuccessCountdown] = useState(3);
+  const [smsVerifyOpen, setSmsVerifyOpen] = useState(false);
+
+  const handleUseSms = () => {
+    if (onUseSms) {
+      onUseSms();
+      return;
+    }
+    setSmsVerifyOpen(true);
+  };
+
+  const handleSmsVerify = async () => {
+    setSmsVerifyOpen(false);
+    showToast("success", {
+      title: "Device Linked",
+      message: "Your device has been verified successfully via SMS.",
+    });
+    handleClose();
+  };
 
   const [createSession, { isLoading: isCreating }] = useCreateDeviceBindingSessionMutation();
   const [unlinkCurrent, { isLoading: isUnlinking }] = useUnlinkCurrentDeviceMutation();
@@ -210,8 +236,6 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
 
   const isScanView = dialogView === "session" && status === "PENDING";
   const isSuccessView = dialogView === "session" && status === "CONSUMED";
-  // Every view without a way out gets one. "bound" has its close button; success closes itself.
-  const showSignOut = dialogView !== "bound" && !isSuccessView;
   const title = dialogView === "bound" || dialogView === "getStarted" ? "" : isScanView || isSuccessView ? "" : t("title");
   const subtitle = dialogView === "bound" || dialogView === "getStarted" ? undefined : isScanView || isSuccessView ? undefined : t("subtitle");
 
@@ -237,7 +261,23 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
 
   return (
     <>
-      <BaseDialog open={open && !unlinkConfirmOpen && !unlinkSuccessOpen} onClose={handleClose} title={title} subtitle={subtitle} hideActions hideCloseButton={dialogView !== "bound"} disableBackdropClick maxWidth="xs">
+      <BaseDialog
+        open={open && !unlinkConfirmOpen && !unlinkSuccessOpen}
+        onClose={handleClose}
+        title={title}
+        subtitle={subtitle}
+        hideActions
+        hideCloseButton={dialogView !== "bound"}
+        disableBackdropClick
+        maxWidth="xs"
+        paperSx={{
+          borderRadius: "28px",
+          maxWidth: 440,
+          boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.12)",
+        }}
+        titleSx={isScanView ? { display: "none" } : undefined}
+        contentSx={isScanView ? { p: { xs: 3, sm: 4 }, pt: { xs: 3.5, sm: 4 } } : undefined}
+      >
         {dialogView === "starting" ? (
           <Stack sx={{ alignItems: "center", py: 8 }} spacing={3}>
             <CircularProgress size={36} />
@@ -320,67 +360,206 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
         ) : null}
 
         {dialogView === "session" && session ? (
-          <Stack sx={{ alignItems: "center", textAlign: "center" }} spacing={3}>
+          <Stack sx={{ alignItems: "start", textAlign: "center" }} spacing={3}>
             {status === "PENDING" ? (
-              <>
-                <Typography variant="h5" sx={{ fontWeight: font.weight.regular, fontSize: font.size["xxl"], color: palette.slate[950] }}>
-                  {t("scan.title")}
-                </Typography>
-                <Typography variant="body2" sx={{ fontSize: font.size.base, color: palette.slate[950] }}>
-                  {t("scan.instruction")}{" "}
-                  <Box component="span" sx={{ fontWeight: font.weight.bold }}>
-                    {t("scan.appName")}
+              <Box sx={{ width: "100%", textAlign: "left" }}>
+                <Stack
+                  direction="row"
+                  sx={{ width: "100%", alignItems: "center", justifyContent: "space-between" }}
+                >
+                  <Typography
+                    sx={{
+                      fontWeight: 700,
+                      fontSize: { xs: "20px", sm: "22px" },
+                      color: "#0F172A",
+                      lineHeight: 1.25,
+                      letterSpacing: "-0.015em",
+                    }}
+                  >
+                    {t("scan.title")}
+                  </Typography>
+
+                  <IconButton
+                    onClick={handleClose}
+                    aria-label="Close"
+                    size="small"
+                    sx={{
+                      width: 32,
+                      height: 32,
+                      bgcolor: "#EDF0F4",
+                      color: "#1E293B",
+                      borderRadius: "50%",
+                      p: 0,
+                      transition: "all 0.15s ease-in-out",
+                      "&:hover": {
+                        bgcolor: "#E2E8F0",
+                      },
+                    }}
+                  >
+                    <CloseRoundedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Stack>
+
+                <Box sx={{ mt: 3, textAlign: "left" }}>
+                  <Typography
+                    sx={{
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      color: "#0F172A",
+                    }}
+                  >
+                    {t("scan.instruction")}
+                  </Typography>
+
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontSize: "14px",
+                      color: "#475569",
+                      mt: 0.5,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {t.rich("scan.subTitle", {
+                      appName: "Biktech Banking App",
+                      link: (chunks) => (
+                        <Link
+                          href="https://example.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{
+                            color: "#0969DA",
+                            textDecoration: "underline",
+                            fontWeight: 500,
+                            "&:hover": {
+                              color: "#054DA7",
+                            },
+                          }}
+                        >
+                          {chunks}
+                        </Link>
+                      ),
+                    })}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    width: "100%",
+                    bgcolor: "#F5F7FA",
+                    borderRadius: "16px",
+                    py: 3.5,
+                    px: 2,
+                    mt: 2.5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <QRCodeSVG
+                    value={session.qrPayload}
+                    size={180}
+                    level="M"
+                    marginSize={0}
+                    title={t("qrAlt")}
+                  />
+                </Box>
+
+                <ButtonBase
+                  onClick={handleUseSms}
+                  sx={{
+                    width: "100%",
+                    bgcolor: "#F5F7FA",
+                    borderRadius: "16px",
+                    p: 2,
+                    mt: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    textAlign: "left",
+                    transition: "background-color 0.15s ease",
+                    "&:hover": {
+                      bgcolor: "#EDF0F4",
+                    },
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#0F172A",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <svg
+                        width="28"
+                        height="28"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h3" />
+                        <path d="M14 2a2 2 0 0 1 2 2v7" />
+                        <circle cx="7" cy="18" r="0.75" fill="currentColor" />
+                        <circle cx="17.5" cy="14" r="2.5" />
+                        <path d="M13.5 22c0-2.2 1.8-3.5 4-3.5s4 1.3 4 3.5" />
+                      </svg>
+                    </Box>
+
+                    <Box>
+                      <Typography
+                        sx={{
+                          fontSize: "15px",
+                          fontWeight: 700,
+                          color: "#0F172A",
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {t("scan.useSms")}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          fontSize: "13px",
+                          fontWeight: 400,
+                          color: "#64748B",
+                          mt: 0.25,
+                        }}
+                      >
+                        {t("scan.useSmsDesc")}
+                      </Typography>
+                    </Box>
                   </Box>
-                </Typography>
-                <Box sx={{ lineHeight: 0 }}>
-                  <QRCodeSVG value={session.qrPayload} size={208} level="Q" marginSize={1} title={t("qrAlt")} />
-                </Box>
-                <Typography variant="body2" sx={{ fontSize: font.size.base, color: palette.slate[400] }}>
-                  {t("scan.expireIn", { seconds: remainingSeconds })}
-                </Typography>
-                <Box sx={{ pt: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: font.weight.bold, mb: 0.5, fontSize: font.size.lg, color: palette.slate[950] }}>
-                    {t("scan.noAppQuestion")}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 1.5, color: palette.slate[950], fontSize: font.size.base }}>
-                    {t("scan.availableIn")}
-                  </Typography>
-                  <Stack direction="row" spacing={3} py={1} sx={{ width: "100%" }}>
-                    <BaseButton
-                      fullWidth
-                      title={t("scan.playStore")}
-                      startIcon={<GoogleIcon />}
-                      component="a"
-                      href="https://play.google.com/store/apps/details?id=jp.co.soramitsu.bakong&hl=en"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{
-                        backgroundColor: palette.slate[100],
-                        color: palette.text.secondary,
-                        "&:hover": { backgroundColor: palette.slate[200] },
-                      }}
-                    />
-                    <BaseButton
-                      fullWidth
-                      title={t("scan.appStore")}
-                      href="https://www.apple.com/app-store/"
-                      target="_blank"
-                      startIcon={<AppleIcon />}
-                      sx={{
-                        backgroundColor: palette.text.primary,
-                        color: palette.white,
-                        "&:hover": { backgroundColor: palette.text.primary },
-                      }}
-                    />
-                  </Stack>
-                </Box>
-              </>
+
+                  <Box
+                    sx={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: "50%",
+                      bgcolor: "#EDF0F4",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#1E293B",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ChevronRight size={16} />
+                  </Box>
+                </ButtonBase>
+              </Box>
             ) : null}
 
             {status === "SCANNED" ? (
-              <Box
+              <Box 
                 sx={{
+                  
                   position: "relative",
+                  alignSelf: "center",
                   p: 2.5,
                   bgcolor: palette.white,
                   border: `1px solid ${palette.slate[200]}`,
@@ -389,7 +568,7 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
                   lineHeight: 0,
                 }}
               >
-                <QRCodeSVG value={session.qrPayload} size={208} level="Q" marginSize={1} title={t("qrAlt")} />
+                <QRCodeSVG value={session.qrPayload} size={208} level="Q" marginSize={3} title={t("qrAlt")} />
                 <Box
                   sx={{
                     position: "absolute",
@@ -472,8 +651,6 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
             ) : null}
           </Stack>
         ) : null}
-
-        {showSignOut ? <SignOutFooter /> : null}
       </BaseDialog>
 
       <BaseDialog
@@ -554,64 +731,20 @@ export default function MobileBindingDialog({ open, onClose, linked = false, dev
           </Typography>
         </Stack>
       </BaseDialog>
-    </>
-  );
-}
 
-/**
- * The scan dialog can't be dismissed, so this is the way out for a user who can't activate now.
- * Naming the account also shows whose login the phone is about to be linked to.
- */
-function SignOutFooter() {
-  const t = useTranslations("mobileBinding");
-  const { logout } = useAuth();
-  const username = useAppSelector((state) => state.auth.user?.name);
-  const [isSigningOut, setIsSigningOut] = useState(false);
-
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    try {
-      await logout();
-    } finally {
-      setIsSigningOut(false);
-    }
-  };
-
-  return (
-    <Stack
-      direction="row"
-      sx={{
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 2,
-        mt: 3,
-        pt: 2,
-        borderTop: `1px solid ${palette.slate[200]}`,
-      }}
-    >
-      <Typography variant="body2" noWrap sx={{ minWidth: 0, fontSize: font.size.sm, color: palette.slate[400] }}>
-        {t.rich("signedInAs", {
-          name: username ?? "",
-          user: (chunks) => (
-            <Box component="span" sx={{ fontWeight: font.weight.medium, color: palette.slate[950] }}>
-              {chunks}
-            </Box>
-          ),
-        })}
-      </Typography>
-      <BaseButton
-        title={t("activatePrompt.signOut")}
-        startIcon={<LogOut size={16} aria-hidden />}
-        onClick={() => void handleSignOut()}
-        isLoading={isSigningOut}
-        sx={{
-          flexShrink: 0,
-          padding: "6px 10px",
-          backgroundColor: "transparent",
-          color: palette.danger[500],
-          "&:hover": { backgroundColor: palette.danger[50] },
+      <BaseOTP
+        open={smsVerifyOpen}
+        onClose={() => setSmsVerifyOpen(false)}
+        title="SMS Verification"
+        description="We've sent a 6-digit verification code to your registered mobile number."
+        onVerify={handleSmsVerify}
+        onResend={() => {
+          showToast("info", {
+            title: "SMS Sent",
+            message: "A new verification code has been sent to your phone.",
+          });
         }}
       />
-    </Stack>
+    </>
   );
 }

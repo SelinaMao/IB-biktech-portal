@@ -3,14 +3,15 @@
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { Box, Button, InputBase, Stack, Typography } from "@mui/material";
-import { FolderOutput, Search } from "lucide-react";
+import { Download, Search } from "lucide-react";
 
 import { font, padding, palette, radius } from "@/theme/palette";
 import BaseBlurText from "@core/components/BaseBlurText";
 import BaseDownloadPanel, { type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import BaseFilterButton from "@core/components/BaseFilterButton";
+import CardBorderAccent from "@core/components/CardBorderAccent";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
-import type { BaseFilterValue } from "@core/components/BaseFilter";
+import { BASE_FILTER_TYPE_LABELS, type BaseFilterValue } from "@core/components/BaseFilter";
 import { TransactionFilterDialog } from "@/features/account";
 import type { LoanTransaction, TxnStatus } from "../loan.types";
 
@@ -317,11 +318,15 @@ export interface LoanTransactionsCardProps {
   transactions?: LoanTransaction[];
   /** Show the status filter toggle. Default false. */
   showStatusToggle?: boolean;
+  accentColor?: string;
+  title?: string;
 }
 
 export default function LoanTransactionsCard({
   transactions,
   showStatusToggle = false,
+  accentColor = "#5AC0A0",
+  title = "Repayment Schedule",
 }: LoanTransactionsCardProps) {
   const dataSource = transactions ?? LOAN_TRANSACTIONS;
   const [status, setStatus] = useState<TxnStatus>(() =>
@@ -337,7 +342,7 @@ export default function LoanTransactionsCard({
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [downloadAnchor, setDownloadAnchor] = useState<null | HTMLElement>(null);
 
-  const hasActiveFilter = Boolean(dateFilter && dateFilter.type !== "all");
+  const hasActiveFilter = Boolean(dateFilter && dateFilter.type !== "all" && dateFilter.type !== "last7Days");
 
   const filtered = useMemo(() => {
     const byStatus = showStatusToggle
@@ -527,13 +532,24 @@ export default function LoanTransactionsCard({
   return (
     <Box
       sx={{
+        position: "relative",
         bgcolor: "#FFFFFF",
-        borderRadius: `${radius.xl}px`,
+        borderRadius: "20px",
         p: `${padding.xxl}px`,
         boxShadow: "0px 1px 3px rgba(15, 23, 42, 0.04)",
         border: `1px solid ${palette.slate[200]}`,
       }}
     >
+      <CardBorderAccent
+        color={accentColor}
+        type="top-left"
+        strokeWidth={2.5}
+        tailLength={40}
+        width={90}
+        height={80}
+        top={0}
+        left={0}
+      />
       {/* Top Header Row */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -541,7 +557,7 @@ export default function LoanTransactionsCard({
         sx={{
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", sm: "center" },
-          mb: 3,
+          mb: 2,
         }}
       >
         <Typography
@@ -552,7 +568,7 @@ export default function LoanTransactionsCard({
             lineHeight: 1.25,
           }}
         >
-          Repayment Schedule
+          {title}
         </Typography>
 
         <Stack
@@ -569,7 +585,7 @@ export default function LoanTransactionsCard({
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 1,
+              gap: 1.25,
               px: 1.5,
               height: 38,
               borderRadius: "8px",
@@ -606,15 +622,16 @@ export default function LoanTransactionsCard({
           {/* Filters Button */}
           <BaseFilterButton
             active={hasActiveFilter}
-            onClick={() => setFilterDialogOpen(true)}
-            sx={{ fontWeight: 400 }}
+            open={filterDialogOpen}
+            label={BASE_FILTER_TYPE_LABELS[dateFilter.type] ?? "Last 7 days"}
+            onClick={() => setFilterDialogOpen((prev) => !prev)}
           />
 
-          {/* Export Button */}
+          {/* Download Button */}
           <Button
             variant="contained"
             onClick={(e) => setDownloadAnchor(e.currentTarget)}
-            startIcon={<FolderOutput size={15} />}
+            startIcon={<Download size={15} />}
             sx={{
               height: 38,
               px: 4,
@@ -632,7 +649,7 @@ export default function LoanTransactionsCard({
               },
             }}
           >
-            Export
+            Download
           </Button>
           <BaseDownloadPanel
             anchorEl={downloadAnchor}
@@ -647,7 +664,7 @@ export default function LoanTransactionsCard({
       {/* Table */}
       <BaseTable
         columns={columns}
-        rows={pageItems}
+        rows={filtered}
         getRowKey={(t) => t.ref || String(t.no)}
         minWidth={720}
         rounded={false}
@@ -665,7 +682,7 @@ export default function LoanTransactionsCard({
               bgcolor: isDue ? "#FFF0DD" : palette.slate[50],
               borderRadius: `${radius.md}px`,
             },
-            "& td": { borderBottom: `1px solid ${palette.slate[50]}` },
+            "& td": { borderBottom: `1px solid ${palette.slate[200]}` },
           };
         }}
         pagination={

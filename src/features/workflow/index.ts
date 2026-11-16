@@ -9,5 +9,6 @@ export { default as RuleTable } from "./components/RuleTable";
 export { default as ApprovalSteps } from "./components/ApprovalSteps";
 export { default as InstanceStatusChip } from "./components/InstanceStatusChip";
 export { default as InstanceDetailDialog } from "./components/InstanceDetailDialog";
+export { default as DetailDialog, type DetailDialogProps, type DetailDialogEntry } from "./components/DetailDialog";
 export { default as GroupMembersDialog } from "./components/GroupMembersDialog";
 export { default as ApproverGroupDialog } from "./components/ApproverGroupDialog";

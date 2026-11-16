@@ -30,6 +30,15 @@ export default function TransactionFilterDialog({
 
   const options: BaseFilterDialogOption[] = [
     {
+      id: "last7Days",
+      label: "Last 7 days",
+      filterType: "last7Days",
+      getDateRange: () => ({
+        from: today.subtract(6, "day").format("YYYY-MM-DD"),
+        to: today.format("YYYY-MM-DD"),
+      }),
+    },
+    {
       id: "thisMonth",
       label: "This month",
       filterType: "thisMonth",

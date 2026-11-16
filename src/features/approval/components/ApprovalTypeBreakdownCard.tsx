@@ -12,8 +12,8 @@ import BaseChip from "@core/components/BaseChip";
 import type { ApprovalTypeBreakdown } from "../approval.types";
 
 export const FIXED_APPROVAL_TYPE_BREAKDOWN: ApprovalTypeBreakdown[] = [
-  { label: "Transfer", count: 3 },
-  { label: "Bill payment", count: 1 },
+  { label: "Transfer", count: 0 },
+  { label: "Bill payment", count: 0 },
 ];
 
 export interface ApprovalTypeBreakdownCardProps {
@@ -138,7 +138,7 @@ export default function ApprovalTypeBreakdownCard({
                     fontSize: 13,
                     color: palette.slate[900],
                     fontWeight: 400,
-                    flexShrink: 0,
+                     flexShrink: 0,
                     width: 90,
                   }}
                 >

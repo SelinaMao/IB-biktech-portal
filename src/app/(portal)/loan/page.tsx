@@ -276,6 +276,7 @@ export default function LoanPage() {
                 <LoanTransactionsCard
                   key={selectedLoanAccount.id}
                   transactions={selectedLoanDetails.transactions}
+                  accentColor={selectedLoanColor}
                 />
               </Grid>
             </Grid>
@@ -293,6 +294,7 @@ export default function LoanPage() {
                 <LoanTransactionsCard
                   key="default-loan"
                   transactions={selectedLoanDetails.transactions}
+                  accentColor="#5AC0A0"
                 />
               </Grid>
             </Grid>

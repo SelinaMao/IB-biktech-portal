@@ -11,6 +11,7 @@ export {
   downloadTransactionDetail,
 } from "./account.api";
 export {
+  mapCoreTransaction,
   mapCashFlowPoints,
   findTransactionField,
   formatTransactionAmount,

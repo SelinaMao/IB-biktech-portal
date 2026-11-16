@@ -166,10 +166,10 @@
     "title": "Activate Mobile Banking",
     "subtitle": "Link your BiKTECH BANK mobile app securely",
     "activatePrompt": {
-      "title": "Activate App",
-      "description": "Before you start, activate your BiKTECH BANK Biz App to securely access all features.",
+      "title": "Activate Account",
+      "description": "You're almost there! Activate your account to get started and access all features.",
       "signOut": "Sign Out",
-      "getStarted": "Get Started"
+      "getStarted": "Activate"
     },
     "signedInAs": "Signed in as <user>{name}</user>",
     "creating": "Preparing a secure QR code…",
@@ -181,9 +181,12 @@
     "retry": "Try again",
     "done": "Done",
     "scan": {
-      "title": "Scan For Activate",
-      "instruction": "Scan this QR with",
-      "appName": "BiKTECH BANK Biz App",
+      "title": "Secure Your Account",
+      "instruction": "Scan QR Code",
+      "appName": "Biktech Banking App",
+      "subTitle": "Use <link>{appName}</link> to scan the QR code",
+      "useSms": "Use SMS",
+      "useSmsDesc": "Use SMS Code to Verify",
       "expireIn": "Expire in {seconds}s",
       "noAppQuestion": "No BiKTECH BANK Biz App in phone?",
       "availableIn": "Available in",

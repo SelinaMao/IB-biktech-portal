@@ -17,10 +17,10 @@ import ApprovalTypeBreakdownCard, {
 } from "./ApprovalTypeBreakdownCard";
 
 export const FIXED_APPROVAL_DATA = {
-  pendingCount: 4,
-  oldestDateText: "Oldest from 15 Oct 2026",
-  pendingAmountUSD: "USD 27,200.00",
-  pendingAmountSub: "KHR 1,680,000",
+  pendingCount: 0,
+  oldestDateText: "No pending items",
+  pendingAmountUSD: "USD 0.00",
+  pendingAmountSub: "KHR 0",
   typeBreakdown: FIXED_APPROVAL_TYPE_BREAKDOWN,
 };
 
@@ -124,15 +124,21 @@ export default function ApprovalSummaryCards({
     if (typeBreakdown !== undefined) return typeBreakdown;
     if (summary?.typeBreakdown !== undefined) return summary.typeBreakdown;
     if (entries !== undefined) {
-      if (entries.length === 0) return [];
-      const countByType = new Map<string, number>();
+      const countByType = new Map<string, number>([
+        ["Transfer", 0],
+        ["Bill payment", 0],
+      ]);
       for (const e of entries) {
         if (e.transactionType?.toLowerCase().includes("consumer bill")) continue;
         let type = e.transactionType || "Other";
         const lower = type.toLowerCase();
-        if (lower.includes("transfer") || lower.includes("bakong")) type = "Transfer";
-        else if (lower.includes("bill payment")) type = "Bill payment";
-        countByType.set(type, (countByType.get(type) || 0) + 1);
+        if (lower.includes("transfer") || lower.includes("bakong")) {
+          countByType.set("Transfer", (countByType.get("Transfer") || 0) + 1);
+        } else if (lower.includes("bill") || lower.includes("payment")) {
+          countByType.set("Bill payment", (countByType.get("Bill payment") || 0) + 1);
+        } else {
+          countByType.set(type, (countByType.get(type) || 0) + 1);
+        }
       }
       return Array.from(countByType.entries()).map(([label, count]) => ({ label, count }));
     }
