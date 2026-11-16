@@ -14,7 +14,11 @@ import BaseButton from "@core/components/BaseButton";
 import BaseDialog from "@core/components/BaseDialog";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import BaseTextArea from "@core/form/BaseTextArea";
+import { showToast } from "@core/components/AppToast";
+import { useGetInstanceQuery, useRaiseApprovalAuthenticatorMutation } from "../workflow.api";
+import type { AuthenticatorRequest } from "@/features/authenticator";
 import { font, palette } from "@/theme/palette";
+import { toToastError } from "@/utils/api-error";
 
 dayjs.extend(relativeTime);
 
@@ -62,7 +66,7 @@ export interface DetailDialogProps {
   /** Rejection reason (if rejected) */
   rejectReason?: string;
   /** Callback when Approve is clicked */
-  onApprove?: (entry?: DetailDialogEntry | null) => void | Promise<void>;
+  onApprove?: (entry?: DetailDialogEntry | null, authenticatorRequestId?: string) => void | Promise<void>;
   /** Callback when Reject is confirmed */
   onReject?: (entry?: DetailDialogEntry | null, reason?: string) => void | Promise<void>;
   /** Loading state for Approve */
@@ -103,14 +107,23 @@ export default function DetailDialog({
   const [rejectReasonInput, setRejectReasonInput] = useState("");
   const [rejectTouched, setRejectTouched] = useState(false);
   const [qrConfirmOpen, setQrConfirmOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
-  const [pendingRejectReason, setPendingRejectReason] = useState("");
+  const [authenticator, setAuthenticator] = useState<AuthenticatorRequest | null>(null);
+  const [raiseApprovalAuthenticator, { isLoading: isRaisingAuth }] = useRaiseApprovalAuthenticatorMutation();
+
+  const workflowId =
+    (entry?.transactionId as string) ||
+    (entry?.id && typeof entry.id === "string" && !entry.id.includes(" ") ? String(entry.id) : null);
+
+  const { data: instanceDetail } = useGetInstanceQuery(workflowId ?? "", {
+    skip: !open || !workflowId,
+  });
+
+  const ctx = (instanceDetail?.context as Record<string, unknown> | undefined) || {};
 
   useEffect(() => {
     if (!open) {
       setQrConfirmOpen(false);
-      setPendingAction(null);
-      setPendingRejectReason("");
+      setAuthenticator(null);
       setRejectDialogOpen(false);
       setRejectReasonInput("");
       setRejectTouched(false);
@@ -120,12 +133,14 @@ export default function DetailDialog({
   // Resolve status: "PENDING" | "APPROVED" | "REJECTED"
   const rawStatus = (
     status ||
+    instanceDetail?.status ||
     (entry?.status as string) ||
     "PENDING"
   ).toUpperCase();
 
   const isPending =
     rawStatus === "PENDING" ||
+    rawStatus === "IN_PROGRESS" ||
     rawStatus === "AWAITING APPROVAL" ||
     rawStatus === "DUE";
   const isApproved =
@@ -140,34 +155,38 @@ export default function DetailDialog({
   // Header Title & Subtitle
   const dialogTitle =
     title ||
+    instanceDetail?.functionName ||
     entry?.transactionType ||
-    "Outgoing transfer";
+    "Approval request";
 
   const requesterName =
     requestedBy ||
     entry?.requestedBy ||
-    "Dara Kim";
+    (ctx.raisedBy as string) ||
+    "—";
 
   const timeLabel = (() => {
     if (requestedTime) return requestedTime;
-    if (entry?.creationDate) {
-      const d = dayjs(entry.creationDate);
+    const dateStr = entry?.creationDate || instanceDetail?.createdAt;
+    if (dateStr) {
+      const d = dayjs(dateStr);
       if (d.isValid()) return d.fromNow();
     }
-    return "10 min ago";
+    return "—";
   })();
 
   // Amount
   const resolvedAmount =
     amount !== undefined
       ? amount
-      : entry?.amount !== undefined
+      : entry?.amount !== undefined && entry.amount !== 0
         ? entry.amount
-        : 250;
+        : ctx.amount ?? ctx.totalAmount ?? ctx.originalAmount ?? 0;
 
   const resolvedCurrency = (
     currency ||
     entry?.currency ||
+    (ctx.currency as string) ||
     "USD"
   ).toUpperCase();
 
@@ -184,28 +203,44 @@ export default function DetailDialog({
   const fromDisplay =
     from ||
     [
-      entry?.sourceAccountName || "Operating",
-      formatLast4(entry?.sourceAccountNo || "001234564821"),
+      entry?.sourceAccountName || (ctx.fromAccountName as string) || (ctx.sourceAccountName as string),
+      formatLast4(entry?.sourceAccountNo || (ctx.fromAccountNumber as string) || (ctx.sourceAccountNo as string)),
     ]
       .filter(Boolean)
       .join(" ") ||
-    "Operating •••• 4821";
+    "—";
+
+  const toAccountNo =
+    entry?.payToAccountNo ||
+    (ctx.payToAccountNo as string) ||
+    (ctx.toAccountNumber as string) ||
+    "";
+
+  const toName =
+    entry?.payToName ||
+    (ctx.payToName as string) ||
+    (ctx.toAccountName as string) ||
+    (ctx.beneficiary as string) ||
+    "—";
 
   const toDisplay =
     to ||
-    (entry?.payToAccountNo && entry?.payToAccountNo !== "Bakong"
-      ? `${entry?.payToName || "Mekong Logistics"} — ${formatLast4(entry?.payToAccountNo)}`
-      : entry?.payToName || "Mekong Logistics — ABA •••• 1180");
+    (toAccountNo && toAccountNo !== "Bakong"
+      ? `${toName} — ${formatLast4(toAccountNo)}`
+      : toName);
 
   const referenceDisplay =
     reference ||
     entry?.refNo ||
     entry?.transactionId ||
-    "INV-2026-0912";
+    instanceDetail?.referenceId ||
+    (ctx.referenceId as string) ||
+    "—";
 
   const finalRejectReason =
     explicitRejectReason ||
     (entry?.rejectReason as string) ||
+    (instanceDetail?.tasks?.find((t) => t.reason)?.reason as string) ||
     "";
 
   // Status Badge Configuration
@@ -245,40 +280,47 @@ export default function DetailDialog({
     setRejectDialogOpen(true);
   };
 
-  const handleConfirmReject = () => {
+  const handleConfirmReject = async () => {
     if (!rejectReasonInput.trim()) {
       setRejectTouched(true);
       return;
     }
-    setPendingRejectReason(rejectReasonInput.trim());
+    const reason = rejectReasonInput.trim();
     setRejectDialogOpen(false);
-    // Proceed to QR confirmation on mobile
-    setPendingAction("reject");
-    setQrConfirmOpen(true);
+    await onReject?.(entry, reason);
+    onClose();
   };
 
-  // Approval handling -> Proceed to QR confirmation on mobile
-  const handleOpenApprove = () => {
-    setPendingAction("approve");
-    setQrConfirmOpen(true);
-  };
-
-  const handleQrConfirm = async () => {
-    const action = pendingAction;
-    const reason = pendingRejectReason;
-    setQrConfirmOpen(false);
-    setPendingAction(null);
-    if (action === "approve") {
-      await onApprove?.(entry);
-    } else if (action === "reject") {
-      await onReject?.(entry, reason);
+  // Approval handling -> Fetch QR from API (qrPayload) and alert QR confirmation modal
+  const handleOpenApprove = async () => {
+    const workflowId = entry?.transactionId || (entry?.id ? String(entry.id) : null);
+    if (workflowId) {
+      try {
+        setQrConfirmOpen(true);
+        const result = await raiseApprovalAuthenticator(workflowId).unwrap();
+        setAuthenticator(result);
+        return;
+      } catch (error) {
+        showToast("error", toToastError(error, "Could not get authorization QR code"));
+        setQrConfirmOpen(false);
+        return;
+      }
     }
+    // Fallback for entries with no workflowId
+    await onApprove?.(entry);
+    onClose();
+  };
+
+  const handleQrAuthorized = async (requestId: string) => {
+    setQrConfirmOpen(false);
+    setAuthenticator(null);
+    await onApprove?.(entry, requestId);
     onClose();
   };
 
   const handleQrClose = () => {
     setQrConfirmOpen(false);
-    setPendingAction(null);
+    setAuthenticator(null);
   };
 
   return (
@@ -716,17 +758,24 @@ export default function DetailDialog({
         </Stack>
       </BaseDialog>
 
-      {/* QR Confirmation Modal for all actions (Approval & Reject) */}
+      {/* QR Confirmation Modal with qrPayload from API */}
       <QrConfirmationDialog
         open={qrConfirmOpen}
+        authenticator={authenticator}
+        qrPayload={authenticator?.qrPayload}
+        isLoading={isRaisingAuth && !authenticator}
         onClose={handleQrClose}
-        onApprove={handleQrConfirm}
+        onAuthorized={handleQrAuthorized}
+        onApprove={() => handleQrAuthorized(authenticator?.requestId || "")}
+        onRenew={async () => {
+          const workflowId = entry?.transactionId || (entry?.id ? String(entry.id) : null);
+          if (!workflowId) return;
+          const result = await raiseApprovalAuthenticator(workflowId).unwrap();
+          setAuthenticator(result);
+          return result;
+        }}
         title="Confirmations"
-        subtitle={
-          pendingAction === "reject"
-            ? "Scan this QR with Bank Mobile App to reject"
-            : "Scan this QR with Bank Mobile App"
-        }
+        subtitle="Scan this QR with Bank Mobile App"
       />
     </>
   );

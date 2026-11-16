@@ -1,24 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dayjs from "dayjs";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { FileText, Wallet } from "lucide-react";
 
 import { showToast } from "@core/components/AppToast";
-import BaseFilterByDay, {
-  isDateWithinFilter,
-  type BaseFilterByDayValue,
-} from "@core/components/BaseFilterByDay";
-import BaseSwitch from "@core/form/BaseSwitch";
+import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/BaseFilter";
 import {
   ApprovalTable,
   ApprovalSummaryCards,
+  mapWorkflowToApprovalEntry,
   type ApprovalEntry,
   type ApprovalTab,
 } from "@/features/approval";
-import { CLIENT_PERMISSIONS, useCan } from "@/features/auth";
+import { CLIENT_PERMISSIONS, useCan, useCanAny } from "@/features/auth";
 import { AuthenticatorDialog, type AuthenticatorRequest } from "@/features/authenticator";
 import { useListUsersQuery } from "@/features/user";
 import {
@@ -26,20 +23,22 @@ import {
   useActOnInstanceMutation,
   useCancelInstanceMutation,
   useListInstancesQuery,
+  useListWorkflowFunctionsQuery,
   useRaiseApprovalAuthenticatorMutation,
   useListMyTasksQuery,
   type InstanceStatus,
   DetailDialog,
   type DetailDialogEntry,
+  type WorkflowFunction,
 } from "@/features/workflow";
-import { font, palette } from "@/theme/palette";
+import { font } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
 
 const ROWS_PER_PAGE = 5;
 const OPEN_STATUSES: InstanceStatus[] = ["PENDING", "IN_PROGRESS", "ESCALATED"];
-const R = 12;            // flare radius
-const CARD_RADIUS = 16;  // must match ApprovalTable's top-left radius
-const OVERLAP = 2;       // active tab sinks into the card to hide its top edge
+const R = 12; // flare radius
+const CARD_RADIUS = 16; // must match ApprovalTable's top-left radius
+const OVERLAP = 2; // active tab sinks into the card to hide its top edge
 const PANEL_BG = "#FFFFFF";
 const ACTIVE_TEXT = "#2764A5";
 
@@ -58,78 +57,80 @@ const tabSx = (active: boolean) => ({
 
   ...(active
     ? {
-      height: 36 + OVERLAP,
-      pb: `${OVERLAP}px`,
-      mb: `-${OVERLAP}px`,
-      zIndex: 1,
-      borderRadius: `${R + 2}px ${R + 2}px 0 0`,
-      bgcolor: PANEL_BG,
-      color: ACTIVE_TEXT,
-      fontWeight: 600,
-      "&::before, &::after": {
-        content: '""',
-        position: "absolute",
-        bottom: `${OVERLAP}px`,
-        width: R,
-        height: R,
-        pointerEvents: "none",
-      },
-      // box-shadow trick: crisp concave corners, no gradient seam
-      "&::before": {
-        left: -R,
-        borderBottomRightRadius: R,
-        boxShadow: `${R / 2}px ${R / 2}px 0 ${R / 2}px ${PANEL_BG}`,
-      },
-      "&::after": {
-        right: -R,
-        borderBottomLeftRadius: R,
-        boxShadow: `-${R / 2}px ${R / 2}px 0 ${R / 2}px ${PANEL_BG}`,
-      },
-    }
+        height: 36 + OVERLAP,
+        pb: `${OVERLAP}px`,
+        mb: `-${OVERLAP}px`,
+        zIndex: 1,
+        borderRadius: `${R + 2}px ${R + 2}px 0 0`,
+        bgcolor: PANEL_BG,
+        color: ACTIVE_TEXT,
+        fontWeight: 600,
+        "&::before, &::after": {
+          content: '""',
+          position: "absolute",
+          bottom: `${OVERLAP}px`,
+          width: R,
+          height: R,
+          pointerEvents: "none",
+        },
+        "&::before": {
+          left: -R,
+          borderBottomRightRadius: R,
+          boxShadow: `${R / 2}px ${R / 2}px 0 ${R / 2}px ${PANEL_BG}`,
+        },
+        "&::after": {
+          right: -R,
+          borderBottomLeftRadius: R,
+          boxShadow: `-${R / 2}px ${R / 2}px 0 ${R / 2}px ${PANEL_BG}`,
+        },
+      }
     : {
-      height: 29,
-      mb: 0.75, // lifted above the card (use mb: 2 for a bigger gap)
-      borderRadius: "10px",
-      bgcolor: "#EDF0F5",
-      color: "#0F172A",
-      fontWeight: 500,
-      "&:hover": { bgcolor: "#E3E8F0" },
-    }),
+        height: 29,
+        mb: 0.75,
+        borderRadius: "10px",
+        bgcolor: "#EDF0F5",
+        color: "#0F172A",
+        fontWeight: 500,
+        "&:hover": { bgcolor: "#E3E8F0" },
+      }),
 });
+
 export default function ApprovalRequestsPage() {
-  const canView = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);
-  const canSeeTasks = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);
+  const canView = useCanAny([
+    CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW,
+    CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_EXECUTE,
+  ]);
+  const canSeeTasks = canView;
   const canAct = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_EXECUTE);
   const canCancel = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_CANCEL);
 
-  const [category, setCategory] = useState<"financial" | "non-financial">("financial");
   const [subTab, setSubTab] = useState<ApprovalTab>("pending");
   const [search, setSearch] = useState("");
-  const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
+  const [dateFilter, setDateFilter] = useState<BaseFilterValue | null>(null);
   const [page, setPage] = useState(0);
-
-  const [localPendingEntries, setLocalPendingEntries] = useState<ApprovalEntry[]>([]);
-  const [localNonFinancialEntries, setLocalNonFinancialEntries] = useState<ApprovalEntry[]>([]);
-  const [localHistoryEntries, setLocalHistoryEntries] = useState<ApprovalEntry[]>([]);
 
   const [openWorkflowId, setOpenWorkflowId] = useState<string | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<ApprovalEntry | null>(null);
-  // Toggle for DetailDialog (if set to false, InstanceDetailDialog is used directly)
   const [showDetailDialog, setShowDetailDialog] = useState(true);
 
-  const tasks = useListMyTasksQuery({ status: "PENDING" }, { skip: !canSeeTasks });
-  const instances = useListInstancesQuery({ size: 50 }, { skip: !canView });
+  // Live API queries
+  const tasksPending = useListMyTasksQuery({ status: "PENDING" }, { skip: !canSeeTasks });
+  const tasksAll = useListMyTasksQuery(undefined, { skip: !canSeeTasks });
+  const instances = useListInstancesQuery({ size: 100 }, { skip: !canView });
   const users = useListUsersQuery({ page: 0, size: 200 }, { skip: !canView });
+  const workflowFunctions = useListWorkflowFunctionsQuery(undefined, { skip: !canView });
 
   const [act, actState] = useActOnInstanceMutation();
   const [cancel] = useCancelInstanceMutation();
-  const [raiseApprovalAuthenticator, raiseAuthenticatorState] = useRaiseApprovalAuthenticatorMutation();
+  const [raiseApprovalAuthenticator, raiseAuthenticatorState] =
+    useRaiseApprovalAuthenticatorMutation();
 
   const [phoneApproval, setPhoneApproval] = useState<{
     authenticator: AuthenticatorRequest;
     reason?: string;
   } | null>(null);
 
+  // Map users for initiator names
   const nameByUserId = useMemo(() => {
     const map = new Map<string, string>();
     for (const entry of users.data?.content ?? []) {
@@ -138,44 +139,87 @@ export default function ApprovalRequestsPage() {
     return map;
   }, [users.data]);
 
-  const myTasks = useMemo(() => tasks.data?.content ?? [], [tasks.data]);
+  // Map workflow functions for function names and categories
+  const functionByCode = useMemo(() => {
+    const map = new Map<string, WorkflowFunction>();
+    for (const fn of workflowFunctions.data ?? []) {
+      map.set(fn.code, fn);
+    }
+    return map;
+  }, [workflowFunctions.data]);
+
   const allInstances = useMemo(
     () => (instances.isError ? [] : (instances.data?.content ?? [])),
-    [instances.data, instances.isError],
+    [instances.data, instances.isError]
   );
 
-  // Map real backend workflow tasks if present
-  const financialPending = useMemo(() => {
-    if (myTasks.length > 0) {
-      return myTasks.map((task) => ({
-        id: task.taskId,
-        creationDate: task.createdAt,
-        transactionType: task.functionName || "Approval Request",
-        transactionId: task.instanceId,
-        refNo: task.referenceId || task.taskId.slice(0, 12),
-        amount: (task as any).amount || 0,
-        fee: 0,
-        currency: (task as any).currency || "USD",
-        payToName: (task as any).payTo || nameByUserId.get(task.initiatedBy) || "Beneficiary",
-        payToAccountNo: (task as any).payToAccount || "",
-        sourceAccountName: (task as any).sourceAccount || "",
-        sourceAccountNo: (task as any).sourceAccountNo || "",
-        pendingOn: "You",
-        status: (task.status as any) || "PENDING",
-      }));
-    }
-    return localPendingEntries;
-  }, [myTasks, nameByUserId, localPendingEntries]);
+  // Map live pending tasks + open organization instances
+  const dynamicPendingEntries = useMemo(() => {
+    const taskRows = tasksPending.data?.content ?? [];
+    const openInstances = (instances.data?.content ?? []).filter((inst) =>
+      OPEN_STATUSES.includes(inst.status)
+    );
 
-  const activeCategoryEntries = category === "financial" ? financialPending : localNonFinancialEntries;
-  const sourceEntries = subTab === "pending" ? activeCategoryEntries : localHistoryEntries;
+    const taskInstanceIds = new Set<string>();
+    const entries: ApprovalEntry[] = [];
+
+    for (const task of taskRows) {
+      taskInstanceIds.add(task.instanceId);
+      entries.push(mapWorkflowToApprovalEntry(task, nameByUserId, functionByCode));
+    }
+
+    for (const inst of openInstances) {
+      if (!taskInstanceIds.has(inst.id)) {
+        entries.push(mapWorkflowToApprovalEntry(inst, nameByUserId, functionByCode));
+      }
+    }
+
+    return entries.sort(
+      (a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime()
+    );
+  }, [tasksPending.data, instances.data, nameByUserId, functionByCode]);
+
+  // Map live history (closed tasks + closed organization instances)
+  const dynamicHistoryEntries = useMemo(() => {
+    const closedTasks = (tasksAll.data?.content ?? []).filter((t) => t.status !== "PENDING");
+    const closedInstances = (instances.data?.content ?? []).filter(
+      (inst) => !OPEN_STATUSES.includes(inst.status)
+    );
+
+    const seenIds = new Set<string>();
+    const entries: ApprovalEntry[] = [];
+
+    for (const task of closedTasks) {
+      seenIds.add(task.instanceId);
+      entries.push(mapWorkflowToApprovalEntry(task, nameByUserId, functionByCode));
+    }
+
+    for (const inst of closedInstances) {
+      if (!seenIds.has(inst.id)) {
+        entries.push(mapWorkflowToApprovalEntry(inst, nameByUserId, functionByCode));
+      }
+    }
+
+    return entries.sort(
+      (a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime()
+    );
+  }, [tasksAll.data, instances.data, nameByUserId, functionByCode]);
+
+  const sourceEntries = subTab === "pending" ? dynamicPendingEntries : dynamicHistoryEntries;
 
   const filteredEntries = useMemo(() => {
     let result = sourceEntries;
 
-    // Apply date filter via isDateWithinFilter
+    // Apply date filter
     if (dateFilter && dateFilter.type !== "all") {
-      result = result.filter((entry) => isDateWithinFilter(entry.creationDate, dateFilter));
+      const range = resolveBaseFilterRange(dateFilter);
+      if (range) {
+        result = result.filter((entry) => {
+          if (!entry.creationDate) return false;
+          const d = dayjs(entry.creationDate);
+          return !d.isBefore(range.start) && !d.isAfter(range.end);
+        });
+      }
     }
 
     // Apply search filter
@@ -189,6 +233,8 @@ export default function ApprovalRequestsPage() {
           entry.payToAccountNo,
           entry.sourceAccountName,
           entry.sourceAccountNo,
+          entry.requestedBy,
+          entry.pendingOn,
         ]
           .join(" ")
           .toLowerCase()
@@ -197,11 +243,11 @@ export default function ApprovalRequestsPage() {
     }
 
     return result;
-  }, [sourceEntries, search, dateFilter]);
+  }, [sourceEntries, dateFilter, search]);
 
   const pagedEntries = useMemo(
     () => filteredEntries.slice(page * ROWS_PER_PAGE, page * ROWS_PER_PAGE + ROWS_PER_PAGE),
-    [filteredEntries, page],
+    [filteredEntries, page]
   );
 
   const handleSearchChange = (value: string) => {
@@ -209,7 +255,7 @@ export default function ApprovalRequestsPage() {
     setPage(0);
   };
 
-  const handleDateFilterChange = (filter: BaseFilterByDayValue | null) => {
+  const handleDateFilterChange = (filter: BaseFilterValue | null) => {
     setDateFilter(filter);
     setPage(0);
   };
@@ -220,13 +266,11 @@ export default function ApprovalRequestsPage() {
     );
 
     if (showDetailDialog) {
-      // New event: open DetailDialog
       setSelectedEntry(entry);
       if (isWorkflowInstance) {
         setOpenWorkflowId(entry.transactionId);
       }
     } else {
-      // Old event: if DetailDialog is hidden, open InstanceDetailDialog directly for workflow items
       if (isWorkflowInstance) {
         setOpenWorkflowId(entry.transactionId);
       } else {
@@ -235,55 +279,71 @@ export default function ApprovalRequestsPage() {
     }
   };
 
-  const handleApprove = async (entry?: DetailDialogEntry | null) => {
+  const handleApprove = async (
+    entry?: DetailDialogEntry | null,
+    authenticatorRequestId?: string
+  ) => {
     const target = (entry as ApprovalEntry) || selectedEntry;
     if (!target) return;
-    if (target.transactionId && canAct) {
+    const workflowId =
+      target.transactionId ||
+      (allInstances.some((i) => i.id === target.id) ? target.id : target.id);
+
+    if (workflowId && canAct) {
+      if (authenticatorRequestId) {
+        try {
+          await act({
+            id: workflowId,
+            decision: "APPROVE",
+            authenticatorRequestId,
+          }).unwrap();
+          setSelectedEntry(null);
+          setOpenWorkflowId(null);
+          showToast("success", {
+            title: "Transaction approved",
+            message: `${target.transactionType} has been approved.`,
+          });
+          return;
+        } catch (error) {
+          showToast("error", toToastError(error, "Could not record approval"));
+          return;
+        }
+      }
       try {
-        await act({ id: target.transactionId, decision: "APPROVE" }).unwrap();
-      } catch {
-        // Continue with local update
+        const authenticator = await raiseApprovalAuthenticator(workflowId).unwrap();
+        setOpenWorkflowId(workflowId);
+        setPhoneApproval({ authenticator });
+        setSelectedEntry(null);
+        return;
+      } catch (error) {
+        showToast("error", toToastError(error, "Couldn't start the phone authorization"));
+        return;
       }
     }
-    if (category === "financial") {
-      setLocalPendingEntries((prev) => prev.filter((e) => e.id !== target.id));
-    } else {
-      setLocalNonFinancialEntries((prev) => prev.filter((e) => e.id !== target.id));
-    }
-    setLocalHistoryEntries((prev) => [{ ...target, status: "APPROVED" }, ...prev]);
-    setSelectedEntry(null);
-    setOpenWorkflowId(null);
-    showToast("success", {
-      title: "Transaction approved",
-      message: `${target.transactionType} to ${target.payToName} has been approved.`,
-    });
   };
 
   const handleReject = async (entry?: DetailDialogEntry | null, reason?: string) => {
     const target = (entry as ApprovalEntry) || selectedEntry;
     if (!target) return;
-    if (target.transactionId && canAct) {
+    const workflowId =
+      target.transactionId ||
+      (allInstances.some((i) => i.id === target.id) ? target.id : target.id);
+
+    if (workflowId && canAct) {
       try {
-        await act({ id: target.transactionId, decision: "REJECT", reason }).unwrap();
-      } catch {
-        // Continue with local update
+        await act({ id: workflowId, decision: "REJECT", reason }).unwrap();
+        setSelectedEntry(null);
+        setOpenWorkflowId(null);
+        showToast("success", {
+          title: "Transaction rejected",
+          message: `${target.transactionType} has been rejected.`,
+        });
+        return;
+      } catch (error) {
+        showToast("error", toToastError(error, "Couldn't record your decision"));
+        return;
       }
     }
-    if (category === "financial") {
-      setLocalPendingEntries((prev) => prev.filter((e) => e.id !== target.id));
-    } else {
-      setLocalNonFinancialEntries((prev) => prev.filter((e) => e.id !== target.id));
-    }
-    setLocalHistoryEntries((prev) => [
-      { ...target, status: "REJECTED", rejectReason: reason || "No reason provided" },
-      ...prev,
-    ]);
-    setSelectedEntry(null);
-    setOpenWorkflowId(null);
-    showToast("error", {
-      title: "Transaction rejected",
-      message: `${target.transactionType} to ${target.payToName} has been rejected.`,
-    });
   };
 
   const onAct = async (decision: "APPROVE" | "REJECT", reason?: string) => {
@@ -352,14 +412,22 @@ export default function ApprovalRequestsPage() {
     );
   }
 
+  const isDataLoading =
+    tasksPending.isLoading ||
+    tasksAll.isLoading ||
+    instances.isLoading ||
+    users.isLoading ||
+    workflowFunctions.isLoading;
+
   return (
     <Box sx={{ width: "100%" }}>
-      {/* 1. Summary Cards */}
+      {/* 1. Summary Cards dynamically calculated from live pending entries */}
       <ApprovalSummaryCards
-        pendingCount={financialPending.length}
-        entries={financialPending}
+        entries={dynamicPendingEntries}
+        isLoading={isDataLoading}
       />
-      {/* 3. Folder-style Tabs: Pending (5) & History */}
+
+      {/* 2. Folder-style Tabs: Pending (count) & History (count) */}
       <Stack
         direction="row"
         spacing={1.5}
@@ -369,26 +437,33 @@ export default function ApprovalRequestsPage() {
         <Box
           component="button"
           type="button"
-          onClick={() => { setSubTab("pending"); setPage(0); }}
-          sx={[tabSx(subTab === "pending"), { ml: 10.5 }]}   // 36px marginLeft
+          onClick={() => {
+            setSubTab("pending");
+            setPage(0);
+          }}
+          sx={[tabSx(subTab === "pending"), { ml: 10.5 }]}
         >
-          {`Pending (${category === "financial" ? financialPending.length : localNonFinancialEntries.length})`}
+          {`Pending (${dynamicPendingEntries.length})`}
         </Box>
 
         <Box
           component="button"
           type="button"
-          onClick={() => { setSubTab("history"); setPage(0); }}
+          onClick={() => {
+            setSubTab("history");
+            setPage(0);
+          }}
           sx={tabSx(subTab === "history")}
         >
-          History
+          {`History (${dynamicHistoryEntries.length})`}
         </Box>
       </Stack>
 
-      {/* 4. Transactions Card & Table matching new UI with BaseSearchButton, BaseFilterByDay, and BasePagination */}
+      {/* 3. Dynamic Transactions Table with BaseFilter, search, and pagination */}
       <ApprovalTable
         sx={{ borderTopLeftRadius: `${CARD_RADIUS}px`, border: "none" }}
         entries={pagedEntries}
+        isLoading={isDataLoading}
         totalCount={filteredEntries.length}
         search={search}
         onSearchChange={handleSearchChange}
@@ -400,7 +475,7 @@ export default function ApprovalRequestsPage() {
         onRowClick={handleRowClick}
       />
 
-      {/* New Event: Transaction Detail Dialog with dynamic action button colors */}
+      {/* Detail Dialog with live instance context, approval QR authenticator, and reject flow */}
       {showDetailDialog && (
         <DetailDialog
           open={Boolean(selectedEntry)}
@@ -411,10 +486,12 @@ export default function ApprovalRequestsPage() {
           entry={selectedEntry}
           onApprove={handleApprove}
           onReject={handleReject}
+          isApproving={actState.isLoading || raiseAuthenticatorState.isLoading}
+          isRejecting={actState.isLoading}
         />
       )}
 
-      {/* Old Event: InstanceDetailDialog (works if showDetailDialog is false OR when DetailDialog is not active) */}
+      {/* InstanceDetailDialog fallback when showDetailDialog is toggled off */}
       {openWorkflowId && (!showDetailDialog || !selectedEntry) && (
         <InstanceDetailDialog
           instanceId={openWorkflowId}
@@ -428,6 +505,7 @@ export default function ApprovalRequestsPage() {
         />
       )}
 
+      {/* Mobile / Authenticator QR modal for Approver phone scan */}
       {openWorkflowId && phoneApproval && (
         <AuthenticatorDialog
           key={openWorkflowId}

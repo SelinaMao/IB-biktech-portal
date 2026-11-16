@@ -1,119 +1,135 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 
 import { showToast } from "@core/components/AppToast";
 import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/BaseFilter";
-import { CLIENT_PERMISSIONS, useCan } from "@/features/auth";
-import { useListMyTasksQuery, useActOnInstanceMutation } from "@/features/workflow";
+import { CLIENT_PERMISSIONS, useCan, useCanAny } from "@/features/auth";
+import {
+  useListMyTasksQuery,
+  useListInstancesQuery,
+  useListWorkflowFunctionsQuery,
+  useActOnInstanceMutation,
+  type InstanceStatus,
+  type WorkflowFunction,
+} from "@/features/workflow";
 import { useListUsersQuery } from "@/features/user";
+import { toToastError } from "@/utils/api-error";
 import {
   ApprovalTable,
   ApprovalDetailDialog,
+  mapWorkflowToApprovalEntry,
   type ApprovalEntry,
   type ApprovalTab,
   ApprovalSummaryCards,
 } from "@/features/approval";
 
 const ROWS_PER_PAGE = 5;
-const DEFAULT_FILTER: BaseFilterValue = { type: "last7Days", from: null, to: null };
+const DEFAULT_FILTER: BaseFilterValue = { type: "all", from: null, to: null };
+const OPEN_STATUSES: InstanceStatus[] = ["PENDING", "IN_PROGRESS", "ESCALATED"];
 
 export default function ApprovalPage() {
-  const canSeeTasks = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);
-  const canViewUsers = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW);
+  const canView = useCanAny([
+    CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW,
+    CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_EXECUTE,
+  ]);
+  const canSeeTasks = canView;
+  const canAct = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_EXECUTE);
 
   // Dynamic API queries
-  const { data: myTasksData, isLoading: tasksLoading } = useListMyTasksQuery(
-    { status: "PENDING" },
-    { skip: !canSeeTasks }
-  );
-  const { data: allTasksData, isLoading: allTasksLoading } = useListMyTasksQuery(
-    undefined,
-    { skip: !canSeeTasks }
-  );
+  const tasksPending = useListMyTasksQuery({ status: "PENDING" }, { skip: !canSeeTasks });
+  const tasksAll = useListMyTasksQuery(undefined, { skip: !canSeeTasks });
+  const instances = useListInstancesQuery({ size: 100 }, { skip: !canView });
+  const users = useListUsersQuery({ page: 0, size: 200 }, { skip: !canView });
+  const workflowFunctions = useListWorkflowFunctionsQuery(undefined, { skip: !canView });
+
   const [actOnInstance, { isLoading: isActing }] = useActOnInstanceMutation();
 
-  const { data: usersData } = useListUsersQuery(
-    { page: 0, size: 200 },
-    { skip: !canViewUsers }
-  );
-
-  const [category, setCategory] = useState<"financial" | "non-financial">("financial");
   const [tab, setTab] = useState<ApprovalTab>("pending");
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState<BaseFilterValue>(DEFAULT_FILTER);
   const [page, setPage] = useState(0);
-
-  const [pendingEntries, setPendingEntries] = useState<ApprovalEntry[]>([]);
-  const [nonFinancialEntries, setNonFinancialEntries] = useState<ApprovalEntry[]>([]);
-  const [historyEntries, setHistoryEntries] = useState<ApprovalEntry[]>([]);
   const [selectedEntry, setSelectedEntry] = useState<ApprovalEntry | null>(null);
 
   // Map users for initiator names
   const nameByUserId = useMemo(() => {
     const map = new Map<string, string>();
-    for (const entry of usersData?.content ?? []) {
+    for (const entry of users.data?.content ?? []) {
       map.set(entry.user.id, entry.user.fullName || entry.user.username);
     }
     return map;
-  }, [usersData]);
+  }, [users.data]);
 
-  // Synchronize dynamic API tasks into pendingEntries
-  useEffect(() => {
-    const tasks = myTasksData?.content ?? [];
-    const mapped: ApprovalEntry[] = tasks.map((task) => ({
-      id: task.taskId,
-      creationDate: task.createdAt,
-      transactionType: task.functionName || "Approval Request",
-      transactionId: task.instanceId,
-      refNo: task.referenceId || task.taskId.slice(0, 12),
-      amount: (task as any).amount || 0,
-      fee: 0,
-      currency: (task as any).currency || "USD",
-      payToName: (task as any).payTo || nameByUserId.get(task.initiatedBy) || "Beneficiary",
-      payToAccountNo: (task as any).payToAccount || "",
-      sourceAccountName: (task as any).sourceAccount || "",
-      sourceAccountNo: (task as any).sourceAccountNo || "",
-      pendingOn: "You",
-      status: (task.status as any) || "PENDING",
-    }));
-    setPendingEntries(mapped);
-  }, [myTasksData, nameByUserId]);
-
-  // Synchronize dynamic history tasks from API
-  useEffect(() => {
-    if (allTasksData?.content) {
-      const nonPending = allTasksData.content.filter((task) => task.status !== "PENDING");
-      const mapped: ApprovalEntry[] = nonPending.map((task) => ({
-        id: task.taskId,
-        creationDate: task.createdAt,
-        transactionType: task.functionName || "Approval Request",
-        transactionId: task.instanceId,
-        refNo: task.referenceId || task.taskId.slice(0, 12),
-        amount: (task as any).amount || 0,
-        fee: 0,
-        currency: (task as any).currency || "USD",
-        payToName: (task as any).payTo || nameByUserId.get(task.initiatedBy) || "Beneficiary",
-        payToAccountNo: (task as any).payToAccount || "",
-        sourceAccountName: (task as any).sourceAccount || "",
-        sourceAccountNo: (task as any).sourceAccountNo || "",
-        pendingOn: "You",
-        status: (task.status as any) || "APPROVED",
-      }));
-      setHistoryEntries(mapped);
+  // Map workflow functions for function names and categories
+  const functionByCode = useMemo(() => {
+    const map = new Map<string, WorkflowFunction>();
+    for (const fn of workflowFunctions.data ?? []) {
+      map.set(fn.code, fn);
     }
-  }, [allTasksData, nameByUserId]);
+    return map;
+  }, [workflowFunctions.data]);
 
-  const activeCategoryEntries = category === "financial" ? pendingEntries : nonFinancialEntries;
-  const sourceEntries = tab === "pending" ? activeCategoryEntries : historyEntries;
+  // Map live pending tasks + open organization instances
+  const dynamicPendingEntries = useMemo(() => {
+    const taskRows = tasksPending.data?.content ?? [];
+    const openInstances = (instances.data?.content ?? []).filter((inst) =>
+      OPEN_STATUSES.includes(inst.status)
+    );
+
+    const taskInstanceIds = new Set<string>();
+    const entries: ApprovalEntry[] = [];
+
+    for (const task of taskRows) {
+      taskInstanceIds.add(task.instanceId);
+      entries.push(mapWorkflowToApprovalEntry(task, nameByUserId, functionByCode));
+    }
+
+    for (const inst of openInstances) {
+      if (!taskInstanceIds.has(inst.id)) {
+        entries.push(mapWorkflowToApprovalEntry(inst, nameByUserId, functionByCode));
+      }
+    }
+
+    return entries.sort(
+      (a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime()
+    );
+  }, [tasksPending.data, instances.data, nameByUserId, functionByCode]);
+
+  // Map live history (closed tasks + closed organization instances)
+  const dynamicHistoryEntries = useMemo(() => {
+    const closedTasks = (tasksAll.data?.content ?? []).filter((t) => t.status !== "PENDING");
+    const closedInstances = (instances.data?.content ?? []).filter(
+      (inst) => !OPEN_STATUSES.includes(inst.status)
+    );
+
+    const seenIds = new Set<string>();
+    const entries: ApprovalEntry[] = [];
+
+    for (const task of closedTasks) {
+      seenIds.add(task.instanceId);
+      entries.push(mapWorkflowToApprovalEntry(task, nameByUserId, functionByCode));
+    }
+
+    for (const inst of closedInstances) {
+      if (!seenIds.has(inst.id)) {
+        entries.push(mapWorkflowToApprovalEntry(inst, nameByUserId, functionByCode));
+      }
+    }
+
+    return entries.sort(
+      (a, b) => new Date(b.creationDate).getTime() - new Date(a.creationDate).getTime()
+    );
+  }, [tasksAll.data, instances.data, nameByUserId, functionByCode]);
+
+  const sourceEntries = tab === "pending" ? dynamicPendingEntries : dynamicHistoryEntries;
 
   const filteredEntries = useMemo(() => {
     let result = sourceEntries;
 
-    // Apply date filter like account page via resolveBaseFilterRange
+    // Apply date filter
     if (dateFilter && dateFilter.type !== "all") {
       const range = resolveBaseFilterRange(dateFilter);
       if (range) {
@@ -139,6 +155,8 @@ export default function ApprovalPage() {
           entry.payToAccountNo,
           entry.sourceAccountName,
           entry.sourceAccountNo,
+          entry.requestedBy,
+          entry.pendingOn,
         ]
           .join(" ")
           .toLowerCase()
@@ -149,9 +167,9 @@ export default function ApprovalPage() {
     return result;
   }, [sourceEntries, search, dateFilter]);
 
-  const entries = useMemo(
+  const pagedEntries = useMemo(
     () => filteredEntries.slice(page * ROWS_PER_PAGE, page * ROWS_PER_PAGE + ROWS_PER_PAGE),
-    [filteredEntries, page],
+    [filteredEntries, page]
   );
 
   const handleSearchChange = (value: string) => {
@@ -164,58 +182,53 @@ export default function ApprovalPage() {
     setPage(0);
   };
 
-  const handleApprove = async (entry: ApprovalEntry) => {
+  const handleApprove = async (entry: ApprovalEntry, authenticatorRequestId?: string) => {
+    const workflowId = entry.transactionId || entry.id;
+    if (!workflowId || !canAct) return;
+
     try {
-      if (entry.transactionId) {
-        await actOnInstance({ id: entry.transactionId, decision: "APPROVE" }).unwrap();
-      }
-      if (category === "financial") {
-        setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
-      } else {
-        setNonFinancialEntries((prev) => prev.filter((e) => e.id !== entry.id));
-      }
-      setHistoryEntries((prev) => [{ ...entry, status: "APPROVED" }, ...prev]);
+      await actOnInstance({
+        id: workflowId,
+        decision: "APPROVE",
+        authenticatorRequestId,
+      }).unwrap();
       setSelectedEntry(null);
       showToast("success", {
         title: "Transaction approved",
         message: `${entry.transactionType} to ${entry.payToName} has been approved.`,
       });
-    } catch {
-      showToast("error", {
-        title: "Approval failed",
-        message: "Could not approve the transaction. Please try again.",
-      });
+    } catch (error) {
+      showToast("error", toToastError(error, "Could not approve the transaction. Please try again."));
     }
   };
 
   const handleReject = async (entry: ApprovalEntry, reason: string) => {
+    const workflowId = entry.transactionId || entry.id;
+    if (!workflowId || !canAct) return;
+
     try {
-      if (entry.transactionId) {
-        await actOnInstance({ id: entry.transactionId, decision: "REJECT", reason }).unwrap();
-      }
-      if (category === "financial") {
-        setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
-      } else {
-        setNonFinancialEntries((prev) => prev.filter((e) => e.id !== entry.id));
-      }
-      setHistoryEntries((prev) => [{ ...entry, status: "REJECTED", rejectReason: reason }, ...prev]);
+      await actOnInstance({ id: workflowId, decision: "REJECT", reason }).unwrap();
       setSelectedEntry(null);
       showToast("error", {
         title: "Transaction rejected",
         message: `${entry.transactionType} to ${entry.payToName} has been rejected.`,
       });
-    } catch {
-      showToast("error", {
-        title: "Rejection failed",
-        message: "Could not reject the transaction. Please try again.",
-      });
+    } catch (error) {
+      showToast("error", toToastError(error, "Could not reject the transaction. Please try again."));
     }
   };
+
+  const isDataLoading =
+    tasksPending.isLoading ||
+    tasksAll.isLoading ||
+    instances.isLoading ||
+    users.isLoading ||
+    workflowFunctions.isLoading;
 
   return (
     <Box sx={{ width: "100%" }}>
       {/* 1. Summary Cards */}
-      <ApprovalSummaryCards entries={pendingEntries} isLoading={tasksLoading} />
+      <ApprovalSummaryCards entries={dynamicPendingEntries} isLoading={isDataLoading} />
 
       {/* 2. Tabs: Pending & History */}
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mt: 4, mb: 2 }}>
@@ -246,7 +259,7 @@ export default function ApprovalPage() {
             },
           }}
         >
-          Pending ({pendingEntries.length})
+          {`Pending (${dynamicPendingEntries.length})`}
         </Box>
 
         <Box
@@ -276,14 +289,14 @@ export default function ApprovalPage() {
             },
           }}
         >
-          History
+          {`History (${dynamicHistoryEntries.length})`}
         </Box>
       </Stack>
 
       {/* 3. Transactions Card & Table */}
       <ApprovalTable
-        entries={entries}
-        isLoading={tab === "pending" ? tasksLoading : allTasksLoading}
+        entries={pagedEntries}
+        isLoading={isDataLoading}
         totalCount={filteredEntries.length}
         search={search}
         onSearchChange={handleSearchChange}

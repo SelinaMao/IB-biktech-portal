@@ -19,6 +19,7 @@ export {
   default as PreviewTransfer,
   type TransferReviewRow,
   type TransferPreviewField,
+  type SuccessStepRenderProps,
 } from "./components/PreviewTransfer";
 
 

@@ -239,15 +239,30 @@ export const workflowApi = baseApi.injectEndpoints({
     }),
 
     /** The caller's own inbox. */
-    listMyTasks: build.query<PageResponse<TaskInboxRow>, { status?: TaskStatus } | void>({
+    listMyTasks: build.query<
+      PageResponse<TaskInboxRow>,
+      { status?: TaskStatus; page?: number; size?: number } | void
+    >({
       query: (args) => {
         const params = new URLSearchParams();
         if (args && args.status) params.set("status", args.status);
-        params.set("size", "50");
+        if (args && args.page !== undefined) params.set("page", String(args.page));
+        params.set("size", String((args && args.size) ?? 100));
         return bank(`${adminApi.WORKFLOW.TASKS}?${params.toString()}`);
       },
       transformResponse,
       providesTags: [{ type: "WorkflowTask" as const, id: "LIST" }],
+    }),
+
+    /** Summary counts and volume for cards above the queue. */
+    getInstanceSummary: build.query<Record<string, unknown>, { category?: string } | void>({
+      query: (args) => {
+        const params = new URLSearchParams();
+        if (args?.category) params.set("category", args.category);
+        return bank(`${adminApi.WORKFLOW.INSTANCES_SUMMARY}?${params.toString()}`);
+      },
+      transformResponse,
+      providesTags: [{ type: "WorkflowInstance" as const, id: "SUMMARY" }],
     }),
 
     /** The authenticator request an APPROVE needs; scanning its QR authorizes the approval. */
@@ -307,6 +322,7 @@ export const {
   useRevokeEntitlementMutation,
   useListInstancesQuery,
   useGetInstanceQuery,
+  useGetInstanceSummaryQuery,
   useListMyTasksQuery,
   useActOnInstanceMutation,
   useRaiseApprovalAuthenticatorMutation,

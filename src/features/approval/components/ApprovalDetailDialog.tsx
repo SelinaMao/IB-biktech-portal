@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -14,12 +16,18 @@ import BaseDialog from "@core/components/BaseDialog";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import BaseTextArea from "@core/form/BaseTextArea";
 import { approvalStatusMeta, type ApprovalEntry } from "../approval.types";
+import { showToast } from "@core/components/AppToast";
+import { useGetInstanceQuery, useRaiseApprovalAuthenticatorMutation } from "@/features/workflow";
+import type { AuthenticatorRequest } from "@/features/authenticator";
+import { toToastError } from "@/utils/api-error";
+
+dayjs.extend(relativeTime);
 
 export type ApprovalDetailDialogProps = {
   open: boolean;
   onClose: () => void;
   entry: ApprovalEntry | null;
-  onApprove?: (entry: ApprovalEntry) => void;
+  onApprove?: (entry: ApprovalEntry, authenticatorRequestId?: string) => void;
   onReject?: (entry: ApprovalEntry, reason: string) => void;
   isApproving?: boolean;
   isRejecting?: boolean;
@@ -44,36 +52,65 @@ export default function ApprovalDetailDialog({
   const [rejectReason, setRejectReason] = useState("");
   const [rejectTouched, setRejectTouched] = useState(false);
   const [qrConfirmOpen, setQrConfirmOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
+  const [authenticator, setAuthenticator] = useState<AuthenticatorRequest | null>(null);
+  const [raiseApprovalAuthenticator, { isLoading: isRaisingAuth }] = useRaiseApprovalAuthenticatorMutation();
 
   useEffect(() => {
     if (!open) {
       setQrConfirmOpen(false);
-      setPendingAction(null);
+      setAuthenticator(null);
       setRejectDialogOpen(false);
       setRejectReason("");
       setRejectTouched(false);
     }
   }, [open]);
 
+  const instanceId = entry?.transactionId || entry?.id;
+  const { data: instanceDetail } = useGetInstanceQuery(instanceId ?? "", {
+    skip: !open || !instanceId,
+  });
+  const ctx = (instanceDetail?.context as Record<string, unknown> | undefined) || {};
+
   if (!entry) return null;
 
   const statusMeta = approvalStatusMeta(entry.status);
   const isPending = entry.status === "PENDING";
 
-  const formattedAmount =
-    entry.currency === "USD"
-      ? `$${entry.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : `${entry.currency} ${entry.amount.toLocaleString("en-US")}`;
+  const resolvedAmount =
+    entry.amount || Number(ctx.amount ?? ctx.totalAmount ?? ctx.originalAmount ?? 0);
+  const resolvedCurrency = (entry.currency || (ctx.currency as string) || "USD").toUpperCase();
 
-  const fromDisplay = [entry.sourceAccountName, formatLast4(entry.sourceAccountNo)].filter(Boolean).join(" ") || "—";
+  const formattedAmount =
+    resolvedCurrency === "USD"
+      ? `$${resolvedAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : `${resolvedCurrency} ${resolvedAmount.toLocaleString("en-US")}`;
+
+  const fromDisplay =
+    [
+      entry.sourceAccountName || (ctx.fromAccountName as string) || (ctx.sourceAccountName as string),
+      formatLast4(entry.sourceAccountNo || (ctx.fromAccountNumber as string) || (ctx.sourceAccountNo as string)),
+    ]
+      .filter(Boolean)
+      .join(" ") || "—";
+
+  const toAccountNo =
+    entry.payToAccountNo || (ctx.payToAccountNo as string) || (ctx.toAccountNumber as string) || "";
+  const toName =
+    entry.payToName || (ctx.payToName as string) || (ctx.toAccountName as string) || (ctx.beneficiary as string) || "—";
 
   const toDisplay =
-    entry.payToAccountNo && entry.payToAccountNo !== "Bakong"
-      ? `${entry.payToName} ${formatLast4(entry.payToAccountNo)}`
-      : entry.payToName || "—";
+    toAccountNo && toAccountNo !== "Bakong"
+      ? `${toName} ${formatLast4(toAccountNo)}`
+      : toName;
 
-  const referenceDisplay = entry.refNo || entry.transactionId || "—";
+  const referenceDisplay =
+    entry.refNo || entry.transactionId || instanceDetail?.referenceId || (ctx.referenceId as string) || "—";
+
+  const requesterName = entry.requestedBy || (ctx.raisedBy as string) || "Requester";
+  const timeLabel = entry.creationDate || instanceDetail?.createdAt
+    ? dayjs(entry.creationDate || instanceDetail?.createdAt).fromNow()
+    : "";
+  const subtitle = timeLabel ? `Requested by ${requesterName} · ${timeLabel}` : `Requested by ${requesterName}`;
 
   const requestReject = () => {
     setRejectReason("");
@@ -86,28 +123,35 @@ export default function ApprovalDetailDialog({
       setRejectTouched(true);
       return;
     }
+    const reason = rejectReason.trim();
     setRejectDialogOpen(false);
-    setPendingAction("reject");
-    setQrConfirmOpen(true);
+    onReject?.(entry, reason);
+    onClose();
   };
 
   const rejectReasonInvalid = rejectTouched && !rejectReason.trim();
 
-  const requestApprove = () => {
-    setPendingAction("approve");
-    setQrConfirmOpen(true);
+  const requestApprove = async () => {
+    if (entry?.transactionId) {
+      try {
+        setQrConfirmOpen(true);
+        const result = await raiseApprovalAuthenticator(entry.transactionId).unwrap();
+        setAuthenticator(result);
+        return;
+      } catch (error) {
+        showToast("error", toToastError(error, "Could not get authorization QR code"));
+        setQrConfirmOpen(false);
+        return;
+      }
+    }
+    onApprove?.(entry);
+    onClose();
   };
 
-  const handleQrConfirm = () => {
-    const action = pendingAction;
-    const reason = rejectReason.trim();
+  const handleQrAuthorized = (requestId: string) => {
     setQrConfirmOpen(false);
-    setPendingAction(null);
-    if (action === "approve") {
-      onApprove?.(entry);
-    } else if (action === "reject") {
-      onReject?.(entry, reason);
-    }
+    setAuthenticator(null);
+    onApprove?.(entry, requestId);
     onClose();
   };
 
@@ -175,7 +219,7 @@ export default function ApprovalDetailDialog({
             </Box>
           </Stack>
           <Typography sx={{ fontSize: 13, color: "#6B7280", mt: 1.5 }}>
-            Requested by Dara Kim · 10 min ago
+            {subtitle}
           </Typography>
         </Box>
 
@@ -377,14 +421,26 @@ export default function ApprovalDetailDialog({
         </Stack>
       </BaseDialog>
 
-      {/* QR Confirmation for both Approve and Reject */}
+      {/* QR Confirmation Modal with qrPayload from API */}
       <QrConfirmationDialog
         open={qrConfirmOpen}
+        authenticator={authenticator}
+        qrPayload={authenticator?.qrPayload}
+        isLoading={isRaisingAuth && !authenticator}
         onClose={() => {
           setQrConfirmOpen(false);
-          setPendingAction(null);
+          setAuthenticator(null);
         }}
-        onApprove={handleQrConfirm}
+        onAuthorized={handleQrAuthorized}
+        onApprove={() => handleQrAuthorized(authenticator?.requestId || "")}
+        onRenew={async () => {
+          if (!entry?.transactionId) return;
+          const result = await raiseApprovalAuthenticator(entry.transactionId).unwrap();
+          setAuthenticator(result);
+          return result;
+        }}
+        title="Confirmations"
+        subtitle="Scan this QR with Bank Mobile App"
       />
     </>
   );
