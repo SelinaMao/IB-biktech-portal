@@ -14,7 +14,11 @@ import BaseButton from "@core/components/BaseButton";
 import BaseDialog from "@core/components/BaseDialog";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import BaseTextArea from "@core/form/BaseTextArea";
+import { showToast } from "@core/components/AppToast";
+import { useRaiseApprovalAuthenticatorMutation } from "../workflow.api";
+import type { AuthenticatorRequest } from "@/features/authenticator";
 import { font, palette } from "@/theme/palette";
+import { toToastError } from "@/utils/api-error";
 
 dayjs.extend(relativeTime);
 
@@ -62,7 +66,7 @@ export interface DetailDialogProps {
   /** Rejection reason (if rejected) */
   rejectReason?: string;
   /** Callback when Approve is clicked */
-  onApprove?: (entry?: DetailDialogEntry | null) => void | Promise<void>;
+  onApprove?: (entry?: DetailDialogEntry | null, authenticatorRequestId?: string) => void | Promise<void>;
   /** Callback when Reject is confirmed */
   onReject?: (entry?: DetailDialogEntry | null, reason?: string) => void | Promise<void>;
   /** Loading state for Approve */
@@ -103,14 +107,13 @@ export default function DetailDialog({
   const [rejectReasonInput, setRejectReasonInput] = useState("");
   const [rejectTouched, setRejectTouched] = useState(false);
   const [qrConfirmOpen, setQrConfirmOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
-  const [pendingRejectReason, setPendingRejectReason] = useState("");
+  const [authenticator, setAuthenticator] = useState<AuthenticatorRequest | null>(null);
+  const [raiseApprovalAuthenticator, { isLoading: isRaisingAuth }] = useRaiseApprovalAuthenticatorMutation();
 
   useEffect(() => {
     if (!open) {
       setQrConfirmOpen(false);
-      setPendingAction(null);
-      setPendingRejectReason("");
+      setAuthenticator(null);
       setRejectDialogOpen(false);
       setRejectReasonInput("");
       setRejectTouched(false);
@@ -245,40 +248,47 @@ export default function DetailDialog({
     setRejectDialogOpen(true);
   };
 
-  const handleConfirmReject = () => {
+  const handleConfirmReject = async () => {
     if (!rejectReasonInput.trim()) {
       setRejectTouched(true);
       return;
     }
-    setPendingRejectReason(rejectReasonInput.trim());
+    const reason = rejectReasonInput.trim();
     setRejectDialogOpen(false);
-    // Proceed to QR confirmation on mobile
-    setPendingAction("reject");
-    setQrConfirmOpen(true);
+    await onReject?.(entry, reason);
+    onClose();
   };
 
-  // Approval handling -> Proceed to QR confirmation on mobile
-  const handleOpenApprove = () => {
-    setPendingAction("approve");
-    setQrConfirmOpen(true);
-  };
-
-  const handleQrConfirm = async () => {
-    const action = pendingAction;
-    const reason = pendingRejectReason;
-    setQrConfirmOpen(false);
-    setPendingAction(null);
-    if (action === "approve") {
-      await onApprove?.(entry);
-    } else if (action === "reject") {
-      await onReject?.(entry, reason);
+  // Approval handling -> Fetch QR from API (qrPayload) and alert QR confirmation modal
+  const handleOpenApprove = async () => {
+    const workflowId = entry?.transactionId || (entry?.id ? String(entry.id) : null);
+    if (workflowId) {
+      try {
+        setQrConfirmOpen(true);
+        const result = await raiseApprovalAuthenticator(workflowId).unwrap();
+        setAuthenticator(result);
+        return;
+      } catch (error) {
+        showToast("error", toToastError(error, "Could not get authorization QR code"));
+        setQrConfirmOpen(false);
+        return;
+      }
     }
+    // Fallback for entries with no workflowId
+    await onApprove?.(entry);
+    onClose();
+  };
+
+  const handleQrAuthorized = async (requestId: string) => {
+    setQrConfirmOpen(false);
+    setAuthenticator(null);
+    await onApprove?.(entry, requestId);
     onClose();
   };
 
   const handleQrClose = () => {
     setQrConfirmOpen(false);
-    setPendingAction(null);
+    setAuthenticator(null);
   };
 
   return (
@@ -716,17 +726,24 @@ export default function DetailDialog({
         </Stack>
       </BaseDialog>
 
-      {/* QR Confirmation Modal for all actions (Approval & Reject) */}
+      {/* QR Confirmation Modal with qrPayload from API */}
       <QrConfirmationDialog
         open={qrConfirmOpen}
+        authenticator={authenticator}
+        qrPayload={authenticator?.qrPayload}
+        isLoading={isRaisingAuth && !authenticator}
         onClose={handleQrClose}
-        onApprove={handleQrConfirm}
+        onAuthorized={handleQrAuthorized}
+        onApprove={() => handleQrAuthorized(authenticator?.requestId || "")}
+        onRenew={async () => {
+          const workflowId = entry?.transactionId || (entry?.id ? String(entry.id) : null);
+          if (!workflowId) return;
+          const result = await raiseApprovalAuthenticator(workflowId).unwrap();
+          setAuthenticator(result);
+          return result;
+        }}
         title="Confirmations"
-        subtitle={
-          pendingAction === "reject"
-            ? "Scan this QR with Bank Mobile App to reject"
-            : "Scan this QR with Bank Mobile App"
-        }
+        subtitle="Scan this QR with Bank Mobile App"
       />
     </>
   );

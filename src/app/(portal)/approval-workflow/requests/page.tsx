@@ -235,14 +235,55 @@ export default function ApprovalRequestsPage() {
     }
   };
 
-  const handleApprove = async (entry?: DetailDialogEntry | null) => {
+  const handleApprove = async (
+    entry?: DetailDialogEntry | null,
+    authenticatorRequestId?: string
+  ) => {
     const target = (entry as ApprovalEntry) || selectedEntry;
     if (!target) return;
-    if (target.transactionId && canAct) {
+    const workflowId =
+      target.transactionId ||
+      (allInstances.some((i) => i.id === target.id) ? target.id : null);
+
+    if (workflowId && canAct) {
+      if (authenticatorRequestId) {
+        try {
+          await act({
+            id: workflowId,
+            decision: "APPROVE",
+            authenticatorRequestId,
+          }).unwrap();
+          if (category === "financial") {
+            setLocalPendingEntries((prev) =>
+              prev.filter((e) => e.id !== target.id && e.transactionId !== workflowId)
+            );
+          } else {
+            setLocalNonFinancialEntries((prev) =>
+              prev.filter((e) => e.id !== target.id && e.transactionId !== workflowId)
+            );
+          }
+          setLocalHistoryEntries((prev) => [{ ...target, status: "APPROVED" }, ...prev]);
+          setSelectedEntry(null);
+          setOpenWorkflowId(null);
+          showToast("success", {
+            title: "Transaction approved",
+            message: `${target.transactionType} to ${target.payToName} has been approved.`,
+          });
+          return;
+        } catch (error) {
+          showToast("error", toToastError(error, "Could not record approval"));
+          return;
+        }
+      }
       try {
-        await act({ id: target.transactionId, decision: "APPROVE" }).unwrap();
-      } catch {
-        // Continue with local update
+        const authenticator = await raiseApprovalAuthenticator(workflowId).unwrap();
+        setOpenWorkflowId(workflowId);
+        setPhoneApproval({ authenticator });
+        setSelectedEntry(null);
+        return;
+      } catch (error) {
+        showToast("error", toToastError(error, "Couldn't start the phone authorization"));
+        return;
       }
     }
     if (category === "financial") {
@@ -262,11 +303,36 @@ export default function ApprovalRequestsPage() {
   const handleReject = async (entry?: DetailDialogEntry | null, reason?: string) => {
     const target = (entry as ApprovalEntry) || selectedEntry;
     if (!target) return;
-    if (target.transactionId && canAct) {
+    const workflowId =
+      target.transactionId ||
+      (allInstances.some((i) => i.id === target.id) ? target.id : null);
+
+    if (workflowId && canAct) {
       try {
-        await act({ id: target.transactionId, decision: "REJECT", reason }).unwrap();
-      } catch {
-        // Continue with local update
+        await act({ id: workflowId, decision: "REJECT", reason }).unwrap();
+        if (category === "financial") {
+          setLocalPendingEntries((prev) =>
+            prev.filter((e) => e.id !== target.id && e.transactionId !== workflowId)
+          );
+        } else {
+          setLocalNonFinancialEntries((prev) =>
+            prev.filter((e) => e.id !== target.id && e.transactionId !== workflowId)
+          );
+        }
+        setLocalHistoryEntries((prev) => [
+          { ...target, status: "REJECTED", rejectReason: reason || "No reason provided" },
+          ...prev,
+        ]);
+        setSelectedEntry(null);
+        setOpenWorkflowId(null);
+        showToast("success", {
+          title: "Transaction rejected",
+          message: `${target.transactionType} to ${target.payToName} has been rejected.`,
+        });
+        return;
+      } catch (error) {
+        showToast("error", toToastError(error, "Couldn't record your decision"));
+        return;
       }
     }
     if (category === "financial") {

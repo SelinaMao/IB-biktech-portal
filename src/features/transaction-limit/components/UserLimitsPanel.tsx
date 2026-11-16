@@ -11,6 +11,7 @@ import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import { palette, radius } from "@/theme/palette";
 import { showToast } from "@core/components/AppToast";
 import { toToastError } from "@/utils/api-error";
+import type { AuthenticatorRequest } from "@/features/authenticator";
 
 import {
   useGetUserLimitsQuery,
@@ -39,6 +40,7 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
   const [resetRow, { isLoading: isResetting }] = useResetUserLimitRowMutation();
   const [draft, setDraft] = useState<LimitDraft>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [authenticator, setAuthenticator] = useState<AuthenticatorRequest | null>(null);
   const [qrPayload, setQrPayload] = useState<string | undefined>(undefined);
 
   const isDirty = Object.keys(draft).length > 0;
@@ -69,7 +71,8 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
 
     try {
       const response = await saveLimits({ userId, rows: payload }).unwrap();
-      const maybeAuth = response as { authenticator?: { qrPayload?: string | null } | null } | undefined;
+      const maybeAuth = response as { authenticator?: AuthenticatorRequest | null } | undefined;
+      setAuthenticator(maybeAuth?.authenticator ?? null);
       setQrPayload(maybeAuth?.authenticator?.qrPayload ?? undefined);
       setConfirmOpen(true);
     } catch (error) {
@@ -79,11 +82,13 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
 
   const handleQrClose = () => {
     setConfirmOpen(false);
+    setAuthenticator(null);
     setQrPayload(undefined);
   };
 
   const handleQrApprove = () => {
     setConfirmOpen(false);
+    setAuthenticator(null);
     setQrPayload(undefined);
     setDraft({});
     void refetch();
@@ -172,7 +177,8 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
 
       <QrConfirmationDialog
         open={confirmOpen}
-        value={qrPayload}
+        authenticator={authenticator}
+        qrPayload={qrPayload}
         onClose={handleQrClose}
         onApprove={handleQrApprove}
       />

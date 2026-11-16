@@ -3,40 +3,43 @@
 import React from "react";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
-import Link from "@mui/material/Link";
-import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { ArrowRight, Check, ChevronLeft, Info, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 import { useTopBarBreadcrumb } from "@core/layout";
 
 import BaseButton from "@core/components/BaseButton";
-import BaseCard from "@core/components/BaseCard";
 import BaseIconButton from "@core/components/BaseIconButton";
 import BaseStep from "@core/components/BaseStep";
-import BaseTermsLabel from "@core/components/BaseTermsLabel";
 import BaseTransferReviewCard from "@core/components/BaseTransferReviewCard";
 import type { TransferParty } from "@core/components/BaseTransferFromAccount";
 import VerifyActionFlow from "@core/components/VerifyActionFlow";
 import { showToast } from "@core/components/AppToast";
-import { font, palette, radius } from "@/theme/palette";
+import { palette } from "@/theme/palette";
 import { AuthenticatorDialog } from "@/features/authenticator";
 import { downloadBlob } from "@/utils/download-file";
 import { formatCCY } from "@/utils";
 import type { TransferResult } from "../transfer.types";
 import { useTransferAuthorization } from "../use-transfer-authorization";
-import { formatAccountNumber } from "@/utils/format-account-number";
-import { parseTransferAmount } from "../transfer.utils";
-import router from "next/router";
 
-const STEPS = ["New", "Review", "Transfer"];
+const DEFAULT_STEPS = ["New", "Review", "Transfer"];
+
+function generateTransactionId() {
+    return `#TRX-${Math.floor(10000000 + Math.random() * 90000000)}`;
+}
+
+function generateReferenceNo() {
+    return `SSM${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 900 + 100)}`;
+}
 
 function maskAccount(acc?: string | null) {
-    if (!acc) return "•••• 0000";
+    if (!acc || acc === "-") return "-";
     const clean = acc.replace(/\s+/g, "");
-    const last4 = clean.length > 4 ? clean.slice(-4) : clean;
+    if (!/\d/.test(clean)) return acc;
+    if (clean.length <= 4) return clean;
+    const last4 = clean.slice(-4);
     return `•••• ${last4}`;
 }
 
@@ -44,6 +47,25 @@ export type TransferReviewRow = { label: string; value: string };
 
 /** One bordered box on the Review step (From Account, Amount, Remark, ...). */
 export type TransferPreviewField = { label: string; value: React.ReactNode };
+
+export type SuccessStepRenderProps = {
+    result: TransferResult | null;
+    displayFromName: string;
+    displayFromNumber: string;
+    displayToName: string;
+    displayToNumber: string;
+    displayAmountVal: string;
+    displayTransactionId: string;
+    displayReferenceNo: string;
+    completedDateStr: string;
+    displayFee: string;
+    displayTotalDebited: string;
+    dynamicExtraFields: TransferPreviewField[];
+    handleClose: () => void;
+    handleMakeAnotherTransfer: () => void;
+    handleDownloadReceipt: () => void;
+    handleBackToDashboard: () => void;
+};
 
 export type PreviewTransferProps = {
     open: boolean;
@@ -66,7 +88,7 @@ export type PreviewTransferProps = {
     summaryStatus?: "loading" | "error" | "ready";
     onRetrySummary?: () => void;
     /** Message shown on the Success step. */
-    successMessage: string;
+    successMessage?: string;
     /** The Details-step form. */
     children: React.ReactNode;
     /** Clears the caller's form state — fired once the view closes. */
@@ -77,7 +99,6 @@ export type PreviewTransferProps = {
      * Submits the transfer for real. When given, Review's Next submits it and the linked phone
      * authorizes it by QR; without it the mocked QR step is shown.
      */
-    // submit?: () => Promise<TransferResult>;
     submit?: (idempotencyKey?: string) => Promise<TransferResult>;
     breadcrumbPrefix?: string;
     breadcrumbSubPrefix?: string;
@@ -89,6 +110,12 @@ export type PreviewTransferProps = {
     receiptTitle?: string;
     step0ActionPosition?: "inside" | "outside";
     step0ButtonTitle?: string;
+    /** Custom steps labels, default is ["New", "Review", "Success"] */
+    steps?: string[];
+    /** Optional custom fields to display dynamically in the Success step */
+    successFields?: TransferPreviewField[];
+    /** Optional custom render function for the Success step */
+    renderSuccess?: (props: SuccessStepRenderProps) => React.ReactNode;
     /**
      * Enables the Fund Transfers split view: the transfer-type sidebar, plus
      * title/stepper/from-account/fields/action merged into one card on step 0.
@@ -101,7 +128,7 @@ export type PreviewTransferProps = {
 export type PreviewTransferDialogProps = PreviewTransferProps;
 
 /**
- * Shared 3-step (New -> Review -> Transfer) page shell for transfer flows.
+ * Shared 3-step (New -> Review -> Success) page shell for transfer flows.
  * Uses TransferPreviewField and summaryRows directly.
  */
 export default function PreviewTransfer({
@@ -114,8 +141,6 @@ export default function PreviewTransfer({
     canSubmit,
     previewFields = [],
     summaryRows,
-    summaryStatus = "ready",
-    onRetrySummary,
     successMessage,
     children,
     onReset,
@@ -130,13 +155,22 @@ export default function PreviewTransfer({
     receiptTitle,
     step0ActionPosition,
     step0ButtonTitle,
+    steps,
+    successFields,
+    renderSuccess,
     splitView = false,
 }: PreviewTransferProps) {
+    const router = useRouter();
     const [step, setStep] = React.useState(0);
     const [verifyFlowOpen, setVerifyFlowOpen] = React.useState(false);
     const [termsAccepted, setTermsAccepted] = React.useState(false);
     // What the transfer came to once the phone authorized it
     const [result, setResult] = React.useState<TransferResult | null>(null);
+
+    const [dynamicTrxId, setDynamicTrxId] = React.useState(generateTransactionId);
+    const [dynamicRefNo, setDynamicRefNo] = React.useState(generateReferenceNo);
+
+    const activeSteps = steps ?? DEFAULT_STEPS;
 
     const authorization = useTransferAuthorization({
         submit,
@@ -145,136 +179,230 @@ export default function PreviewTransfer({
             setStep(2);
         },
     });
-    const fromField = previewFields.find((f) => /^from/i.test(f.label));
-    const toField = previewFields.find((f) => /^(to|beneficiary|recipient)/i.test(f.label));
-    const explicitScheduleField = previewFields.find((f) => /^schedule$/i.test(f.label));
-    const frequencyField = previewFields.find((f) => /^frequency$/i.test(f.label));
+const fromField = previewFields.find((f) => /^from/i.test(f.label));
+const toField = previewFields.find((f) => /^(to|beneficiary|recipient)/i.test(f.label));
+const explicitScheduleField = previewFields.find((f) => /^schedule$/i.test(f.label));
+const frequencyField = previewFields.find((f) => /^frequency$/i.test(f.label));
     const dateField = previewFields.find((f) => /(start\s*)?date/i.test(f.label));
-    const scheduleField = explicitScheduleField || frequencyField || dateField;
     const remarkField = previewFields.find((f) => /remark|note|purpose/i.test(f.label));
 
-    const resolvedFromAccount: TransferParty = fromAccount ?? {
-        name: typeof fromField?.value === "string" ? fromField.value : undefined,
-        accountNumber: undefined,
-    };
-    const resolvedToAccount: TransferParty = toAccount ?? {
-        name: typeof toField?.value === "string" ? toField.value : undefined,
-        accountNumber: undefined,
-    };
+const resolvedFromAccount: TransferParty = fromAccount ?? {
+    name: typeof fromField?.value === "string" ? fromField.value : undefined,
+    accountNumber: undefined,
+};
+const resolvedToAccount: TransferParty = toAccount ?? {
+    name: typeof toField?.value === "string" ? toField.value : undefined,
+    accountNumber: undefined,
+};
 
-    // Sourced directly from quoteSummaryRows / buildTransferSummaryRows
-    const amountTransferred = summaryRows?.find((r) => /amount\s*transferred/i.test(r.label))?.value || "";
-    const transactionId = summaryRows?.find((r) => /transaction\s*id/i.test(r.label))?.value || "";
-    const referenceNo = summaryRows?.find((r) => /reference\s*no/i.test(r.label))?.value || "";
-    const debitAmount = summaryRows?.find((r) => /debit\s*amount/i.test(r.label))?.value || amountTransferred;
-    const otherSummaryRows = summaryRows?.filter(
-        (r) => !/amount\s*transferred|transaction\s*id|reference\s*no|debit\s*amount/i.test(r.label)
-    ) ?? [];
+// Sourced directly from quoteSummaryRows / buildTransferSummaryRows
+const amountTransferred = summaryRows?.find((r) => /amount\s*transferred/i.test(r.label))?.value || "";
+const transactionId = summaryRows?.find((r) => /transaction\s*id/i.test(r.label))?.value || "";
+const referenceNo = summaryRows?.find((r) => /reference\s*no/i.test(r.label))?.value || "";
+const debitAmount = summaryRows?.find((r) => /debit\s*amount/i.test(r.label))?.value || amountTransferred;
+const otherSummaryRows = summaryRows?.filter(
+    (r) => !/amount\s*transferred|transaction\s*id|reference\s*no|debit\s*amount/i.test(r.label)
+) ?? [];
 
-    if (!open) return null;
+const rawAmountStr = String(amountTransferred || debitAmount || "");
+const cleanNumber = rawAmountStr.replace(/[^\d.]/g, "");
+const parsedAmount = parseFloat(cleanNumber) || 0;
+const detectedCurrency = rawAmountStr.toUpperCase().includes("KHR")
+    ? "KHR"
+    : (resolvedFromAccount.currency || "USD");
 
-    const handleClose = () => {
-        setStep(0);
-        setVerifyFlowOpen(false);
-        setTermsAccepted(false);
-        authorization.discard();
-        setResult(null);
-        onReset();
-        onClose();
-    };
+const displayFromName = result?.fromAccountName || resolvedFromAccount.name || "-";
+const displayFromNumber = result?.fromAccountNumber || resolvedFromAccount.accountNumber || "-";
+const displayToName = result?.toAccountName || resolvedToAccount.name || "-";
+const displayToNumber = result?.toAccountNumber || resolvedToAccount.accountNumber || "-";
 
-    const goToReview = () => {
-        setStep(1);
-        onReview?.();
-    };
+const displayTransactionId =
+    result?.cbsReference ||
+    (transactionId && transactionId !== "#TRX-28491024" ? transactionId : dynamicTrxId);
 
-    // Editing the form discards a submitted-but-unauthorized transfer; Next submits a fresh one
-    const backToDetails = () => {
-        authorization.discard();
-        setStep(0);
-    };
+const displayReferenceNo =
+    result?.referenceId ||
+    (referenceNo && referenceNo !== "SSM0499765223000" ? referenceNo : dynamicRefNo);
 
-    // Button Transfer -> opens the 2-step verification flow (mobile app / SMS / QR)
-    const handleReviewNext = (e?: React.MouseEvent) => {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        setVerifyFlowOpen(true);
-    };
+const completedDateStr = dayjs(result?.executedAt || result?.createdAt || new Date()).format("MMM D, YYYY • h:mm A");
 
-    const handleBackToDashboard = () => {
-        handleClose();
-        router.push("/dashboard");
-    };
+const displayAmountVal = result?.amount
+    ? formatCCY(result.amount, result.currency || detectedCurrency)
+    : (amountTransferred || (parsedAmount > 0 ? formatCCY(parsedAmount, detectedCurrency) : "-"));
 
-    const handleMakeAnotherTransfer = () => {
-        setStep(0);
-        setResult(null);
-        onReset();
-    };
-    useTopBarBreadcrumb(
-        open
-            ? {
-                prefix: breadcrumbPrefix ?? "Transfer",
-                subPrefix: breadcrumbSubPrefix ?? title,
-                onBack: step === 2 ? handleBackToDashboard : handleClose,
-            }
-            : null
+const summaryFee = summaryRows?.find((r) => /fee/i.test(r.label))?.value;
+const displayFee = summaryFee || (detectedCurrency === "KHR" ? "0 KHR" : "$0.00");
+
+const summaryDebit = summaryRows?.find((r) => /debit\s*amount/i.test(r.label))?.value;
+const displayTotalDebited = summaryDebit || displayAmountVal;
+
+const dynamicExtraFields = (successFields ?? previewFields).filter((f) => {
+    const label = f.label.toLowerCase();
+    return (
+        !label.startsWith("from") &&
+        !label.startsWith("to") &&
+        !label.startsWith("amount") &&
+        !label.includes("beneficiary name") &&
+        !label.includes("recipient name")
     );
-    const displayFromName = result?.fromAccountName || resolvedFromAccount.name || "-";
-    const displayFromNumber = result?.fromAccountNumber || resolvedFromAccount.accountNumber || "-";
-    const displayToName = result?.toAccountName || resolvedToAccount.name || "-";
-    const displayToNumber = result?.toAccountNumber || resolvedToAccount.accountNumber || "-";
-    const displayTransactionId = result?.cbsReference || result?.referenceId || transactionId || "-";
-    const displayReferenceNo = result?.referenceId || referenceNo || "-";
-    const completedDateStr = dayjs(result?.executedAt || result?.createdAt || new Date()).format("MMM D, YYYY • h:mm A");
-    const displayAmountVal = result?.amount ? formatCCY(result.amount, result.currency || "USD") : amountTransferred;
-    const displayFee = "$0.00";
+});
 
-    const handleDownloadReceipt = () => {
-        const content = `${receiptTitle ?? "TRANSFER RECEIPT"}\n--------------------------------\nTransaction ID: ${displayTransactionId}\nReference No: ${displayReferenceNo}\nStatus: Completed\nCompleted On: ${completedDateStr}\n\nFrom: ${displayFromName}\nAccount: ${displayFromNumber}\n\nTo: ${displayToName}\nAccount: ${displayToNumber}\n\nAmount: ${displayAmountVal}\nTransfer Fee: ${displayFee}\nTotal Debited: ${displayAmountVal}\n--------------------------------\nSecured by Obsidian Ops`;
-        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-        downloadBlob(blob, `Receipt-${displayReferenceNo}.txt`);
-        showToast("success", {
-            title: "Receipt downloaded",
-            message: "Receipt saved successfully.",
-        });
-    };
+const handleClose = () => {
+    setStep(0);
+    setVerifyFlowOpen(false);
+    setTermsAccepted(false);
+    authorization.discard();
+    setResult(null);
+    setDynamicTrxId(generateTransactionId());
+    setDynamicRefNo(generateReferenceNo());
+    onReset();
+    onClose();
+};
 
-    // Any verification method confirming advances Review -> Success.
-    const handleConfirmed = () => {
-        setVerifyFlowOpen(false);
-        setResult({
-            referenceId: referenceNo || result?.referenceId || "-",
-            transferType: "TRANSFER",
-            method: "MANUAL",
-            functionCode: "TRANSFER",
-            status: "COMPLETED",
-            fromAccountNumber: resolvedFromAccount?.accountNumber || "",
-            fromAccountName: resolvedFromAccount?.name || "",
-            toAccountNumber: resolvedToAccount?.accountNumber || "",
-            toAccountName: resolvedToAccount?.name || "",
-            amount: parseTransferAmount(amountTransferred) || 900.9,
-            currency: "USD",
-            createdAt: new Date().toISOString(),
-            executedAt: new Date().toISOString(),
-        });
-        setStep(2);
-    };
+const goToReview = () => {
+    setStep(1);
+    onReview?.();
+};
 
-    const summaryReady = summaryStatus === "ready";
+// Editing the form discards a submitted-but-unauthorized transfer; Next submits a fresh one
+const backToDetails = () => {
+    authorization.discard();
+    setStep(0);
+};
+
+// Button Transfer -> submits to backend and opens live authenticator QR, or falls back to verify flow
+const handleReviewNext = (e?: React.MouseEvent) => {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    if (submit) {
+        void authorization.start();
+    } else {
+        setVerifyFlowOpen(true);
+    }
+};
+
+const handleBackToDashboard = () => {
+    handleClose();
+    router.push("/dashboard");
+};
+
+const handleMakeAnotherTransfer = () => {
+    setStep(0);
+    setResult(null);
+    setDynamicTrxId(generateTransactionId());
+    setDynamicRefNo(generateReferenceNo());
+    onReset();
+};
+
+useTopBarBreadcrumb(
+    open
+        ? {
+            prefix: breadcrumbPrefix ?? "Transfer",
+            subPrefix: breadcrumbSubPrefix ?? title,
+            onBack: step === 2 ? handleBackToDashboard : handleClose,
+        }
+        : null
+);
+
+if (!open) return null;
+
+const handleDownloadReceipt = () => {
+    const extraFieldsTxt = dynamicExtraFields
+        .map((f) => `${f.label}: ${typeof f.value === "string" || typeof f.value === "number" ? f.value : ""}`)
+        .filter((txt) => !txt.endsWith(": "))
+        .join("\n");
+    const content = `${receiptTitle ?? "TRANSFER RECEIPT"}\n--------------------------------\nTransaction ID: ${displayTransactionId}\nReference No: ${displayReferenceNo}\nStatus: Completed\nCompleted On: ${completedDateStr}\n\nFrom: ${displayFromName}\nAccount: ${displayFromNumber}\n\nTo: ${displayToName}\nAccount: ${displayToNumber}\n\nAmount: ${displayAmountVal}\nTransfer Fee: ${displayFee}\nTotal Debited: ${displayTotalDebited}${extraFieldsTxt ? `\n\n${extraFieldsTxt}` : ""}\n--------------------------------\nSecured by Obsidian Ops`;
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    downloadBlob(blob, `Receipt-${displayReferenceNo}.txt`);
+    showToast("success", {
+        title: "Receipt downloaded",
+        message: "Receipt saved successfully.",
+    });
+};
+
+// Any verification method confirming advances Review -> Success.
+const handleConfirmed = () => {
+    setVerifyFlowOpen(false);
+    setResult({
+        referenceId: displayReferenceNo,
+        cbsReference: displayTransactionId,
+        transferType: "TRANSFER",
+        method: "MANUAL",
+        functionCode: "TRANSFER",
+        status: "COMPLETED",
+        fromAccountNumber: resolvedFromAccount?.accountNumber || "",
+        fromAccountName: resolvedFromAccount?.name || "",
+        toAccountNumber: resolvedToAccount?.accountNumber || "",
+        toAccountName: resolvedToAccount?.name || "",
+        amount: parsedAmount,
+        currency: detectedCurrency,
+        remark: typeof remarkField?.value === "string" ? remarkField.value : undefined,
+        createdAt: new Date().toISOString(),
+        executedAt: new Date().toISOString(),
+    });
+    setStep(2);
+};
 
     const unifyStep0Card = splitView;
 
-    const footer =
-        step === 0 ? (
+const footer =
+    step === 0 ? (
+        <BaseButton
+            title={step0ButtonTitle ?? "Review"}
+            variant="contained"
+            fullWidth
+            disabled={!canSubmit}
+            onClick={goToReview}
+            sx={{
+                height: 52,
+                borderRadius: "999px",
+                bgcolor: "#2764A5",
+                color: "#FFFFFF",
+                fontSize: 16,
+                fontWeight: 600,
+                textTransform: "none",
+                boxShadow: "none",
+                "&:hover": {
+                    bgcolor: "#1E5289",
+                },
+                "&.Mui-disabled": {
+                    bgcolor: "#CBD5E1",
+                    color: "#FFFFFF",
+                },
+            }}
+        />
+    ) : step === 1 ? (
+        <Stack direction="row" spacing={2}>
             <BaseButton
-                title={step0ButtonTitle ?? "Review"}
+                title="Back"
+                variant="outlined"
+                fullWidth
+                onClick={backToDetails}
+                sx={{
+                    height: 52,
+                    borderRadius: "999px",
+                    backgroundColor: "#E2E8F0",
+                    borderColor: "transparent",
+                    color: "#0F172A",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    textTransform: "none",
+                    boxShadow: "none",
+                    "&:hover": {
+                        backgroundColor: "#E2E8F0",
+                        borderColor: "transparent",
+                    },
+                }}
+            />
+            <BaseButton
+                title="Transfer"
                 variant="contained"
                 fullWidth
-                disabled={!canSubmit}
-                onClick={goToReview}
+                disabled={!termsAccepted}
+                isLoading={authorization.submitting}
+                onClick={handleReviewNext}
                 sx={{
                     height: 52,
                     borderRadius: "999px",
@@ -293,603 +421,529 @@ export default function PreviewTransfer({
                     },
                 }}
             />
-        ) : step === 1 ? (
-            <Stack direction="row" spacing={2}>
-                <BaseButton
-                    title="Back"
-                    variant="outlined"
-                    fullWidth
-                    onClick={backToDetails}
-                    sx={{
-                        height: 52,
-                        borderRadius: "999px",
-                        backgroundColor: "#E2E8F0",
-                        borderColor: "transparent",
-                        color: "#0F172A",
-                        fontSize: 16,
-                        fontWeight: 600,
-                        textTransform: "none",
-                        boxShadow: "none",
-                        "&:hover": {
-                            backgroundColor: "#E2E8F0",
-                            borderColor: "transparent",
-                        },
-                    }}
-                />
-                <BaseButton
-                    title="Transfer"
-                    variant="contained"
-                    fullWidth
-                    disabled={!termsAccepted}
-                    isLoading={authorization.submitting}
-                    onClick={handleReviewNext}
-                    sx={{
-                        height: 52,
-                        borderRadius: "999px",
-                        bgcolor: "#2764A5",
-                        color: "#FFFFFF",
-                        fontSize: 16,
-                        fontWeight: 600,
-                        textTransform: "none",
-                        boxShadow: "none",
-                        "&:hover": {
-                            bgcolor: "#1E5289",
-                        },
-                        "&.Mui-disabled": {
-                            bgcolor: "#CBD5E1",
-                            color: "#FFFFFF",
-                        },
-                    }}
-                />
-            </Stack>
-        ) : (
-            <BaseButton
-                title="Done"
-                variant="contained"
-                fullWidth
-                onClick={handleClose}
-                sx={{
-                    height: 52,
-                    borderRadius: "999px",
-                    bgcolor: "#2764A5",
-                    color: "#FFFFFF",
-                    fontSize: 16,
-                    fontWeight: 600,
-                    textTransform: "none",
-                    boxShadow: "none",
-                    "&:hover": {
-                        bgcolor: "#1E5289",
-                    },
-                }}
-            />
-        );
+        </Stack>
+    ) : (
+        <BaseButton
+            title="Done"
+            variant="contained"
+            fullWidth
+            onClick={handleClose}
+            sx={{
+                height: 52,
+                borderRadius: "999px",
+                bgcolor: "#2764A5",
+                color: "#FFFFFF",
+                fontSize: 16,
+                fontWeight: 600,
+                textTransform: "none",
+                boxShadow: "none",
+                "&:hover": {
+                    bgcolor: "#1E5289",
+                },
+            }}
+        />
+    );
 
-    return (
-        <Box >
-            <Grid container spacing={2.5}>
-                <Grid size={12}>
-                    {/* Page Title (steps 0 & 1 under splitView merge this into their card below instead) */}
-                    {!(unifyStep0Card && (step === 0 || step === 1)) && (
-                        <Box sx={{ mb: 4 }}>
-                            <Typography
-                                sx={{
-                                    fontSize: 28,
-                                    fontWeight: 700,
-                                    color: "#0F172A",
-                                    lineHeight: 1.25,
-                                    textAlign: "center"
-                                }}
-                            >
-                                {title}
+return (
+    <Box >
+        <Grid container spacing={2.5}>
+            <Grid size={12}>
+                {/* Page Title (steps 0 & 1 under splitView merge this into their card below instead) */}
+                {!(unifyStep0Card && (step === 0 || step === 1)) && (
+                    <Box sx={{ mb: 4 }}>
+                        <Typography
+                            sx={{
+                                fontSize: 28,
+                                fontWeight: 700,
+                                color: "#0F172A",
+                                lineHeight: 1.25,
+                                textAlign: "center"
+                            }}
+                        >
+                            {title}
+                        </Typography>
+                        {step === 2 && Boolean(successSubtitle) && (
+                            <Typography sx={{ fontSize: 14, color: "#64748B", mt: 0.5, textAlign: "center" }}>
+                                {successSubtitle}
                             </Typography>
-                            {step === 2 && successSubtitle !== "" && (
-                                <Typography sx={{ fontSize: 14, color: "#64748B", mt: 0.5, textAlign: "center" }}>
-                                    {successSubtitle ?? "Transfer to Other Account Bank"}
-                                </Typography>
+                        )}
+                        <Box
+                            sx={{
+                                width: { xs: "100%", sm: 500, md: 520 },
+                                maxWidth: "100%",
+                                mx: "auto",
+                                mt: 3,
+                                mb: 1,
+                            }}
+                        >
+                            {unifyStep0Card ? (
+                                <StepperWithBack
+                                    activeStep={step}
+                                    steps={activeSteps}
+                                    // Step 1 (Review) → back to New. Step 2 (done) → no arrow.
+                                    onBack={step === 1 ? backToDetails : undefined}
+                                    backTooltip="Back to edit details"
+                                />
+                            ) : (
+                                <BaseStep steps={activeSteps} activeStep={step} />
+                            )}
+                        </Box>
+                    </Box>
+                )}
+
+                <Box sx={{ display: "block", justifyContent: "center", alignItems: "center" }}>
+                    {/* Top Card (only shown on Step 0 when topSection is provided, and not merged into the unified card) */}
+                    {step === 0 && topSection && !unifyStep0Card && (
+                        <Box
+                            sx={{
+                                mx: "auto",
+                                width: { xs: "100%", sm: 500, md: 520 },
+                                maxWidth: "100%",
+                                bgcolor: "#FFFFFF",
+                                borderRadius: "20px",
+                                border: "1px solid #EDEDEC",
+                                p: { xs: 2.5, md: 3 },
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                            }}
+                        >
+                            {topSection}
+                        </Box>
+                    )}
+
+                    {/* Step 0: Main Details — under splitView, title/stepper sit above the card, matching Review */}
+                    {step === 0 && (
+                        <Box
+                            sx={{
+                                mt: unifyStep0Card ? 0 : 2,
+                                // splitView: hugs the form and sits at the start (left), like the preview
+                                ...(unifyStep0Card
+                                    ? { width: "100%", maxWidth: 576 }
+                                    : { maxWidth: "100%", mx: "auto" }),
+                            }}
+                        >
+                            {unifyStep0Card && (
+                                <>
+                                    <Typography
+                                        sx={{
+                                            fontSize: 28,
+                                            fontWeight: 700,
+                                            color: "#0F172A",
+                                            lineHeight: 1.25,
+                                            textAlign: "center"
+                                        }}
+                                    >
+                                        {title}
+                                    </Typography>
+                                    <Box sx={{ mt: 3, mb: 3.5 }}>
+                                        {/* Step 0 (New) → back to the transfer type list */}
+                                        <StepperWithBack
+                                            activeStep={step}
+                                            steps={activeSteps}
+                                            onBack={handleClose}
+                                            backTooltip="Back to Transfer"
+                                        />
+                                    </Box>
+                                </>
                             )}
                             <Box
                                 sx={{
-                                    width: step === 2 ? { xs: "100%", md: 840, lg: 920 } : { xs: "100%", sm: 500, md: 520 },
-                                    maxWidth: "100%",
-                                    mx: "auto",
-                                    mt: 4,
-                                    mb: 1,
+                                    bgcolor: "#FFFFFF",
+                                    borderRadius: "20px",
+                                    border: "1px solid #EDEDEC",
+                                    p: unifyStep0Card ? 10 : { xs: 3, md: 8 },
+                                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                                 }}
                             >
-                                {unifyStep0Card ? (
-                                    <StepperWithBack
-                                        activeStep={step}
-                                        // Step 1 (Review) → back to New. Step 2 (done) → no arrow.
-                                        onBack={step === 1 ? backToDetails : undefined}
-                                        backTooltip="Back to edit details"
-                                    />
-                                ) : (
-                                    <BaseStep steps={STEPS} activeStep={step} />
+                                {unifyStep0Card && topSection && (
+                                    <Box sx={{ mb: 3.5 }}>{topSection}</Box>
+                                )}
+                                {children}
+                                {(unifyStep0Card || step0ActionPosition === "inside") && (
+                                    <Box sx={{ mt: 3.5 }}>
+                                        {footer}
+                                    </Box>
                                 )}
                             </Box>
                         </Box>
                     )}
 
-                    <Box sx={{ display: "block", justifyContent: "center", alignItems: "center" }}>
-                        {/* Top Card (only shown on Step 0 when topSection is provided, and not merged into the unified card) */}
-                        {step === 0 && topSection && !unifyStep0Card && (
-                            <Box
-                                sx={{
-                                    mx: "auto",
-                                    width: { xs: "100%", sm: 500, md: 520 },
-                                    maxWidth: "100%",
-                                    bgcolor: "#FFFFFF",
-                                    borderRadius: "20px",
-                                    border: "1px solid #EDEDEC",
-                                    p: { xs: 2.5, md: 3 },
-                                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                                }}
-                            >
-                                {topSection}
-                            </Box>
-                        )}
-
-                        {/* Step 0: Main Details — under splitView, title/stepper sit above the card, matching Review */}
-                        {step === 0 && (
-                            <Box
-                                sx={{
-                                    mt: unifyStep0Card ? 0 : 2,
-                                    // splitView: hugs the form and sits at the start (left), like the preview
-                                    ...(unifyStep0Card
-                                        ? { width: "100%", maxWidth: 576 }
-                                        : { maxWidth: "100%", mx: "auto" }),
-                                }}
-                            >
-                                {unifyStep0Card && (
-                                    <>
-                                        <Typography
-                                            sx={{
-                                                fontSize: 28,
-                                                fontWeight: 700,
-                                                color: "#0F172A",
-                                                lineHeight: 1.25,
-                                                textAlign: "center"
-                                            }}
-                                        >
-                                            {title}
-                                        </Typography>
-                                        <Box sx={{ mt: 3, mb: 3.5 }}>
-                                            {/* Step 0 (New) → back to the transfer type list */}
-                                            <StepperWithBack
-                                                activeStep={step}
-                                                onBack={handleClose}
-                                                backTooltip="Back to Transfer"
-                                            />
-                                        </Box>
-                                    </>
-                                )}
-                                <Box
-                                    sx={{
-                                        bgcolor: "#FFFFFF",
-                                        borderRadius: "20px",
-                                        border: "1px solid #EDEDEC",
-                                        p: unifyStep0Card ? 10 : { xs: 3, md: 8 },
-                                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                                    }}
-                                >
-                                    {unifyStep0Card && topSection && (
-                                        <Box sx={{ mb: 3.5 }}>{topSection}</Box>
-                                    )}
-                                    {children}
-                                    {(unifyStep0Card || step0ActionPosition === "inside") && (
-                                        <Box sx={{ mt: 3.5 }}>
-                                            {footer}
-                                        </Box>
-                                    )}
-                                </Box>
-                            </Box>
-                        )}
-
-                        {/* Step 1: Review Cards (Styled exactly as design) */}
-                        {step === 1 && (
-                            <Box
-                                sx={{
-                                    mt: unifyStep0Card ? 0 : 2.5,
-                                    // splitView: card hugs the form and sits at the start (left), like the preview
-                                    ...(unifyStep0Card
-                                        ? { width: "100%", maxWidth: 576 }
-                                        : { width: { xs: "100%", sm: 500, md: 520 }, maxWidth: "100%", mx: "auto" }),
-                                }}
-                            >
-                                {unifyStep0Card && (
-                                    <>
-                                        <Typography
-                                            sx={{
-                                                fontSize: 28,
-                                                fontWeight: 700,
-                                                color: "#0F172A",
-                                                lineHeight: 1.25,
-                                                textAlign: "center"
-                                            }}
-                                        >
-                                            {title}
-                                        </Typography>
-                                        <Box sx={{ mt: 3, mb: 3.5 }}>
-                                            {/* Step 1 (Review) → back to New */}
-                                            <StepperWithBack
-                                                activeStep={step}
-                                                onBack={backToDetails}
-                                                backTooltip="Back to edit details"
-                                            />
-                                        </Box>
-                                    </>
-                                )}
-                                <BaseTransferReviewCard
-                                    from={resolvedFromAccount}
-                                    to={resolvedToAccount}
-                                    spacious={unifyStep0Card}
-                                    amountTransferred={amountTransferred}
-                                    transactionId={transactionId}
-                                    referenceNo={referenceNo}
-                                    debitAmount={debitAmount}
-                                    extraRows={otherSummaryRows}
-                                    schedule={
-                                        explicitScheduleField?.value
-                                            ? explicitScheduleField.value
-                                            : frequencyField?.value
-                                                ? dateField?.value && dateField.value !== "-" && dateField.value !== "Immediately"
-                                                    ? `${frequencyField.value} • ${dateField.value}`
-                                                    : frequencyField.value
-                                                : dateField?.value ?? "Immediately"
-                                    }
-                                    remark={remarkField?.value ?? "Business Days"}
-                                    termsAccepted={termsAccepted}
-                                    onTermsAcceptedChange={setTermsAccepted}
-                                />
-                            </Box>
-                        )}
-
-                        {/* Step 2: New Success Step UI (Matching Screenshot) */}
-                        {step === 2 && (
-                            <Box
-                                sx={{
-                                    mt: 2.5,
-                                    mb: 6,
-                                    bgcolor: "#FFFFFF",
-                                    borderRadius: "24px",
-                                    border: "1px solid #EDEDEC",
-                                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
-                                    width: { xs: "100%", md: 840, lg: 920 },
-                                    maxWidth: "100%",
-                                    mx: "auto",
-                                    overflow: "hidden",
-                                }}
-                            >
-                                <Grid container>
-                                    {/* Left Column: Transfer Success Details */}
-                                    <Grid
-                                        size={{ xs: 12, md: 7 }}
+                    {/* Step 1: Review Cards (Styled exactly as design) */}
+                    {step === 1 && (
+                        <Box
+                            sx={{
+                                mt: unifyStep0Card ? 0 : 2.5,
+                                // splitView: card hugs the form and sits at the start (left), like the preview
+                                ...(unifyStep0Card
+                                    ? { width: "100%", maxWidth: 576 }
+                                    : { width: { xs: "100%", sm: 500, md: 520 }, maxWidth: "100%", mx: "auto" }),
+                            }}
+                        >
+                            {unifyStep0Card && (
+                                <>
+                                    <Typography
                                         sx={{
-                                            p: { xs: 3, sm: 4, md: 4.5 },
-                                            borderRight: { md: "1px solid #F1F5F9" },
+                                            fontSize: 28,
+                                            fontWeight: 700,
+                                            color: "#0F172A",
+                                            lineHeight: 1.25,
+                                            textAlign: "center"
                                         }}
                                     >
-                                        {/* Checkmark circle */}
+                                        {title}
+                                    </Typography>
+                                    <Box sx={{ mt: 3, mb: 3.5 }}>
+                                        {/* Step 1 (Review) → back to New */}
+                                        <StepperWithBack
+                                            activeStep={step}
+                                            steps={activeSteps}
+                                            onBack={backToDetails}
+                                            backTooltip="Back to edit details"
+                                        />
+                                    </Box>
+                                </>
+                            )}
+                            <BaseTransferReviewCard
+                                from={resolvedFromAccount}
+                                to={resolvedToAccount}
+                                spacious={unifyStep0Card}
+                                amountTransferred={amountTransferred}
+                                transactionId={transactionId}
+                                referenceNo={referenceNo}
+                                debitAmount={debitAmount}
+                                extraRows={otherSummaryRows}
+                                schedule={
+                                    explicitScheduleField?.value
+                                        ? explicitScheduleField.value
+                                        : frequencyField?.value
+                                            ? dateField?.value && dateField.value !== "-" && dateField.value !== "Immediately"
+                                                ? `${frequencyField.value} • ${dateField.value}`
+                                                : frequencyField.value
+                                            : dateField?.value ?? "Immediately"
+                                }
+                                remark={remarkField?.value ?? "Business Days"}
+                                termsAccepted={termsAccepted}
+                                onTermsAcceptedChange={setTermsAccepted}
+                            />
+                        </Box>
+                    )}
+
+                    {/* Step 2: New Success Step UI (Matching Screenshot) */}
+                    {step === 2 && (
+                        renderSuccess ? (
+                            renderSuccess({
+                                result,
+                                displayFromName,
+                                displayFromNumber,
+                                displayToName,
+                                displayToNumber,
+                                displayAmountVal,
+                                displayTransactionId,
+                                displayReferenceNo,
+                                completedDateStr,
+                                displayFee,
+                                displayTotalDebited,
+                                dynamicExtraFields,
+                                handleClose,
+                                handleMakeAnotherTransfer,
+                                handleDownloadReceipt,
+                                handleBackToDashboard,
+                            })
+                        ) : (
+                            <>
+                                <Box
+                                    sx={{
+                                        mt: 2.5,
+                                        mb: 3,
+                                        bgcolor: "#FFFFFF",
+                                        borderRadius: "24px",
+                                        border: "1px solid #EDEDEC",
+                                        boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                                        width: { xs: "100%", sm: 500, md: 520 },
+                                        maxWidth: "100%",
+                                        mx: "auto",
+                                        p: { xs: 3, sm: 4, md: 4.5 },
+                                    }}
+                                >
+                                    {/* Double-circle checkmark icon */}
+                                    <Box
+                                        sx={{
+                                            width: 52,
+                                            height: 52,
+                                            borderRadius: "50%",
+                                            bgcolor: "#E1F5EC",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            mx: "auto",
+                                            mb: 2,
+                                        }}
+                                    >
                                         <Box
                                             sx={{
-                                                width: 52,
-                                                height: 52,
+                                                width: 36,
+                                                height: 36,
+                                                borderRadius: "50%",
+                                                bgcolor: "#248058",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                            }}
+                                        >
+                                            <Check size={20} strokeWidth={3} color="#FFFFFF" />
+                                        </Box>
+                                    </Box>
+
+                                    {/* Title & Subtitle */}
+                                    <Typography sx={{ fontSize: 22, fontWeight: 700, color: "#0F172A", textAlign: "center" }}>
+                                        {successTitle ?? "Transfer successful"}
+                                    </Typography>
+                                    <Typography sx={{ fontSize: 13.5, color: "#64748B", textAlign: "center", mt: 0.75, mb: 3, lineHeight: 1.45 }}>
+                                        {successMessage || "Your bank transfer was completed and the receipt is ready."}
+                                    </Typography>
+
+                                    {/* Amount Transferred Block */}
+                                    <Box sx={{ textAlign: "center", mb: 3 }}>
+                                        <Typography
+                                            sx={{
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                color: "#94A3B8",
+                                                letterSpacing: "0.5px",
+                                                textTransform: "uppercase",
+                                            }}
+                                        >
+                                            AMOUNT TRANSFERRED
+                                        </Typography>
+                                        <Typography
+                                            sx={{
+                                                fontSize: { xs: 32, sm: 36 },
+                                                fontWeight: 800,
+                                                color: "#0F172A",
+                                                my: 0.75,
+                                                lineHeight: 1.15,
+                                            }}
+                                        >
+                                            {displayAmountVal}
+                                        </Typography>
+                                        <Box
+                                            sx={{
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                bgcolor: "#E8F8F0",
+                                                color: "#16A34A",
+                                                borderRadius: "999px",
+                                                px: 2,
+                                                py: 0.35,
+                                                fontSize: 12,
+                                                fontWeight: 700,
+                                                letterSpacing: "0.2px",
+                                            }}
+                                        >
+                                            Complete
+                                        </Box>
+                                    </Box>
+
+                                    {/* From -> To Box */}
+                                    <Box
+                                        sx={{
+                                            bgcolor: "#F8FAFC",
+                                            borderRadius: "16px",
+                                            p: 2.25,
+                                            mb: 3,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                        }}
+                                    >
+                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                            <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                                                FROM
+                                            </Typography>
+                                            <Typography noWrap sx={{ fontSize: 14, fontWeight: 700, color: "#0F172A", mt: 0.25 }}>
+                                                {displayFromName}
+                                            </Typography>
+                                            <Typography sx={{ fontSize: 12.5, color: "#64748B", mt: 0.25 }}>
+                                                {maskAccount(displayFromNumber)}
+                                            </Typography>
+                                        </Box>
+
+                                        <Box
+                                            sx={{
+                                                width: 32,
+                                                height: 32,
                                                 borderRadius: "50%",
                                                 bgcolor: "#E6F7F0",
                                                 color: "#10B981",
                                                 display: "flex",
                                                 alignItems: "center",
                                                 justifyContent: "center",
-                                                mx: "auto",
-                                                mb: 2,
+                                                mx: 1.5,
+                                                flexShrink: 0,
                                             }}
                                         >
-                                            <Check size={26} strokeWidth={2.5} />
+                                            <ArrowRight size={15} strokeWidth={2.5} />
                                         </Box>
 
-                                        {/* Title & Subtitle */}
-                                        <Typography sx={{ fontSize: 22, fontWeight: 700, color: "#0F172A", textAlign: "center" }}>
-                                            {successTitle ?? "Transfer successful"}
-                                        </Typography>
-                                        <Typography sx={{ fontSize: 13.5, color: "#64748B", textAlign: "center", mt: 0.5, mb: 3 }}>
-                                            Your bank transfer was completed and the receipt is ready.
-                                        </Typography>
-
-                                        {/* Amount Transferred Block */}
-                                        <Box sx={{ textAlign: "center", mb: 3 }}>
-                                            <Typography
-                                                sx={{
-                                                    fontSize: 11,
-                                                    fontWeight: 700,
-                                                    color: "#94A3B8",
-                                                    letterSpacing: "0.5px",
-                                                    textTransform: "uppercase",
-                                                }}
-                                            >
-                                                Amount Transferred
+                                        <Box sx={{ flex: 1, minWidth: 0, textAlign: "right" }}>
+                                            <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                                                TO
                                             </Typography>
-                                            <Typography
-                                                sx={{
-                                                    fontSize: { xs: 32, sm: 38 },
-                                                    fontWeight: 800,
-                                                    color: "#0F172A",
-                                                    my: 0.75,
-                                                    lineHeight: 1.15,
-                                                }}
-                                            >
-                                                {displayAmountVal}
+                                            <Typography noWrap sx={{ fontSize: 14, fontWeight: 700, color: "#0F172A", mt: 0.25 }}>
+                                                {displayToName}
                                             </Typography>
-                                            <Box
-                                                sx={{
-                                                    display: "inline-flex",
-                                                    alignItems: "center",
-                                                    gap: 0.75,
-                                                    bgcolor: "#E8F8F0",
-                                                    color: "#16A34A",
-                                                    borderRadius: "999px",
-                                                    px: 1.5,
-                                                    py: 0.35,
-                                                    fontSize: 11,
-                                                    fontWeight: 700,
-                                                    letterSpacing: "0.5px",
-                                                    textTransform: "uppercase",
-                                                }}
-                                            >
-                                                <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: "#16A34A" }} />
-                                                Completed
-                                            </Box>
+                                            <Typography sx={{ fontSize: 12.5, color: "#64748B", mt: 0.25 }}>
+                                                {maskAccount(displayToNumber)}
+                                            </Typography>
                                         </Box>
+                                    </Box>
 
-                                        {/* From -> To Box */}
-                                        <Box
-                                            sx={{
-                                                bgcolor: "#F8FAFC",
-                                                borderRadius: "16px",
-                                                p: 2,
-                                                mb: 3,
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "space-between",
-                                            }}
-                                        >
-                                            <Box sx={{ flex: 1, minWidth: 0, padding: 2 }}>
-                                                <Typography sx={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.5px", textTransform: "uppercase" }}>
-                                                    FROM
-                                                </Typography>
-                                                <Typography noWrap sx={{ fontSize: 14, fontWeight: 700, color: "#0F172A", mt: 0.25 }}>
-                                                    {displayFromName}
-                                                </Typography>
-                                                <Typography sx={{ fontSize: 12, color: "#64748B", mt: 0.25 }}>
-                                                    {maskAccount(displayFromNumber)}
-                                                </Typography>
-                                            </Box>
+                                    {/* Metadata Rows */}
+                                    <Stack spacing={1.75} divider={<Box sx={{ borderBottom: "1px solid #F1F5F9" }} />}>
+                                        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", py: 0.5 }}>
+                                            <Typography sx={{ fontSize: 13, color: "#64748B" }}>Transaction ID</Typography>
+                                            <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
+                                                {displayTransactionId}
+                                            </Typography>
+                                        </Stack>
 
-                                            <Box
-                                                sx={{
-                                                    width: 30,
-                                                    height: 30,
-                                                    borderRadius: "50%",
-                                                    bgcolor: "#E6F7F0",
-                                                    color: "#10B981",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    mx: 1.5,
-                                                    flexShrink: 0,
+                                        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", py: 0.5 }}>
+                                            <Typography sx={{ fontSize: 13, color: "#64748B" }}>Reference no</Typography>
+                                            <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
+                                                {displayReferenceNo}
+                                            </Typography>
+                                        </Stack>
 
-                                                }}
-                                            >
-                                                <ArrowRight size={15} />
-                                            </Box>
+                                        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", py: 0.5 }}>
+                                            <Typography sx={{ fontSize: 13, color: "#64748B" }}>Completed on</Typography>
+                                            <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
+                                                {completedDateStr}
+                                            </Typography>
+                                        </Stack>
 
-                                            <Box sx={{ flex: 1, minWidth: 0, textAlign: "right" }}>
-                                                <Typography sx={{ fontSize: 10, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.5px", textTransform: "uppercase" }}>
-                                                    TO
-                                                </Typography>
-                                                <Typography noWrap sx={{ fontSize: 14, fontWeight: 700, color: "#0F172A", mt: 0.25 }}>
-                                                    {displayToName}
-                                                </Typography>
-                                                <Typography sx={{ fontSize: 12, color: "#64748B", mt: 0.25 }}>
-                                                    {maskAccount(displayToNumber)}
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-
-                                        {/* Metadata Rows */}
-                                        <Stack spacing={3} divider={<Box sx={{ borderBottom: "1px solid #F1F5F9" }} />}>
-                                            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", py: 0.5 }}>
-                                                <Typography sx={{ fontSize: 13, color: "#64748B" }}>Transaction ID</Typography>
-                                                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
-                                                    {displayTransactionId}
+                                        {dynamicExtraFields.map((field, idx) => (
+                                            <Stack key={idx} direction="row" sx={{ justifyContent: "space-between", alignItems: "center", py: 0.5 }}>
+                                                <Typography sx={{ fontSize: 13, color: "#64748B" }}>{field.label}</Typography>
+                                                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A", textAlign: "right" }}>
+                                                    {field.value}
                                                 </Typography>
                                             </Stack>
+                                        ))}
 
-                                            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", py: 0.5 }}>
-                                                <Typography sx={{ fontSize: 13, color: "#64748B" }}>Reference no</Typography>
-                                                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
-                                                    {displayReferenceNo}
-                                                </Typography>
-                                            </Stack>
-
-                                            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", py: 0.5 }}>
-                                                <Typography sx={{ fontSize: 13, color: "#64748B" }}>Completed on</Typography>
-                                                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
-                                                    {completedDateStr}
-                                                </Typography>
-                                            </Stack>
-
-                                            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", py: 0.5 }}>
+                                        <Box sx={{ pt: 0.5 }}>
+                                            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
                                                 <Typography sx={{ fontSize: 13, color: "#64748B" }}>Transfer fee</Typography>
                                                 <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
                                                     {displayFee}
                                                 </Typography>
                                             </Stack>
 
-                                            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", py: 0.5 }}>
+                                            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
                                                 <Typography sx={{ fontSize: 13.5, fontWeight: 500, color: "#64748B" }}>Total debited</Typography>
                                                 <Typography sx={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>
-                                                    {displayAmountVal}
+                                                    {displayTotalDebited}
                                                 </Typography>
                                             </Stack>
-                                        </Stack>
-                                    </Grid>
+                                        </Box>
+                                    </Stack>
+                                </Box>
 
-                                    {/* Right Column: Receipt & Actions */}
-                                    <Grid
-                                        size={{ xs: 12, md: 5 }}
-                                        sx={{
-                                            p: { xs: 3, sm: 4, md: 4.5 },
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            justifyContent: "space-between",
-                                            bgcolor: "#F5F7FA"
-                                        }}
+                                {/* Action Buttons Below Card */}
+                                <Box
+                                    sx={{
+                                        width: { xs: "100%", sm: 500, md: 520 },
+                                        maxWidth: "100%",
+                                        mx: "auto",
+                                        mt: 3,
+                                        mb: 6,
+                                    }}
+                                >
+                                    <Stack spacing={2}>
+                                        <BaseButton
+                                            title={backButtonTitle ?? "Back to Dashboard"}
+                                            variant="contained"
+                                            fullWidth
+                                            onClick={handleBackToDashboard}
+                                            sx={{
+                                                height: 48,
+                                                borderRadius: "999px",
+                                                bgcolor: "#2764A5",
+                                                color: "#FFFFFF",
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                textTransform: "none",
+                                                boxShadow: "none",
+                                                "&:hover": { bgcolor: "#1E5289" },
+                                            }}
+                                        />
+
+                                        <BaseButton
+                                            title="Download receipt"
+                                            variant="outlined"
+                                            fullWidth
+                                            onClick={handleDownloadReceipt}
+                                            sx={{
+                                                height: 48,
+                                                borderRadius: "999px",
+                                                borderColor: "#10B981",
+                                                color: "#10B981",
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                textTransform: "none",
+                                                boxShadow: "none",
+                                                "&:hover": {
+                                                    borderColor: "#059669",
+                                                    bgcolor: "#F0FDF4",
+                                                },
+                                            }}
+                                        />
+
+                                        <BaseButton
+                                            title={makeAnotherTitle ?? "Make another transfer"}
+                                            variant="text"
+                                            fullWidth
+                                            onClick={handleMakeAnotherTransfer}
+                                            sx={{
+                                                height: 44,
+                                                color: "#2764A5",
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                textTransform: "none",
+                                                bgcolor: "transparent",
+                                                "&:hover": { bgcolor: palette.primary[40], textDecoration: "underline", color: "white" },
+                                            }}
+                                        />
+                                    </Stack>
+
+                                    <Stack
+                                        direction="row"
+                                        spacing={0.75}
+                                        sx={{ justifyContent: "center", alignItems: "center", mt: 2.5 }}
                                     >
-                                        <Box>
-                                            <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0F172A" }}>
-                                                Transfer receipt
-                                            </Typography>
-                                            <Typography sx={{ fontSize: 13, color: "#64748B", mt: 0.5, mb: 2.5 }}>
-                                                Keep this receipt for your accounting records.
-                                            </Typography>
-
-                                            {/* Mini Receipt Box */}
-                                            <Box
-                                                sx={{
-                                                    border: "1px solid #E2E8F0",
-                                                    borderRadius: "16px",
-                                                    bgcolor: "#ffffff",
-                                                    p: 4,
-                                                    mb: 2,
-                                                }}
-                                            >
-                                                <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 0.75 }}>
-                                                    <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#0F172A", mb: 2 }}>
-                                                        {displayToName}
-                                                    </Typography>
-                                                    <Typography sx={{ fontSize: 15, fontWeight: 700, color: "#0F172A" }}>
-                                                        -{displayAmountVal}
-                                                    </Typography>
-                                                </Stack>
-                                                <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                                                    <Typography sx={{ fontSize: 12, color: "#64748B" }}>
-                                                        {completedDateStr}
-                                                    </Typography>
-                                                    <Typography sx={{ fontSize: 12, fontWeight: 600, color: "#16A34A" }}>
-                                                        Completed
-                                                    </Typography>
-                                                </Stack>
-                                            </Box>
-
-                                            {/* Info Alert */}
-                                            <Box
-                                                sx={{
-                                                    bgcolor: "#EFF6FF",
-                                                    border: "1px solid #DBEAFE",
-                                                    borderRadius: "12px",
-                                                    p: 1.5,
-                                                    mb: 3.5,
-                                                    display: "flex",
-                                                    alignItems: "flex-start",
-                                                    gap: 1.25,
-                                                }}
-                                            >
-                                                <Info size={17} color="#2563EB" style={{ flexShrink: 0, marginTop: 1 }} />
-                                                <Typography sx={{ fontSize: 12, color: "#1E3A8A", lineHeight: 1.45 }}>
-                                                    Funds are usually credited within the recipient bank&apos;s processing window.
-                                                </Typography>
-                                            </Box>
-                                        </Box>
-
-                                        {/* Action Buttons & Security Footer */}
-                                        <Box>
-                                            <Stack spacing={2}>
-                                                <BaseButton
-                                                    title={backButtonTitle ?? "Back to Dashboard"}
-                                                    variant="contained"
-                                                    fullWidth
-                                                    onClick={handleBackToDashboard}
-                                                    sx={{
-                                                        height: 48,
-                                                        borderRadius: "999px",
-                                                        bgcolor: "#2764A5",
-                                                        color: "#FFFFFF",
-                                                        fontSize: 14,
-                                                        fontWeight: 600,
-                                                        textTransform: "none",
-                                                        boxShadow: "none",
-                                                        "&:hover": { bgcolor: "#1E5289" },
-                                                    }}
-                                                />
-
-                                                <BaseButton
-                                                    title="Download receipt"
-                                                    variant="outlined"
-                                                    fullWidth
-                                                    onClick={handleDownloadReceipt}
-                                                    sx={{
-                                                        height: 48,
-                                                        borderRadius: "999px",
-                                                        borderColor: "#10B981",
-                                                        color: "#10B981",
-                                                        fontSize: 14,
-                                                        fontWeight: 600,
-                                                        textTransform: "none",
-                                                        boxShadow: "none",
-                                                        "&:hover": {
-                                                            borderColor: "#059669",
-                                                            bgcolor: "#F0FDF4",
-                                                        },
-                                                    }}
-                                                />
-
-                                                <BaseButton
-                                                    title={makeAnotherTitle ?? "Make another transfer"}
-                                                    variant="text"
-                                                    fullWidth
-                                                    onClick={handleMakeAnotherTransfer}
-                                                    sx={{
-                                                        height: 48,
-                                                        color: "#2764A5",
-                                                        fontSize: 14,
-                                                        fontWeight: 600,
-                                                        textTransform: "none",
-                                                        bgcolor: "transparent",
-                                                        "&:hover": { bgcolor: palette.primary[40], textDecoration: "underline", color: "white" },
-                                                    }}
-                                                />
-                                            </Stack>
-
-                                            <Stack
-                                                direction="row"
-                                                spacing={0.75}
-                                                sx={{ justifyContent: "center", alignItems: "center", mt: 2.5 }}
-                                            >
-                                                <ShieldCheck size={14} color="#94A3B8" />
-                                                <Typography sx={{ fontSize: 12, color: "#94A3B8" }}>
-                                                    Secured by Obsidian Ops
-                                                </Typography>
-                                            </Stack>
-                                        </Box>
-                                    </Grid>
-                                </Grid>
-                            </Box>
+                                        <ShieldCheck size={14} color="#94A3B8" />
+                                        <Typography sx={{ fontSize: 12, color: "#94A3B8" }}>
+                                            Secured by Obsidian Ops
+                                        </Typography>
+                                    </Stack>
+                                </Box>
+                            </>
+                            )
                         )}
 
                         {/* Bottom Action Button on page background (Only for Step 0 & 1) */}
                         {step !== 2 && (step !== 0 || (!unifyStep0Card && step0ActionPosition !== "inside")) && (
-                            <Box
-                                sx={{
-                                    mt: 3,
-                                    mb: 5,
-                                    ...(unifyStep0Card && step === 1
-                                        ? { width: "100%", maxWidth: 576, mx: 0 }
-                                        : { width: { xs: "100%", sm: 500, md: 520 }, maxWidth: "100%", mx: "auto" }),
-                                }}
-                            >
-                                {footer}
-                            </Box>
-                        )}
+        <Box
+            sx={{
+                mt: 3,
+                mb: 5,
+                ...(unifyStep0Card && step === 1
+                    ? { width: "100%", maxWidth: 576, mx: 0 }
+                    : { width: { xs: "100%", sm: 500, md: 520 }, maxWidth: "100%", mx: "auto" }),
+            }}
+        >
+            {footer}
+        </Box>
+    )
+}
 
                         <VerifyActionFlow
                             open={verifyFlowOpen}
@@ -897,6 +951,7 @@ export default function PreviewTransfer({
                             onVerified={handleConfirmed}
                             subject="transfer"
                             onSelectMobileApp={submit ? async () => { await authorization.start(); } : undefined}
+                            onSelectQr={submit ? async () => { await authorization.start(); } : undefined}
                         />
                         <AuthenticatorDialog
                             key={authorization.pending?.referenceId ?? "none"}
@@ -907,10 +962,10 @@ export default function PreviewTransfer({
                             onRenew={authorization.renew}
                             onClose={authorization.closeQr}
                         />
-                    </Box>
-                </Grid>
-            </Grid>
-        </Box>
+                    </Box >
+                </Grid >
+            </Grid >
+        </Box >
     );
 }
 
@@ -919,10 +974,12 @@ const STEPPER_BAR_HEIGHT = 6;
 
 function StepperWithBack({
     activeStep,
+    steps = DEFAULT_STEPS,
     onBack,
     backTooltip = "Back",
 }: {
     activeStep: number;
+    steps?: string[];
     onBack?: () => void;
     backTooltip?: string;
 }) {
@@ -946,7 +1003,7 @@ function StepperWithBack({
                 />
             </Box>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-                <BaseStep steps={STEPS} activeStep={activeStep} />
+                <BaseStep steps={steps} activeStep={activeStep} />
             </Box>
         </Box>
     );

@@ -18,8 +18,11 @@ import {
   PreviewTransfer,
   type TransferPreviewField,
   type TransferReviewRow,
+  type TransferResult,
 } from "@/features/transfer";
 import { useTransferAccounts } from "@/features/transfer/use-transfer-accounts";
+import { useInquirePhoneMutation, useSubmitPhoneTopUpMutation } from "../payment.api";
+import type { PhoneTopUpTransferRequest } from "../payment.types";
 
 export interface MobileTopUpViewProps {
   open?: boolean;
@@ -34,7 +37,20 @@ export interface MobileTopUpViewProps {
   }) => void;
 }
 
-const QUICK_AMOUNTS = [1, 2, 5, 10, 20, 50] as const;
+const QUICK_AMOUNTS_USD = [1, 2, 5, 10, 20, 50] as const;
+const QUICK_AMOUNTS_KHR = [4000, 10000, 20000, 40000, 80000, 200000] as const;
+
+/** Safely formats account balance from string, number, or formatted currency strings without NaN */
+function formatBalance(balance: number | string | undefined | null): string {
+  if (balance === undefined || balance === null || balance === "") return "0.00";
+  if (typeof balance === "number") {
+    return isNaN(balance) ? "0.00" : balance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  const clean = String(balance).replace(/,/g, "").trim();
+  const num = parseFloat(clean);
+  if (isNaN(num)) return String(balance);
+  return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 const FALLBACK_ACCOUNTS = [
   {
@@ -115,22 +131,67 @@ export default function MobileTopUpView({
   const [referenceNo] = useState(() => `TOP2610${Math.floor(100000 + Math.random() * 900000)}`);
   const [transactionId] = useState(() => `#TOP-${Math.floor(10000000 + Math.random() * 90000000)}`);
 
+  const [submitPhoneTopUp] = useSubmitPhoneTopUpMutation();
+  const [inquirePhone, { data: inquiryData }] = useInquirePhoneMutation();
+
+  // Sync selected account once real accounts are loaded
+  React.useEffect(() => {
+    if (fetchedAccounts && fetchedAccounts.length > 0) {
+      if (!selectedAccountId || !fetchedAccounts.some((a) => a.id === selectedAccountId)) {
+        setSelectedAccountId(fetchedAccounts[0].id);
+      }
+    }
+  }, [fetchedAccounts, selectedAccountId]);
+
+  // Debounced inquiry for live telco lookup from backend API
+  React.useEffect(() => {
+    const clean = mobileNumber.replace(/\D/g, "");
+    if (clean.length >= 8 && clean.length <= 11) {
+      const formatted = clean.startsWith("0") ? clean : `0${clean}`;
+      const timer = window.setTimeout(() => {
+        void inquirePhone({ phone: formatted });
+      }, 500);
+      return () => window.clearTimeout(timer);
+    }
+  }, [mobileNumber, inquirePhone]);
+
   const selectedAccount = useMemo(() => {
     return accounts.find((a) => a.id === selectedAccountId) ?? accounts[0] ?? FALLBACK_ACCOUNTS[0];
   }, [accounts, selectedAccountId]);
 
-  const network = useMemo(() => detectNetwork(mobileNumber), [mobileNumber]);
+  const network = useMemo(() => {
+    if (inquiryData?.providerName) {
+      return {
+        name: inquiryData.providerName,
+        tag: `${inquiryData.providerName} · prepaid`,
+      };
+    }
+    return detectNetwork(mobileNumber);
+  }, [inquiryData, mobileNumber]);
+
+  const currency = selectedAccount.currency || "USD";
+  const quickAmounts = currency === "KHR" ? QUICK_AMOUNTS_KHR : QUICK_AMOUNTS_USD;
+
+  // Format amount cleanly for currency (e.g. integer for KHR, 2 decimals for USD)
+  const formatDisplayAmount = (val: number, ccy: string) => {
+    if (isNaN(val) || val <= 0) return "0.00";
+    if (ccy === "KHR") return Math.round(val).toLocaleString("en-US");
+    return val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   const handleSelectQuickAmount = (val: number) => {
     setAmount(val);
-    setCustomAmountStr(val.toFixed(2));
+    setCustomAmountStr(currency === "KHR" ? String(val) : val.toFixed(2));
   };
 
   const handleCustomAmountChange = (valStr: string) => {
     setCustomAmountStr(valStr);
-    const parsed = parseFloat(valStr);
+    const clean = valStr.replace(/,/g, "").trim();
+    const parsed = parseFloat(clean);
     if (!isNaN(parsed) && parsed > 0) {
       setAmount(parsed);
+    } else {
+      setAmount(0);
     }
   };
 
@@ -147,8 +208,8 @@ export default function MobileTopUpView({
   const handleReset = () => {
     setSelectedAccountId(accounts[0]?.id || FALLBACK_ACCOUNTS[0].id);
     setMobileNumber("011 222 2222");
-    setAmount(5);
-    setCustomAmountStr("5.00");
+    setAmount(currency === "KHR" ? 20000 : 5);
+    setCustomAmountStr(currency === "KHR" ? "20000" : "5.00");
     setSaveAsTemplate(false);
     setTemplateName("Sales team top-up");
     setSetSchedule(false);
@@ -167,6 +228,39 @@ export default function MobileTopUpView({
     }
   };
 
+  const submit = async (idempotencyKey?: string): Promise<TransferResult> => {
+    const cleanPhone = mobileNumber.replace(/\D/g, "");
+    const formattedPhone = cleanPhone.startsWith("0") ? cleanPhone : `0${cleanPhone}`;
+    const topUpAmount = Number(amount);
+
+    const schedulePayload = setSchedule
+      ? {
+          frequency:
+            scheduleFreq === "Weekly"
+              ? ("WEEKLY" as const)
+              : scheduleFreq === "Monthly"
+              ? ("MONTHLY" as const)
+              : ("ONCE" as const),
+        }
+      : undefined;
+
+    const payload: PhoneTopUpTransferRequest = {
+      fromAccountNumber: selectedAccount.number,
+      currency,
+      amount: topUpAmount,
+      phone: formattedPhone,
+      remark: saveAsTemplate && templateName.trim() ? templateName.trim() : `Top-up ${formattedPhone}`,
+      isSaveTemplate: saveAsTemplate,
+      templateName: saveAsTemplate ? templateName.trim() || `${network.name} Top-up` : undefined,
+      schedule: schedulePayload,
+    };
+
+    return await submitPhoneTopUp({
+      body: payload,
+      idempotencyKey: idempotencyKey || crypto.randomUUID(),
+    }).unwrap();
+  };
+
   const previewFields: TransferPreviewField[] = [
     {
       label: "From Account",
@@ -178,7 +272,7 @@ export default function MobileTopUpView({
     },
     {
       label: "Amount",
-      value: `USD ${amount.toFixed(2)}`,
+      value: `${currency} ${formatDisplayAmount(amount, currency)}`,
     },
     ...(setSchedule
       ? [
@@ -199,11 +293,11 @@ export default function MobileTopUpView({
   ];
 
   const summaryRows: TransferReviewRow[] = [
-    { label: "Amount Transferred", value: `USD ${amount.toFixed(2)}` },
+    { label: "Amount Transferred", value: `${currency} ${formatDisplayAmount(amount, currency)}` },
     { label: "Transaction ID", value: transactionId },
     { label: "Reference no", value: referenceNo },
-    { label: "Debit amount", value: `USD ${amount.toFixed(2)}` },
-    { label: "Fee", value: "USD 0.00" },
+    { label: "Debit amount", value: `${currency} ${formatDisplayAmount(amount, currency)}` },
+    { label: "Fee", value: `${currency} 0.00` },
     { label: "Operator", value: network.tag },
     { label: "Recipient Phone", value: mobileNumber },
   ];
@@ -218,17 +312,19 @@ export default function MobileTopUpView({
       fromAccount={{
         name: selectedAccount.name,
         accountNumber: selectedAccount.number,
+        balance: formatBalance(selectedAccount.balance),
+        currency: selectedAccount.currency,
       }}
       toAccount={{
         name: network.tag,
         accountNumber: mobileNumber,
       }}
-      canSubmit={Boolean(mobileNumber.trim() && amount > 0)}
+      canSubmit={Boolean(mobileNumber.trim().length >= 8 && amount > 0)}
       previewFields={previewFields}
       summaryRows={summaryRows}
       successTitle="Top-up successful"
       successSubtitle="Mobile Top-Up Payment"
-      successMessage={`USD ${amount.toFixed(2)} sent to ${mobileNumber} (${network.name}).`}
+      successMessage={`${currency} ${formatDisplayAmount(amount, currency)} sent to ${mobileNumber} (${network.name}).`}
       makeAnotherTitle="Make another top-up"
       backButtonTitle="Back to Payments"
       receiptTitle="MOBILE TOP-UP RECEIPT"
@@ -237,6 +333,7 @@ export default function MobileTopUpView({
       onBackToMain={handleClose}
       onReview={handleReviewStep}
       onReset={handleReset}
+      submit={submit}
     >
       {/* Step 0 Form Matching Design Mockup */}
       <Box>
@@ -293,7 +390,7 @@ export default function MobileTopUpView({
               >
                 {accounts.map((acc) => (
                   <MenuItem key={acc.id} value={acc.id} sx={{ fontSize: 13.5 }}>
-                    {`${acc.name} · ${acc.number} · ${acc.currency} ${Number(acc.balance).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    {`${acc.name} · ${acc.number} · ${acc.currency} ${formatBalance(acc.balance)}`}
                   </MenuItem>
                 ))}
               </Select>
@@ -388,8 +485,9 @@ export default function MobileTopUpView({
 
             {/* Quick Amount Pills */}
             <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, mb: 1.5 }}>
-              {QUICK_AMOUNTS.map((amt) => {
+              {quickAmounts.map((amt) => {
                 const isSelected = amount === amt;
+                const label = currency === "KHR" ? `${amt.toLocaleString()} ៛` : `$${amt}`;
                 return (
                   <Box
                     key={amt}
@@ -417,7 +515,7 @@ export default function MobileTopUpView({
                       },
                     }}
                   >
-                    ${amt}
+                    {label}
                   </Box>
                 );
               })}
@@ -446,7 +544,7 @@ export default function MobileTopUpView({
                 mt: 0.75,
               }}
             >
-              Default currency is USD.
+              Default currency is {currency}.
             </Typography>
           </Box>
 

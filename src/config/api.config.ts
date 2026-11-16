@@ -109,6 +109,18 @@ export const adminApi = {
     NEW_AUTHENTICATOR: "payment/transfers/{referenceId}/authenticator",
     BANKS: "payment/banks", // Bakong member banks a local bank transfer can pay
     BILL: "payment/bills", // Body: {fromAccountNumber, billerCode, customerNumber, amount, currency, remark, schedule}
+    PHONE_TOPUP_PINLESS: "payment/bills/phone-topup/pinless",
+    PHONE_TOPUP_PINCODE: "payment/bills/phone-topup/pincode",
+    PHONE_TOPUP_INQUIRY: "payment/phone-topups/inquiry",
+  },
+  // Bill & mobile top-up payments
+  PAYMENT: {
+    PHONE_TOPUP_PINLESS: "payment/bills/phone-topup/pinless",
+    PHONE_TOPUP_PINCODE: "payment/bills/phone-topup/pincode",
+    PHONE_TOPUP_INQUIRY: "payment/phone-topups/inquiry",
+    BILL_INQUIRY: "payment/bills/inquiry",
+    BILL_UTILITY: "payment/bills/utility",
+    BILL_CHARITY: "payment/bills/charity",
   },
   // Bulk transfer: the portal reads the file and sends its rows as JSON; no file is uploaded.
   BULK_TRANSFER: {

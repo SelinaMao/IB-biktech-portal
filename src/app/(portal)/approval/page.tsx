@@ -10,6 +10,7 @@ import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/B
 import { CLIENT_PERMISSIONS, useCan } from "@/features/auth";
 import { useListMyTasksQuery, useActOnInstanceMutation } from "@/features/workflow";
 import { useListUsersQuery } from "@/features/user";
+import { toToastError } from "@/utils/api-error";
 import {
   ApprovalTable,
   ApprovalDetailDialog,
@@ -164,10 +165,14 @@ export default function ApprovalPage() {
     setPage(0);
   };
 
-  const handleApprove = async (entry: ApprovalEntry) => {
+  const handleApprove = async (entry: ApprovalEntry, authenticatorRequestId?: string) => {
     try {
       if (entry.transactionId) {
-        await actOnInstance({ id: entry.transactionId, decision: "APPROVE" }).unwrap();
+        await actOnInstance({
+          id: entry.transactionId,
+          decision: "APPROVE",
+          authenticatorRequestId,
+        }).unwrap();
       }
       if (category === "financial") {
         setPendingEntries((prev) => prev.filter((e) => e.id !== entry.id));
@@ -180,11 +185,8 @@ export default function ApprovalPage() {
         title: "Transaction approved",
         message: `${entry.transactionType} to ${entry.payToName} has been approved.`,
       });
-    } catch {
-      showToast("error", {
-        title: "Approval failed",
-        message: "Could not approve the transaction. Please try again.",
-      });
+    } catch (error) {
+      showToast("error", toToastError(error, "Could not approve the transaction. Please try again."));
     }
   };
 
@@ -204,11 +206,8 @@ export default function ApprovalPage() {
         title: "Transaction rejected",
         message: `${entry.transactionType} to ${entry.payToName} has been rejected.`,
       });
-    } catch {
-      showToast("error", {
-        title: "Rejection failed",
-        message: "Could not reject the transaction. Please try again.",
-      });
+    } catch (error) {
+      showToast("error", toToastError(error, "Could not reject the transaction. Please try again."));
     }
   };
 

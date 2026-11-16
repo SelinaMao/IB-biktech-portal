@@ -14,12 +14,16 @@ import BaseDialog from "@core/components/BaseDialog";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import BaseTextArea from "@core/form/BaseTextArea";
 import { approvalStatusMeta, type ApprovalEntry } from "../approval.types";
+import { showToast } from "@core/components/AppToast";
+import { useRaiseApprovalAuthenticatorMutation } from "@/features/workflow";
+import type { AuthenticatorRequest } from "@/features/authenticator";
+import { toToastError } from "@/utils/api-error";
 
 export type ApprovalDetailDialogProps = {
   open: boolean;
   onClose: () => void;
   entry: ApprovalEntry | null;
-  onApprove?: (entry: ApprovalEntry) => void;
+  onApprove?: (entry: ApprovalEntry, authenticatorRequestId?: string) => void;
   onReject?: (entry: ApprovalEntry, reason: string) => void;
   isApproving?: boolean;
   isRejecting?: boolean;
@@ -44,12 +48,13 @@ export default function ApprovalDetailDialog({
   const [rejectReason, setRejectReason] = useState("");
   const [rejectTouched, setRejectTouched] = useState(false);
   const [qrConfirmOpen, setQrConfirmOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState<"approve" | "reject" | null>(null);
+  const [authenticator, setAuthenticator] = useState<AuthenticatorRequest | null>(null);
+  const [raiseApprovalAuthenticator, { isLoading: isRaisingAuth }] = useRaiseApprovalAuthenticatorMutation();
 
   useEffect(() => {
     if (!open) {
       setQrConfirmOpen(false);
-      setPendingAction(null);
+      setAuthenticator(null);
       setRejectDialogOpen(false);
       setRejectReason("");
       setRejectTouched(false);
@@ -86,28 +91,35 @@ export default function ApprovalDetailDialog({
       setRejectTouched(true);
       return;
     }
+    const reason = rejectReason.trim();
     setRejectDialogOpen(false);
-    setPendingAction("reject");
-    setQrConfirmOpen(true);
+    onReject?.(entry, reason);
+    onClose();
   };
 
   const rejectReasonInvalid = rejectTouched && !rejectReason.trim();
 
-  const requestApprove = () => {
-    setPendingAction("approve");
-    setQrConfirmOpen(true);
+  const requestApprove = async () => {
+    if (entry?.transactionId) {
+      try {
+        setQrConfirmOpen(true);
+        const result = await raiseApprovalAuthenticator(entry.transactionId).unwrap();
+        setAuthenticator(result);
+        return;
+      } catch (error) {
+        showToast("error", toToastError(error, "Could not get authorization QR code"));
+        setQrConfirmOpen(false);
+        return;
+      }
+    }
+    onApprove?.(entry);
+    onClose();
   };
 
-  const handleQrConfirm = () => {
-    const action = pendingAction;
-    const reason = rejectReason.trim();
+  const handleQrAuthorized = (requestId: string) => {
     setQrConfirmOpen(false);
-    setPendingAction(null);
-    if (action === "approve") {
-      onApprove?.(entry);
-    } else if (action === "reject") {
-      onReject?.(entry, reason);
-    }
+    setAuthenticator(null);
+    onApprove?.(entry, requestId);
     onClose();
   };
 
@@ -377,14 +389,26 @@ export default function ApprovalDetailDialog({
         </Stack>
       </BaseDialog>
 
-      {/* QR Confirmation for both Approve and Reject */}
+      {/* QR Confirmation Modal with qrPayload from API */}
       <QrConfirmationDialog
         open={qrConfirmOpen}
+        authenticator={authenticator}
+        qrPayload={authenticator?.qrPayload}
+        isLoading={isRaisingAuth && !authenticator}
         onClose={() => {
           setQrConfirmOpen(false);
-          setPendingAction(null);
+          setAuthenticator(null);
         }}
-        onApprove={handleQrConfirm}
+        onAuthorized={handleQrAuthorized}
+        onApprove={() => handleQrAuthorized(authenticator?.requestId || "")}
+        onRenew={async () => {
+          if (!entry?.transactionId) return;
+          const result = await raiseApprovalAuthenticator(entry.transactionId).unwrap();
+          setAuthenticator(result);
+          return result;
+        }}
+        title="Confirmations"
+        subtitle="Scan this QR with Bank Mobile App"
       />
     </>
   );

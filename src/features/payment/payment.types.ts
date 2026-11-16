@@ -1,3 +1,5 @@
+import type { TransferSchedule } from "@/features/transfer";
+
 export type PaymentActionSlug = "bill-payment" | "mobile-topup" | "charity-donation";
 
 export interface PaymentActionCardItem {
@@ -38,3 +40,34 @@ export interface PaymentAccount {
   balance: string;
   currency: string;
 }
+
+export interface PhoneTopUpTransferRequest {
+  fromAccountNumber: string;
+  currency: string;
+  amount: number;
+  phone?: string;
+  remark?: string;
+  isSaveTemplate?: boolean;
+  templateName?: string;
+  schedule?: TransferSchedule;
+}
+
+export interface PhoneInquiryRequest {
+  phone: string;
+}
+
+export interface PhoneInquiryResult {
+  providerId?: string;
+  providerName?: string;
+  customerPhone?: string;
+  customerName?: string;
+  consumerId?: string;
+  providerAccountNumber?: string;
+  billingPeriod?: string;
+  dueDate?: string;
+  invoiceDate?: string;
+  paymentStatus?: string;
+  totalAmountUSD?: number;
+  totalAmountRiel?: number;
+}
+

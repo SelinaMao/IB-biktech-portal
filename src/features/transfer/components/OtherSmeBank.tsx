@@ -129,7 +129,7 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
       icon={<Landmark size={18} />}
       fromAccount={fromAccount ? { name: fromAccount.name, accountNumber: fromAccount.number, balance: fromAccount.balance, currency: fromAccount.currency } : undefined}
       toAccount={{
-        name: toAccountName || values.toAccountNumber || "Sokha Chan",
+        name: toAccountName || (values.toAccountNumber ? `Account ${values.toAccountNumber}` : "Beneficiary"),
         accountNumber: values.toAccountNumber,
       }}
       topSection={
