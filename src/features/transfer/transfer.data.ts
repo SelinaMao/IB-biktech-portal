@@ -72,11 +72,11 @@ export const scheduleFrequencies = [
 ];
 
 /** Mock directory used to resolve a beneficiary name from an "Other BiKTECH BANK" account number. */
-export const otherSmeBankDirectory = [
-  { number: "000 000 096", name: "Sarah Jenkins" },
-  { number: "111 022 998", name: "Rous Soboros" },
-  { number: "500 987 654", name: "Khalid" },
-  { number: "300 050 756", name: "Chamrouen" },
-  { number: "012 441 789", name: "Sokha Chan" },
-  { number: "4417", name: "Sokha Chan" },
-];
+// export const otherSmeBankDirectory = [
+//   { number: "000 000 096", name: "Sarah Jenkins" },
+//   { number: "111 022 998", name: "Rous Soboros" },
+//   { number: "500 987 654", name: "Khalid" },
+//   { number: "300 050 756", name: "Chamrouen" },
+//   { number: "012 441 789", name: "Sokha Chan" },
+//   { number: "4417", name: "Sokha Chan" },
+// ];

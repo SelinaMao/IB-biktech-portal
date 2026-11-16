@@ -10,3 +10,4 @@ export {
 } from "./bind.api";
 export { default as MobileBindingDialog } from "./components/MobileBindingDialog";
 export { default as ActivateAppPromptDialog } from "./components/ActivateAppPromptDialog";
+export { default as UnlinkAccountDialog } from "./components/UnlinkAccountDialog";

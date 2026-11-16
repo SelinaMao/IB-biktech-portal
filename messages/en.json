@@ -215,7 +215,9 @@
       "description": "This QR code is no longer active. Generate a new one to continue."
     },
     "bound": {
-      "heading": "Linked Device",
+      "heading": "Activated Account",
+      "description": "Deactivate to link other Devices",
+      "deactivate": "Deactivate",
       "lastLogin": "Last Login",
       "unlink": "Unlink Device"
     },

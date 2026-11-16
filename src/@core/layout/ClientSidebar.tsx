@@ -72,12 +72,15 @@ const NAV_ITEMS = [
     // different scope than view.
     permissions: Object.values(CLIENT_PERMISSIONS.PAYMENT),
   },
-    {
+  {
     key: "Payroll",
-    href: "/client-dashboard",
+    href: "/payroll",
     Icon: UsersRound,
     // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
-    permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
+    permissions: [
+      ...Object.values(CLIENT_PERMISSIONS.PAYROLL),
+      ...Object.values(CLIENT_PERMISSIONS.ACCOUNT),
+    ],
   },
   {
     key: "Schedule",

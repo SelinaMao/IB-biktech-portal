@@ -12,12 +12,12 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { font, padding, palette, radius } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
-import { formatDateTime } from "@/utils/date-time";
 import { showToast } from "@core/components/AppToast";
 import BaseButton from "@core/components/BaseButton";
 import BaseDialog from "@core/components/BaseDialog";
@@ -63,8 +63,6 @@ export default function MobileBindingDialog({
   open,
   onClose,
   linked = false,
-  deviceModel,
-  lastSeenAt,
   onUseSms,
 }: MobileBindingDialogProps) {
   const t = useTranslations("mobileBinding");
@@ -258,14 +256,31 @@ export default function MobileBindingDialog({
         hideCloseButton
         disableBackdropClick
         maxWidth="xs"
-        paperSx={{
-          borderRadius: "28px",
-          maxWidth: 440,
-          boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.12)",
+        slotProps={{
+          backdrop: {
+            sx: {
+              backdropFilter: "blur(6px)",
+              backgroundColor: "rgba(15, 23, 42, 0.25)",
+            },
+          },
         }}
-
+        paperSx={{
+          borderRadius: "24px",
+          maxWidth: dialogView === "bound" ? 380 : 440,
+          // background:
+          //   dialogView === "bound"
+          //     ? "radial-gradient(circle at 85% 12%, rgba(255, 240, 228, 0.75) 0%, rgba(255, 255, 255, 0.95) 50%, #FFFFFF 100%)"
+          //     : "#FFFFFF",
+          boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.08)",
+        }}
         titleSx={isScanView ? { display: "none" } : undefined}
-        contentSx={isScanView ? { p: padding.sm } : undefined}
+        contentSx={
+          dialogView === "bound"
+            ? { p: 3.5, pt: 3, pb: 3.5 }
+            : isScanView
+              ? { p: padding.sm }
+              : undefined
+        }
       >
         {dialogView === "starting" ? (
           <Stack sx={{ alignItems: "center", py: 8 }} spacing={3}>
@@ -277,75 +292,100 @@ export default function MobileBindingDialog({
         ) : null}
 
         {dialogView === "bound" ? (
-          <Box sx={{ position: "relative" }}>
+          <Box sx={{ position: "relative" ,padding:"24px 10px"}}>
             <IconButton
               onClick={handleClose}
               aria-label="Close"
               size="small"
               sx={{
                 position: "absolute",
-                top: 6,
-                right: 6,
-                width: 32,
-                height: 32,
-                bgcolor: "#EDF0F4",
-                color: "#1E293B",
-                borderRadius: "50%",
+                top: 0,
+                right: 0,
+                width: 28,
+                height: 28,
+                color: "#334155",
                 p: 0,
                 transition: "all 0.15s ease-in-out",
                 "&:hover": {
-                  bgcolor: "#E2E8F0",
+                  color: "#0F172A",
+                  bgcolor: "rgba(0, 0, 0, 0.04)",
                 },
               }}
             >
-              <X size={18} />
+              <X size={16} strokeWidth={2.2} />
             </IconButton>
 
-            <BindPromptContent
-              title={t("bound.heading")}
-              titleSx={{ fontWeight: font.weight.regular, fontSize: font.size["xxl"] }}
-              imageInset={20}
-              stackSx={{ pt: 2, px: 8 }}
-              bodyExtra={
-                <>
-                  {deviceModel ? (
-                    <Typography variant="body2" sx={{ fontSize: font.size.base, maxWidth: font.weight.regular, mx: "auto", color: palette.slate[950] }}>
-                      {deviceModel}
-                    </Typography>
-                  ) : null}
-                  {lastSeenAt ? (
-                    <Box
-                      sx={{
-                        width: "100%",
-                        textAlign: "center",
-                        py: 1.5,
-                        px: 2,
-                      }}
-                    >
-                      <Typography variant="caption" sx={{ fontSize: font.size.xs, color: palette.slate[400] }}>
-                        {t("bound.lastLogin")}
-                      </Typography>
-                      <Typography variant="body2" sx={{ mt: 0.25, fontSize: font.size.xs, color: palette.slate[400] }}>
-                        {formatDateTime(lastSeenAt)}
-                      </Typography>
-                    </Box>
-                  ) : null}
-                </>
-              }
-            >
-              <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
-                <BaseButton
-                  fullWidth
-                  title={t("bound.unlink")}
-                  onClick={() => setUnlinkConfirmOpen(true)}
-                  sx={{
-                    backgroundColor: palette.danger[500],
-                    color: palette.white,
-                    "&:hover": { backgroundColor: palette.danger[500] },
-                  }}
+            <Stack sx={{ alignItems: "center", textAlign: "center" }} spacing={0}>
+              <Box
+                sx={{
+                  position: "relative",
+                  width: 125,
+                  height: 105,
+                  mt: 5.5,
+                  mb: 5.5,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Image
+                  src="/assets/icons/ImageUnlinkMobile.svg"
+                  alt="Activated Account"
+                  width={125}
+                  height={105}
+                  priority
+                  style={{ objectFit: "contain" }}
                 />
-              </Stack>
-            </BindPromptContent>
+              </Box>
+
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  fontSize: "23px",
+                  lineHeight: 1.25,
+                  letterSpacing: "-0.01em",
+                  color: "#0F172A",
+                  mb: 2,
+                }}
+              >
+                {t("bound.heading")}
+              </Typography>
+
+              <Typography
+                sx={{
+                  fontSize: "13.5px",
+                  fontWeight: 400,
+                  color: "#475569",
+                  lineHeight: 1.4,
+                  whiteSpace: "nowrap",
+                  mb: 7.5,
+                }}
+              >
+                {t("bound.description")}
+              </Typography>
+
+              <Button
+                fullWidth
+                onClick={() => setUnlinkConfirmOpen(true)}
+                variant="contained"
+                disableElevation
+                sx={{
+                  borderRadius: "9999px",
+                  bgcolor: "#D92D20",
+                  color: "#FFFFFF",
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  boxShadow: "none",
+                  transition: "all 0.15s ease-in-out",
+                  "&:hover": {
+                    bgcolor: "#B42318",
+                  },
+                }}
+              >
+                {t("bound.deactivate")}
+              </Button>
+            </Stack>
           </Box>
         ) : null}
 
