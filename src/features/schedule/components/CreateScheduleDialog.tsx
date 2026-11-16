@@ -58,7 +58,7 @@ export default function CreateScheduleDialog({
       setPayToName(initialData.payToName);
       setPayToAccount(initialData.payToAccount);
       setAmount(initialData.amount);
-      setCurrency(initialData.currency);
+      setCurrency(initialData.currency === "KHR" ? "KHR" : "USD");
       setFrequency(initialData.frequency ?? "Monthly");
       setExecutionTime(initialData.time);
       setStartDate(initialData.date);

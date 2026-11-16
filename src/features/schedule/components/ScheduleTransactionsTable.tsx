@@ -12,6 +12,7 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
+  AlertCircle,
   ArrowDown01,
   CirclePause,
   CirclePlay,
@@ -19,6 +20,7 @@ import {
   MoreVertical,
   Pencil,
   Plus,
+  RotateCw,
   Trash2,
 } from "lucide-react";
 
@@ -34,6 +36,9 @@ import type { ScheduledTransaction } from "../schedule.types";
 
 export interface ScheduleTransactionsTableProps {
   schedules: ScheduledTransaction[];
+  isLoading?: boolean;
+  isError?: boolean;
+  onRefresh?: () => void;
   onAddSchedule?: () => void;
   onTogglePause?: (schedule: ScheduledTransaction) => void;
   onEditSchedule?: (schedule: ScheduledTransaction) => void;
@@ -45,6 +50,16 @@ type SortField = "date" | "amount" | "type";
 type SortDirection = "asc" | "desc";
 
 const ROWS_PER_PAGE = 5;
+
+const STATUS_STYLES: Record<string, { bg: string; fg: string }> = {
+  Active: { bg: "#056A4E", fg: "#FFFFFF" },
+  Paused: { bg: "#D97706", fg: "#FFFFFF" },
+  "Awaiting Approval": { bg: "#2563EB", fg: "#FFFFFF" },
+  Processing: { bg: "#7C3AED", fg: "#FFFFFF" },
+  Completed: { bg: "#10B981", fg: "#FFFFFF" },
+  Failed: { bg: "#DC2626", fg: "#FFFFFF" },
+  Cancelled: { bg: "#64748B", fg: "#FFFFFF" },
+};
 
 /** Proportional column width distribution across screen sizes */
 const COLUMN_WIDTHS = ["15%", "25%", "25%", "15%", "10%", "10%"] as const;
@@ -64,6 +79,9 @@ const BODY_CELL_SX = {
 
 export default function ScheduleTransactionsTable({
   schedules,
+  isLoading = false,
+  isError = false,
+  onRefresh,
   onAddSchedule,
   onTogglePause,
   onEditSchedule,
@@ -270,26 +288,33 @@ export default function ScheduleTransactionsTable({
       width: COLUMN_WIDTHS[4],
       headSx: HEAD_CELL_SX,
       cellSx: BODY_CELL_SX,
-      render: (t) => (
-        <Box
-          component="span"
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            py: 0.8,
-            px: 3,
-            borderRadius: "8px",
-            bgcolor: t.status === "Active" ? "#056A4E" : "#94A3B8",
-            color: "#FFFFFF",
-            fontSize: font.size.xs,
-            fontWeight: font.weight.medium,
-            lineHeight: 1.4,
-          }}
-        >
-          {t.status}
-        </Box>
-      ),
+      render: (t) => {
+        const badgeStyle = STATUS_STYLES[t.status] || {
+          bg: "#94A3B8",
+          fg: "#FFFFFF",
+        };
+        return (
+          <Box
+            component="span"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              py: 0.8,
+              px: 3,
+              borderRadius: "8px",
+              bgcolor: badgeStyle.bg,
+              color: badgeStyle.fg,
+              fontSize: font.size.xs,
+              fontWeight: font.weight.medium,
+              lineHeight: 1.4,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {t.status}
+          </Box>
+        );
+      },
     },
     {
       key: "action",
@@ -431,6 +456,38 @@ export default function ScheduleTransactionsTable({
         >
          
 
+          {onRefresh && (
+            <Tooltip title="Refresh">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={onRefresh}
+                  disabled={isLoading}
+                  sx={{
+                    borderRadius: "8px",
+                    border: `1px solid ${palette.slate[200]}`,
+                    color: palette.slate[700],
+                    height: 40,
+                    width: 40,
+                    bgcolor: "#FFFFFF",
+                    "&:hover": {
+                      borderColor: palette.slate[300],
+                      bgcolor: palette.slate[50],
+                    },
+                  }}
+                  aria-label="Refresh schedules"
+                >
+                  <RotateCw
+                    size={16}
+                    style={{
+                      animation: isLoading ? "spin 1s linear infinite" : "none",
+                    }}
+                  />
+                </IconButton>
+              </span>
+            </Tooltip>
+          )}
+
           <Button
             variant="outlined"
             onClick={(e) => setSortMenuAnchor(e.currentTarget)}
@@ -457,18 +514,63 @@ export default function ScheduleTransactionsTable({
         </Stack>
       </Stack>
 
+      {/* Error state alert */}
+      {isError && (
+        <Box
+          sx={{
+            mb: 2.5,
+            p: 2,
+            borderRadius: "10px",
+            bgcolor: "#FEF2F2",
+            border: "1px solid #FCA5A5",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+          }}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <AlertCircle size={18} color="#DC2626" />
+            <Typography sx={{ fontSize: 13.5, color: "#991B1B" }}>
+              Failed to load scheduled transfers from backend.
+            </Typography>
+          </Stack>
+          {onRefresh && (
+            <Button
+              size="small"
+              onClick={onRefresh}
+              sx={{
+                color: "#DC2626",
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: 13,
+                "&:hover": { bgcolor: "#FEE2E2" },
+              }}
+            >
+              Retry
+            </Button>
+          )}
+        </Box>
+      )}
+
       {/* 3. BaseTable using the requested configuration */}
       <BaseTable
         columns={columns}
         rows={filteredRows}
         getRowKey={(t) => t.id ?? ("ref" in t ? String(t.ref) : t.refNo)}
+        isLoading={isLoading}
         minWidth={640}
         rounded={false}
         headerBgColor={palette.white}
         headerBorderColor={palette.slate[200]}
         headerTextColor={palette.slate[500]}
         headerBorderTop={false}
-        emptyTitle={`No ${statusTab.toLowerCase()} transactions`}
+        emptyTitle="No scheduled transactions"
+        emptyDescription={
+          isError
+            ? "Could not retrieve data from server."
+            : "There are currently no scheduled transfers."
+        }
         getRowSx={() => ({
           "&:hover": {
             bgcolor: palette.slate[50],

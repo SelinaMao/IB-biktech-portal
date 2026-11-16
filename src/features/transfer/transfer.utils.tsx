@@ -5,7 +5,14 @@ import { palette } from "@/theme/palette";
 import { formatAccountNumber } from "@/utils/format-account-number";
 import type { CoreAccountEntry } from "@/features/account";
 import { USD_TO_KHR_RATE } from "@/features/dashboard/dashboard.data";
-import type { CalculateTransferResult, TransferAccount } from "./transfer.types";
+import dayjs from "dayjs";
+import type {
+  CalculateTransferResult,
+  DayOfWeek,
+  TransferAccount,
+  TransferFrequency,
+  TransferSchedule,
+} from "./transfer.types";
 import type { TransferReviewRow } from "./components/PreviewTransfer";
 
 export const CURRENCY_OPTIONS = [
@@ -145,4 +152,43 @@ export function buildTransferSummaryRows(amount: string, currency: string): Tran
     { label: "Reference no", value: "SSM0499765223000" },
     { label: "Debit amount", value: amountLabel },
   ];
+}
+
+/**
+ * Builds the backend `TransferSchedule` payload from form values.
+ * Returns undefined if scheduling is not enabled or date is missing.
+ */
+export function buildTransferSchedule(values: {
+  scheduleTransfer?: boolean;
+  frequency?: string;
+  scheduleDate?: string;
+  name?: string;
+}): TransferSchedule | undefined {
+  if (!values.scheduleTransfer && !values.scheduleDate) return undefined;
+
+  let frequency: TransferFrequency = "ONCE";
+  const freqLower = (values.frequency ?? "").toLowerCase();
+  if (freqLower.includes("week")) frequency = "WEEKLY";
+  else if (freqLower.includes("month")) frequency = "MONTHLY";
+  else frequency = "ONCE";
+
+  const dateStr = values.scheduleDate || dayjs().format("YYYY-MM-DD");
+  const parsed = dayjs(dateStr);
+  const startDate = parsed.isValid() ? parsed.format("YYYY-MM-DD") : dateStr;
+  const dateTime = parsed.isValid()
+    ? parsed.format("YYYY-MM-DDTHH:mm:ss")
+    : `${dateStr}T08:00:00`;
+
+  const dayOfWeek =
+    frequency === "WEEKLY" && parsed.isValid()
+      ? (parsed.format("dddd").toUpperCase() as DayOfWeek)
+      : undefined;
+
+  return {
+    frequency,
+    startDate,
+    dateTime,
+    ...(dayOfWeek ? { dayOfWeek } : {}),
+    ...(values.name ? { name: values.name.slice(0, 50) } : {}),
+  };
 }
