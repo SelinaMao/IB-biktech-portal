@@ -27,6 +27,7 @@ export type VerifyActionFlowProps = {
    * shown next.
    */
   onSelectMobileApp?: () => void | Promise<void>;
+  onSelectQr?: () => void | Promise<void>;
 };
 
 /**
@@ -42,6 +43,7 @@ export default function VerifyActionFlow({
   targetPhone,
   subject,
   onSelectMobileApp,
+  onSelectQr,
 }: VerifyActionFlowProps) {
   const [step, setStep] = React.useState<Step>("choose");
 
@@ -69,7 +71,19 @@ export default function VerifyActionFlow({
     setStep("sms");
   };
 
-  const handleSelectQr = () => setStep("qr");
+  const handleSelectQr = async () => {
+    if (onSelectQr) {
+      onClose();
+      await onSelectQr();
+      return;
+    }
+    if (onSelectMobileApp) {
+      onClose();
+      await onSelectMobileApp();
+      return;
+    }
+    setStep("qr");
+  };
 
   const handleVerified = () => {
     setStep("choose");

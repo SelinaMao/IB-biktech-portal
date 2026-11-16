@@ -60,7 +60,12 @@ export function useTransferAuthorization({
       const submitted = await submit(key);
       trackEvent(AnalyticsEvent.TRANSFER_SUBMITTED, transferAnalytics(submitted));
       setPending(submitted);
-      setQrOpen(true);
+      if (submitted.authenticator) {
+        setQrOpen(true);
+      } else {
+        // If the core completed it outright without requiring an authenticator challenge
+        onCompleted(submitted);
+      }
       // Terminal success — a fresh form submission starts a fresh key.
       idem.reset();
       return true;

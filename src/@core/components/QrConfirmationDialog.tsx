@@ -2,24 +2,56 @@
 
 import React from "react";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
+import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, RefreshCw } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
-const COUNTDOWN_SECONDS = 120;
+import { useLazyAuthenticatorStatusQuery } from "@/features/authenticator/authenticator.api";
+import type { AuthenticatorRequest } from "@/features/authenticator/authenticator.types";
+
+const POLL_MS = 2_000;
+const DEFAULT_COUNTDOWN_SECONDS = 120;
+
+function secondsUntil(value?: string | null): number {
+  if (!value) return 0;
+  return Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 1000));
+}
+
+function formatCountdown(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
+}
+
+type DialogView = "waiting" | "authorizing" | "expired" | "error";
 
 export type QrConfirmationDialogProps = {
   open: boolean;
   /** Optional close handler to cancel or dismiss without approving. */
   onClose?: () => void;
-  /** Fired on approve button click or simulated approval signal. */
+  /** Fired once authorized by the backend or fallback signal. */
   onApprove?: () => void;
+  /** Fired with authenticatorRequestId once mobile authorizes it on backend. */
+  onAuthorized?: (requestId: string) => Promise<void> | void;
+  /** Real backend authenticator challenge object */
+  authenticator?: AuthenticatorRequest | null;
+  /** Direct QR payload string from API */
+  qrPayload?: string | null;
+  /** Optional fallback / direct value string */
+  value?: string;
+  /** Direct request ID to poll from backend */
+  requestId?: string;
+  /** Renewal callback to obtain a new QR when expired */
+  onRenew?: () => Promise<AuthenticatorRequest | void>;
   /** Optional dialog title override; defaults to "Secure Your Account" */
   title?: string;
   /** Optional instruction heading; defaults to "Scan QR Code" */
@@ -30,54 +62,173 @@ export type QrConfirmationDialogProps = {
   appLink?: string;
   /** Optional dialog subtitle override */
   subtitle?: React.ReactNode;
-  /** Optional QR payload or seed string */
-  value?: string;
   /** Total countdown time in seconds; defaults to 120 */
   countdownSeconds?: number;
   /** Optional handler when clicking "Use SMS" */
   onUseSms?: () => void;
   /** Whether to show the "Use SMS" option; defaults to true */
   showSmsOption?: boolean;
+  /** Loading state while fetching qrPayload from API */
+  isLoading?: boolean;
 };
 
 /**
- * Mobile-approval QR confirmation modal:
- * Displays a scannable QR code and an optional SMS fallback action.
+ * Mobile-approval QR confirmation modal backed by the API (qrPayload):
+ * Displays a scannable QR code fetched from the backend API and polls until authorized on mobile.
  */
 export default function QrConfirmationDialog({
   open,
   onClose,
   onApprove,
+  onAuthorized,
+  authenticator: initialAuthenticator,
+  qrPayload,
+  value,
+  requestId: directRequestId,
+  onRenew,
   title = "Secure Your Account",
   instruction = "Scan QR Code",
   appName = "Biktech Banking App",
   appLink = "https://example.com",
   subtitle,
-  value,
+  countdownSeconds = DEFAULT_COUNTDOWN_SECONDS,
   onUseSms,
   showSmsOption = true,
+  isLoading = false,
 }: QrConfirmationDialogProps) {
-  const [qrSeed, setQrSeed] = React.useState("");
+  const [currentAuthenticator, setCurrentAuthenticator] = React.useState<AuthenticatorRequest | null>(
+    initialAuthenticator ?? null
+  );
+  const [view, setView] = React.useState<DialogView>("waiting");
+  const [renewing, setRenewing] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!open) return;
-    setQrSeed(`${Date.now()}-${Math.random()}`);
-  }, [open]);
+    setCurrentAuthenticator(initialAuthenticator ?? null);
+  }, [initialAuthenticator]);
 
-  const handleClose = () => {
-    if (onClose) {
-      onClose();
-    } else if (onApprove) {
-      onApprove();
+  const effectiveRequestId = currentAuthenticator?.requestId || directRequestId;
+  const effectivePayload = qrPayload || currentAuthenticator?.qrPayload || value;
+  const initialExpirySeconds = currentAuthenticator?.expiresAt
+    ? secondsUntil(currentAuthenticator.expiresAt)
+    : countdownSeconds;
+
+  const [secondsLeft, setSecondsLeft] = React.useState(initialExpirySeconds);
+  const [loadStatus] = useLazyAuthenticatorStatusQuery();
+  const spentFor = React.useRef<string | null>(null);
+
+  // Reset state when opening or closing
+  React.useEffect(() => {
+    if (!open) {
+      setView("waiting");
+      setErrorMessage(null);
+      spentFor.current = null;
+      return;
+    }
+    const initialSec = currentAuthenticator?.expiresAt
+      ? secondsUntil(currentAuthenticator.expiresAt)
+      : countdownSeconds;
+    setSecondsLeft(initialSec);
+    setView("waiting");
+    setErrorMessage(null);
+  }, [open, currentAuthenticator?.expiresAt, countdownSeconds]);
+
+  // Expiration countdown
+  React.useEffect(() => {
+    if (!open || view !== "waiting") return;
+    const interval = window.setInterval(() => {
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          setView("expired");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [open, view]);
+
+  const carryOut = React.useCallback(
+    async (id: string) => {
+      if (spentFor.current === id) return;
+      spentFor.current = id;
+      setView("authorizing");
+      try {
+        if (onAuthorized) {
+          await onAuthorized(id);
+        }
+        if (onApprove) {
+          onApprove();
+        }
+      } catch (error) {
+        setView("error");
+        setErrorMessage(error instanceof Error ? error.message : "The action could not be completed.");
+      }
+    },
+    [onAuthorized, onApprove]
+  );
+
+  // Poll backend status until the mobile phone authorizes
+  React.useEffect(() => {
+    if (!open || !effectiveRequestId || view !== "waiting") return;
+    let cancelled = false;
+    let timer: number | undefined;
+
+    const poll = async () => {
+      try {
+        const latest = await loadStatus(effectiveRequestId, false).unwrap();
+        if (cancelled) return;
+        if (latest.status === "AUTHORIZED" || latest.status === "CONSUMED") {
+          void carryOut(effectiveRequestId);
+          return;
+        }
+        if (latest.status === "EXPIRED" || latest.status === "CANCELLED") {
+          setView("expired");
+          return;
+        }
+        timer = window.setTimeout(poll, POLL_MS);
+      } catch {
+        if (cancelled) return;
+        // Keep retrying on transient network blip
+        timer = window.setTimeout(poll, POLL_MS);
+      }
+    };
+
+    timer = window.setTimeout(poll, POLL_MS);
+    return () => {
+      cancelled = true;
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, [open, effectiveRequestId, view, loadStatus, carryOut]);
+
+  const handleRenew = async () => {
+    if (!onRenew) return;
+    setRenewing(true);
+    try {
+      const renewed = await onRenew();
+      if (renewed && typeof renewed === "object" && "requestId" in renewed) {
+        setCurrentAuthenticator(renewed as AuthenticatorRequest);
+        setSecondsLeft(secondsUntil(renewed.expiresAt));
+      } else {
+        setSecondsLeft(countdownSeconds);
+      }
+      spentFor.current = null;
+      setView("waiting");
+      setErrorMessage(null);
+    } catch {
+      setErrorMessage("Could not renew the QR code. Please try again.");
+    } finally {
+      setRenewing(false);
     }
   };
 
+  const handleClose = () => {
+    if (view === "authorizing") return;
+    onClose?.();
+  };
+
   const handleUseSms = () => {
-    if (onUseSms) {
-      onUseSms();
-    } else if (onApprove) {
-      onApprove();
-    }
+    onUseSms?.();
   };
 
   return (
@@ -130,6 +281,7 @@ export default function QrConfirmationDialog({
           onClick={handleClose}
           aria-label="Close"
           size="small"
+          disabled={view === "authorizing"}
           sx={{
             width: 32,
             height: 32,
@@ -195,10 +347,8 @@ export default function QrConfirmationDialog({
 
       {/* QR Code Container */}
       <Box
-        onClick={() => {
-          if (onApprove) onApprove();
-        }}
         sx={{
+          position: "relative",
           width: "100%",
           bgcolor: "#F5F7FA",
           borderRadius: "16px",
@@ -208,24 +358,147 @@ export default function QrConfirmationDialog({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          cursor: onApprove ? "pointer" : "default",
-          transition: "transform 0.15s ease",
-          "&:hover": onApprove ? { transform: "scale(1.01)" } : undefined,
+          minHeight: 220,
         }}
-        title={onApprove ? "Click to simulate mobile scan" : undefined}
       >
-        <QRCodeSVG
-          value={value || qrSeed || "bank-mobile-qr-confirmation"}
-          size={180}
-          level="M"
-          marginSize={0}
-        />
+        {isLoading || !effectivePayload ? (
+          <CircularProgress size={36} sx={{ color: "#1B5299" }} />
+        ) : (
+          <Box sx={{ opacity: view !== "waiting" ? 0.1 : 1, transition: "opacity 0.2s ease" }}>
+            <QRCodeSVG
+              value={effectivePayload}
+              size={180}
+              level="M"
+              marginSize={0}
+            />
+          </Box>
+        )}
+
+        {/* Overlay States: Authorizing */}
+        {view === "authorizing" && (
+          <Stack
+            spacing={1.5}
+            sx={{
+              position: "absolute",
+              inset: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: "rgba(245, 247, 250, 0.92)",
+              borderRadius: "16px",
+              p: 2,
+            }}
+          >
+            <CircularProgress size={36} sx={{ color: "#16A34A" }} />
+            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+              <CheckCircleRoundedIcon sx={{ fontSize: 18, color: "#16A34A" }} />
+              <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#0F172A" }}>
+                Confirmed on your phone
+              </Typography>
+            </Stack>
+            <Typography variant="caption" sx={{ color: "#64748B" }}>
+              Completing action...
+            </Typography>
+          </Stack>
+        )}
+
+        {/* Overlay States: Expired */}
+        {view === "expired" && (
+          <Stack
+            spacing={2}
+            sx={{
+              position: "absolute",
+              inset: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: "rgba(245, 247, 250, 0.95)",
+              borderRadius: "16px",
+              p: 2,
+            }}
+          >
+            <RefreshCw size={28} color="#64748B" />
+            <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#0F172A" }}>
+              QR Code Expired
+            </Typography>
+            {onRenew && (
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => void handleRenew()}
+                disabled={renewing}
+                sx={{
+                  bgcolor: "#1B5299",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  borderRadius: "8px",
+                  px: 2,
+                  "&:hover": { bgcolor: "#15427C" },
+                }}
+              >
+                {renewing ? "Renewing..." : "Renew QR Code"}
+              </Button>
+            )}
+          </Stack>
+        )}
+
+        {/* Overlay States: Error */}
+        {view === "error" && (
+          <Stack
+            spacing={1.5}
+            sx={{
+              position: "absolute",
+              inset: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: "rgba(245, 247, 250, 0.95)",
+              borderRadius: "16px",
+              p: 2,
+              textAlign: "center",
+            }}
+          >
+            <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#DC2626" }}>
+              {errorMessage || "Verification Failed"}
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleClose}
+              sx={{
+                textTransform: "none",
+                fontSize: "13px",
+                borderRadius: "8px",
+                borderColor: "#CBD5E1",
+                color: "#334155",
+              }}
+            >
+              Dismiss
+            </Button>
+          </Stack>
+        )}
       </Box>
+
+      {/* Countdown timer */}
+      {view === "waiting" && (
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            textAlign: "center",
+            mt: 1.5,
+            color: secondsLeft <= 30 ? "#DC2626" : "#64748B",
+            fontWeight: 500,
+            fontSize: "13px",
+          }}
+        >
+          Expires in {formatCountdown(secondsLeft)}
+        </Typography>
+      )}
 
       {/* Use SMS Option */}
       {showSmsOption && (
         <ButtonBase
           onClick={handleUseSms}
+          disabled={view === "authorizing"}
           sx={{
             width: "100%",
             bgcolor: "#F5F7FA",

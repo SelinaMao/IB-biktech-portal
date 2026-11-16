@@ -23,7 +23,7 @@ export default function TransferDetailPage() {
       </Grid>
 
       {/* Right Column: Transfer Form — only this swaps when the type changes */}
-      <Grid size={{ xs: 12, lg: 7 }}>
+      <Grid size={{ xs: 12, lg: 9 }}>
         {TransferViewComponent ? (
           <TransferViewComponent open={true} onClose={() => router.push("/transfer")} />
         ) : (

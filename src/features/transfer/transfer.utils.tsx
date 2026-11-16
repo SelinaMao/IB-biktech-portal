@@ -54,16 +54,32 @@ export function findOtherSmeBankAccountName(
 }
 
 /** Maps a live `POST bank/accounts` row to the shape BaseSelect's account options expect. */
-export function mapAccountEntry(entry: CoreAccountEntry): TransferAccount {
+export function mapAccountEntry(entry: CoreAccountEntry | any): TransferAccount {
+  const rawBalance =
+    entry?.availableBalance ??
+    entry?.balance ??
+    entry?.currentBalance ??
+    entry?.amount ??
+    0;
+
+  const num =
+    typeof rawBalance === "number"
+      ? rawBalance
+      : parseFloat(String(rawBalance).replace(/,/g, ""));
+
+  const formattedBalance = !isNaN(num)
+    ? num.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : String(rawBalance ?? "0.00");
+
   return {
     id: entry.accountNumber,
     name: entry.accountName,
     number: entry.accountNumber,
-    balance: entry.availableBalance.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }),
-    currency: entry.ccy,
+    balance: formattedBalance,
+    currency: entry.ccy || entry.currency || "USD",
   };
 }
 

@@ -1,5 +1,6 @@
 export * from "./payment.types";
 export * from "./payment.data";
+export * from "./payment.api";
 
 export { default as PaymentActionCards } from "./components/PaymentActionCards";
 export { default as PaymentTemplatesTable } from "./components/PaymentTemplatesTable";
