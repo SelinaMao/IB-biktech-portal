@@ -310,7 +310,7 @@ export default function ClientLoginPage() {
     >
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ width: "100%" }}>
         {/* Quick select account for testing */}
-        {/* <BaseSelect
+        <BaseSelect
           value={selectedAccount}
           placeholder="Select Account (Quick Login)"
           options={accountOptions}
@@ -343,7 +343,7 @@ export default function ClientLoginPage() {
               },
             },
           }}
-        /> */}
+        />
 
         {/* User ID Field */}
         <Typography

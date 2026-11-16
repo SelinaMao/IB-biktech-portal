@@ -109,7 +109,7 @@ export default function TransactionsCard({
 }: TransactionsCardProps) {
   const [statusTab, setStatusTab] = useState<StatusTab>("Processed");
   const [dateFilter, setDateFilter] = useState<BaseFilterValue>({
-    type: "last7Days",
+    type: "thisMonth",
     from: null,
     to: null,
   });
@@ -452,9 +452,9 @@ export default function TransactionsCard({
 
           {/* Date Filter */}
           <BaseFilterButton
-            active={dateFilter.type !== "all" && dateFilter.type !== "last7Days"}
+            active={dateFilter.type !== "all" && dateFilter.type !== "thisMonth"}
             open={filterDialogOpen}
-            label={BASE_FILTER_TYPE_LABELS[dateFilter.type] ?? "Last 7 days"}
+            label={BASE_FILTER_TYPE_LABELS[dateFilter.type] ?? "This Month"}
             onClick={() => setFilterDialogOpen((prev) => !prev)}
           />
         </Box>

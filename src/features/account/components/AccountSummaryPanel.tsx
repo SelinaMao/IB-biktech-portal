@@ -46,6 +46,10 @@ export default function AccountSummaryPanel({ accounts, summary }: AccountSummar
       name: acc.accountName || `Account ${index + 1}`,
       value: 1,
       color: getAccountIndicatorColor(acc, index),
+      tooltipLabel: `${(Number(acc.availableBalance) || 0).toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} | ${acc.ccy === "KHR" ? "KHR" : "USD"}`,
     }));
   }, [accounts]);
 
@@ -67,13 +71,15 @@ export default function AccountSummaryPanel({ accounts, summary }: AccountSummar
     <Box
       sx={{
         position: "relative",
-        height:"196px",
+        height: "196px",
         bgcolor: "#FFFFFF",
         borderRadius: `${radius.xl}px`,
         border: `1px solid ${palette.slate[200]}`,
         boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
         // p: { xs: 2.5, sm: "20px 24px" },
         p: `${padding.xxl}px`,
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <CardBorderAccent color={SUMMARY_ACCENT_COLOR} type="bottom-left" radius={radius.xl} length={70} strokeWidth={3} />
@@ -84,7 +90,6 @@ export default function AccountSummaryPanel({ accounts, summary }: AccountSummar
           fontWeight: 700,
           color: palette.slate[900],
           lineHeight: 1.25,
-          mb: 9,
         }}
       >
         Account Summary
@@ -94,44 +99,20 @@ export default function AccountSummaryPanel({ accounts, summary }: AccountSummar
       <Stack
         direction="row"
         alignItems="center"
-        spacing={{ xs: 3, sm: 7, md: 10 }}
-        sx={{ flexWrap: "wrap", gap: { xs: 1, sm: 2 } }}
+        justifyContent="space-between"
+        sx={{ flexWrap: "wrap", gap: { xs: 2, sm: 3 }, flex: 1 }}
       >
-        <CategoryDonutChart
-          data={pieData}
-          size={90}
-          thickness={14}
-          paddingAngle={0}
-          centerValue={accounts.length}
-          centerLabel={accounts.length === 1 ? "account" : "accounts"}
-          centerColor={palette.slate[900]}
-        />
-
         <Stack direction="row" alignItems="center" spacing={3}>
           <BaseIconBadge
             direction="income"
             bgColor="#FFF4E8"
-            icon={
-              <svg width="22" height="22" viewBox="0 0 28 28" aria-hidden="true">
-                <text
-                  x="50%"
-                  y="50%"
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize="20"
-                  fontWeight={font.weight.medium}
-                  fill={palette.orange}
-                >
-                  ៛
-                </text>
-              </svg>
-            }
+            icon={<Box component="img" src="/assets/icons/khr.svg" alt="" width={22} height={22} />}
           />
           <Box>
             <Typography sx={{ fontSize: 13, color: "#64748B", fontWeight: 400, lineHeight: 1.2 }}>
               KHR
             </Typography>
-            <Typography sx={{ fontSize: 16, fontWeight: 600, color: "#0F172A", mt: 0.25, lineHeight: 1.2 }}>
+            <Typography sx={{ fontSize: font.size.xxl, fontWeight: 600, color: "#0F172A", mt: 0.25, lineHeight: 1.2 }}>
               <BaseBlurText>{formatCurrencySuffix(totalKhr, "KHR")}</BaseBlurText>
             </Typography>
           </Box>
@@ -143,10 +124,23 @@ export default function AccountSummaryPanel({ accounts, summary }: AccountSummar
             <Typography sx={{ fontSize: 13, color: "#64748B", fontWeight: 400, lineHeight: 1.2 }}>
               USD
             </Typography>
-            <Typography sx={{ fontSize: 16, fontWeight: 600, color: "#0F172A", mt: 0.25, lineHeight: 1.2 }}>
+            <Typography sx={{ fontSize: font.size.xxl, fontWeight: 600, color: "#0F172A", mt: 0.25, lineHeight: 1.2 }}>
               <BaseBlurText>{formatCurrencySuffix(totalUsd, "USD")}</BaseBlurText>
             </Typography>
           </Box>
+        </Stack>
+
+        <Stack alignItems="center" justifyContent="center">
+          <CategoryDonutChart
+            data={pieData}
+            size={120}
+            thickness={20}
+            cornerRadius={12}
+            paddingAngle={-15}
+            centerValue={accounts.length}
+            centerLabel={accounts.length === 1 ? "account" : "accounts"}
+            centerColor={palette.slate[900]}
+          />
         </Stack>
       </Stack>
     </Box>

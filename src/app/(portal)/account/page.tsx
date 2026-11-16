@@ -43,7 +43,7 @@ import { formatAccountNumber } from "@/utils/format-account-number";
 import AccountDetailsCard from "@/features/account/components/AccountDetailCard";
 import AccountInformationDetail from "@/features/account/components/AccountInformationDetail";
 
-const DEFAULT_TRANSACTIONS_FILTER: BaseFilterValue = { type: "last7Days", from: null, to: null };
+const DEFAULT_TRANSACTIONS_FILTER: BaseFilterValue = { type: "thisMonth", from: null, to: null };
 // "Latest Transactions" rows per page — each page is its own `listTransactions` call.
 const TRANSACTIONS_PAGE_SIZE = 5;
 // Maps BaseDownloadPanel's format to the API's `fileType` + the extension used for the saved file.
