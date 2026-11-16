@@ -66,10 +66,7 @@ export default function ApprovalSummaryCards({
     if (pendingCount !== undefined) return pendingCount;
     if (summary?.pendingCount !== undefined) return summary.pendingCount;
     if (entries !== undefined) {
-      const outgoing = entries.filter(
-        (e) => !e.transactionType?.toLowerCase().includes("consumer bill")
-      );
-      return outgoing.length > 0 ? outgoing.length : entries.length;
+      return entries.length;
     }
     return FIXED_APPROVAL_DATA.pendingCount;
   }, [pendingCount, summary?.pendingCount, entries]);
@@ -94,11 +91,7 @@ export default function ApprovalSummaryCards({
     if (summary?.pendingAmountUSDLabel) return summary.pendingAmountUSDLabel;
     if (entries !== undefined) {
       const usdTotal = entries
-        .filter(
-          (e) =>
-            (e.currency || "").toUpperCase() === "USD" &&
-            !e.transactionType?.toLowerCase().includes("consumer bill")
-        )
+        .filter((e) => (e.currency || "").toUpperCase() === "USD")
         .reduce((sum, e) => sum + (e.amount || 0), 0);
       return `USD ${usdTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
@@ -129,7 +122,6 @@ export default function ApprovalSummaryCards({
         ["Bill payment", 0],
       ]);
       for (const e of entries) {
-        if (e.transactionType?.toLowerCase().includes("consumer bill")) continue;
         let type = e.transactionType || "Other";
         const lower = type.toLowerCase();
         if (lower.includes("transfer") || lower.includes("bakong")) {
@@ -154,7 +146,7 @@ export default function ApprovalSummaryCards({
     minHeight: 124,
     display: "flex",
     flexDirection: "column",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     boxShadow: "none",
   };
 
@@ -185,7 +177,8 @@ export default function ApprovalSummaryCards({
                   fontSize: { xs: 28, sm: 32 },
                   fontWeight: 700,
                   color: "#0F172A",
-                  my: 1.25,
+                  mt: 0.5,
+                  mb: 0.5,
                   lineHeight: 1.1,
                 }}
               >
@@ -231,7 +224,8 @@ export default function ApprovalSummaryCards({
                   fontSize: { xs: 24, sm: 28 },
                   fontWeight: 700,
                   color: "#0F172A",
-                  my: 1.25,
+                  mt: 0.5,
+                  mb: 0.5,
                   lineHeight: 1.1,
                 }}
               >

@@ -50,6 +50,10 @@ export type ApprovalEntry = {
   status: ApprovalStatus;
   /** Reason entered by the reviewer when rejecting this entry. */
   rejectReason?: string;
+  /** Requester / Initiator name */
+  requestedBy?: string;
+  /** Financial or Non-financial category */
+  category?: "financial" | "non-financial";
 };
 
 /** One row in the "Pending Transaction Type" breakdown card. */

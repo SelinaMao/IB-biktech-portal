@@ -63,7 +63,7 @@ const PRESET_ACCOUNTS = [
   { label: "Denny · Non-Individual Checker", role: "Checker", username: "ni.denny.checker", password: PRESET_PASSWORD },
   { label: "Denny · Individual Super Admin", role: "Super Admin", username: "i.denny.super.admin", password: PRESET_PASSWORD },
 
-  
+
   { label: "Thearin · Non-Individual Super Admin", role: "Super Admin", username: "ni.thearin.super.admin", password: PRESET_PASSWORD },
   { label: "Thearin · Non-Individual Maker", role: "Maker", username: "ni.thearin.maker", password: PRESET_PASSWORD },
   { label: "Thearin · Non-Individual Checker", role: "Checker", username: "ni.thearin.checker", password: PRESET_PASSWORD },
@@ -310,7 +310,7 @@ export default function ClientLoginPage() {
     >
       <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate sx={{ width: "100%" }}>
         {/* Quick select account for testing */}
-        <BaseSelect
+        {/* <BaseSelect
           value={selectedAccount}
           placeholder="Select Account (Quick Login)"
           options={accountOptions}
@@ -343,7 +343,7 @@ export default function ClientLoginPage() {
               },
             },
           }}
-        />
+        /> */}
 
         {/* User ID Field */}
         <Typography

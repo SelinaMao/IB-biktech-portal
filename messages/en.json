@@ -8,7 +8,7 @@
     "Transfers": "Fund Transfers",
     "Payments": "Payments",
     "Schedule": "Schedule",
-    "Other Services":"Other Services",
+    "Other Services": "Other Services",
     "Payroll": "Payroll",
     "Merchant": "Merchant",
     "Administrator": "Administrator",
@@ -20,9 +20,8 @@
     "logout": "Logout",
     "approvalRequests": "Approvals",
     "approvalSetup": "Approval Matrix",
-      "Limits": "Limits",
+    "Limits": "Limits",
     "approvalApprovers": "Approver"
-    
   },
   "topbar": {
     "logout": "Logout",

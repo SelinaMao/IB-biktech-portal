@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -15,9 +17,11 @@ import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import BaseTextArea from "@core/form/BaseTextArea";
 import { approvalStatusMeta, type ApprovalEntry } from "../approval.types";
 import { showToast } from "@core/components/AppToast";
-import { useRaiseApprovalAuthenticatorMutation } from "@/features/workflow";
+import { useGetInstanceQuery, useRaiseApprovalAuthenticatorMutation } from "@/features/workflow";
 import type { AuthenticatorRequest } from "@/features/authenticator";
 import { toToastError } from "@/utils/api-error";
+
+dayjs.extend(relativeTime);
 
 export type ApprovalDetailDialogProps = {
   open: boolean;
@@ -61,24 +65,52 @@ export default function ApprovalDetailDialog({
     }
   }, [open]);
 
+  const instanceId = entry?.transactionId || entry?.id;
+  const { data: instanceDetail } = useGetInstanceQuery(instanceId ?? "", {
+    skip: !open || !instanceId,
+  });
+  const ctx = (instanceDetail?.context as Record<string, unknown> | undefined) || {};
+
   if (!entry) return null;
 
   const statusMeta = approvalStatusMeta(entry.status);
   const isPending = entry.status === "PENDING";
 
-  const formattedAmount =
-    entry.currency === "USD"
-      ? `$${entry.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : `${entry.currency} ${entry.amount.toLocaleString("en-US")}`;
+  const resolvedAmount =
+    entry.amount || Number(ctx.amount ?? ctx.totalAmount ?? ctx.originalAmount ?? 0);
+  const resolvedCurrency = (entry.currency || (ctx.currency as string) || "USD").toUpperCase();
 
-  const fromDisplay = [entry.sourceAccountName, formatLast4(entry.sourceAccountNo)].filter(Boolean).join(" ") || "—";
+  const formattedAmount =
+    resolvedCurrency === "USD"
+      ? `$${resolvedAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : `${resolvedCurrency} ${resolvedAmount.toLocaleString("en-US")}`;
+
+  const fromDisplay =
+    [
+      entry.sourceAccountName || (ctx.fromAccountName as string) || (ctx.sourceAccountName as string),
+      formatLast4(entry.sourceAccountNo || (ctx.fromAccountNumber as string) || (ctx.sourceAccountNo as string)),
+    ]
+      .filter(Boolean)
+      .join(" ") || "—";
+
+  const toAccountNo =
+    entry.payToAccountNo || (ctx.payToAccountNo as string) || (ctx.toAccountNumber as string) || "";
+  const toName =
+    entry.payToName || (ctx.payToName as string) || (ctx.toAccountName as string) || (ctx.beneficiary as string) || "—";
 
   const toDisplay =
-    entry.payToAccountNo && entry.payToAccountNo !== "Bakong"
-      ? `${entry.payToName} ${formatLast4(entry.payToAccountNo)}`
-      : entry.payToName || "—";
+    toAccountNo && toAccountNo !== "Bakong"
+      ? `${toName} ${formatLast4(toAccountNo)}`
+      : toName;
 
-  const referenceDisplay = entry.refNo || entry.transactionId || "—";
+  const referenceDisplay =
+    entry.refNo || entry.transactionId || instanceDetail?.referenceId || (ctx.referenceId as string) || "—";
+
+  const requesterName = entry.requestedBy || (ctx.raisedBy as string) || "Requester";
+  const timeLabel = entry.creationDate || instanceDetail?.createdAt
+    ? dayjs(entry.creationDate || instanceDetail?.createdAt).fromNow()
+    : "";
+  const subtitle = timeLabel ? `Requested by ${requesterName} · ${timeLabel}` : `Requested by ${requesterName}`;
 
   const requestReject = () => {
     setRejectReason("");
@@ -187,7 +219,7 @@ export default function ApprovalDetailDialog({
             </Box>
           </Stack>
           <Typography sx={{ fontSize: 13, color: "#6B7280", mt: 1.5 }}>
-            Requested by Dara Kim · 10 min ago
+            {subtitle}
           </Typography>
         </Box>
 

@@ -134,12 +134,16 @@ export default function ApprovalTypeBreakdownCard({
                 }}
               >
                 <Typography
+                  title={item.label}
                   sx={{
                     fontSize: 13,
                     color: palette.slate[900],
                     fontWeight: 400,
-                     flexShrink: 0,
-                    width: 90,
+                    flexShrink: 0,
+                    width: 110,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
                   {item.label}

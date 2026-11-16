@@ -1,4 +1,5 @@
 export * from "./approval.types";
+export * from "./approval.utils";
 export {
   approvalSummary,
   pendingApprovalEntries,

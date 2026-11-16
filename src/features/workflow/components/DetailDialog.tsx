@@ -15,7 +15,7 @@ import BaseDialog from "@core/components/BaseDialog";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import BaseTextArea from "@core/form/BaseTextArea";
 import { showToast } from "@core/components/AppToast";
-import { useRaiseApprovalAuthenticatorMutation } from "../workflow.api";
+import { useGetInstanceQuery, useRaiseApprovalAuthenticatorMutation } from "../workflow.api";
 import type { AuthenticatorRequest } from "@/features/authenticator";
 import { font, palette } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
@@ -110,6 +110,16 @@ export default function DetailDialog({
   const [authenticator, setAuthenticator] = useState<AuthenticatorRequest | null>(null);
   const [raiseApprovalAuthenticator, { isLoading: isRaisingAuth }] = useRaiseApprovalAuthenticatorMutation();
 
+  const workflowId =
+    (entry?.transactionId as string) ||
+    (entry?.id && typeof entry.id === "string" && !entry.id.includes(" ") ? String(entry.id) : null);
+
+  const { data: instanceDetail } = useGetInstanceQuery(workflowId ?? "", {
+    skip: !open || !workflowId,
+  });
+
+  const ctx = (instanceDetail?.context as Record<string, unknown> | undefined) || {};
+
   useEffect(() => {
     if (!open) {
       setQrConfirmOpen(false);
@@ -123,12 +133,14 @@ export default function DetailDialog({
   // Resolve status: "PENDING" | "APPROVED" | "REJECTED"
   const rawStatus = (
     status ||
+    instanceDetail?.status ||
     (entry?.status as string) ||
     "PENDING"
   ).toUpperCase();
 
   const isPending =
     rawStatus === "PENDING" ||
+    rawStatus === "IN_PROGRESS" ||
     rawStatus === "AWAITING APPROVAL" ||
     rawStatus === "DUE";
   const isApproved =
@@ -143,34 +155,38 @@ export default function DetailDialog({
   // Header Title & Subtitle
   const dialogTitle =
     title ||
+    instanceDetail?.functionName ||
     entry?.transactionType ||
-    "Outgoing transfer";
+    "Approval request";
 
   const requesterName =
     requestedBy ||
     entry?.requestedBy ||
-    "Dara Kim";
+    (ctx.raisedBy as string) ||
+    "—";
 
   const timeLabel = (() => {
     if (requestedTime) return requestedTime;
-    if (entry?.creationDate) {
-      const d = dayjs(entry.creationDate);
+    const dateStr = entry?.creationDate || instanceDetail?.createdAt;
+    if (dateStr) {
+      const d = dayjs(dateStr);
       if (d.isValid()) return d.fromNow();
     }
-    return "10 min ago";
+    return "—";
   })();
 
   // Amount
   const resolvedAmount =
     amount !== undefined
       ? amount
-      : entry?.amount !== undefined
+      : entry?.amount !== undefined && entry.amount !== 0
         ? entry.amount
-        : 250;
+        : ctx.amount ?? ctx.totalAmount ?? ctx.originalAmount ?? 0;
 
   const resolvedCurrency = (
     currency ||
     entry?.currency ||
+    (ctx.currency as string) ||
     "USD"
   ).toUpperCase();
 
@@ -187,28 +203,44 @@ export default function DetailDialog({
   const fromDisplay =
     from ||
     [
-      entry?.sourceAccountName || "Operating",
-      formatLast4(entry?.sourceAccountNo || "001234564821"),
+      entry?.sourceAccountName || (ctx.fromAccountName as string) || (ctx.sourceAccountName as string),
+      formatLast4(entry?.sourceAccountNo || (ctx.fromAccountNumber as string) || (ctx.sourceAccountNo as string)),
     ]
       .filter(Boolean)
       .join(" ") ||
-    "Operating •••• 4821";
+    "—";
+
+  const toAccountNo =
+    entry?.payToAccountNo ||
+    (ctx.payToAccountNo as string) ||
+    (ctx.toAccountNumber as string) ||
+    "";
+
+  const toName =
+    entry?.payToName ||
+    (ctx.payToName as string) ||
+    (ctx.toAccountName as string) ||
+    (ctx.beneficiary as string) ||
+    "—";
 
   const toDisplay =
     to ||
-    (entry?.payToAccountNo && entry?.payToAccountNo !== "Bakong"
-      ? `${entry?.payToName || "Mekong Logistics"} — ${formatLast4(entry?.payToAccountNo)}`
-      : entry?.payToName || "Mekong Logistics — ABA •••• 1180");
+    (toAccountNo && toAccountNo !== "Bakong"
+      ? `${toName} — ${formatLast4(toAccountNo)}`
+      : toName);
 
   const referenceDisplay =
     reference ||
     entry?.refNo ||
     entry?.transactionId ||
-    "INV-2026-0912";
+    instanceDetail?.referenceId ||
+    (ctx.referenceId as string) ||
+    "—";
 
   const finalRejectReason =
     explicitRejectReason ||
     (entry?.rejectReason as string) ||
+    (instanceDetail?.tasks?.find((t) => t.reason)?.reason as string) ||
     "";
 
   // Status Badge Configuration

@@ -8,7 +8,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import Image from "next/image";
 
 import BaseButton from "@core/components/BaseButton";
-import { font, palette, radius } from "@/theme/palette";
+import { font, padding, palette, radius } from "@/theme/palette";
 
 export type BindPromptContentProps = {
   title: ReactNode;
@@ -31,8 +31,8 @@ export type BindPromptContentProps = {
 };
 
 export default function BindPromptContent({
-  title="Activate Account",
-  description="You're almost there! Activate your account to get started and access all features.",
+  title = "Activate Account",
+  description = "You're almost there! Activate your account to get started and access all features.",
   bodyExtra,
   imageSrc = "/assets/icons/ImageLinkMobile.svg",
   imageHeight = 300,
@@ -52,11 +52,11 @@ export default function BindPromptContent({
   const image = <Image src={imageSrc} alt="" fill style={{ objectFit: "cover", objectPosition: "center" }} />;
 
   return (
-    <Stack sx={{ alignItems: "center", textAlign: "center",padding:"24px", ...stackSx }} spacing={3}>
+    <Stack sx={{ alignItems: "center", textAlign: "center", ...stackSx }} spacing={3}>
       <Box
         sx={{
-          padding:"20px",
-          marginTop:"30px",
+          padding: `${padding.sm}px`,
+          marginTop: "30px",
           position: "relative",
           width: "120px",
           height: "120px",
@@ -70,14 +70,14 @@ export default function BindPromptContent({
       <Box sx={{ mt: 4, ...textBoxSx }}>
         <Typography
           variant="h5"
-          sx={{ mb: 1, fontWeight: font.weight.bold, fontSize: font.size["5xl"], color: palette.slate[950], ...titleSx }}
+          sx={{ mb: 4, fontWeight: font.weight.bold, fontSize: font.size["5xl"], color: palette.slate[950], ...titleSx }}
         >
           {title}
         </Typography>
         {description ? (
           <Typography
             variant="body2"
-            sx={{ fontSize: font.size.base, maxWidth: font.weight.regular, mx: "auto", color: palette.slate[950], ...descriptionSx }}
+            sx={{ fontSize: font.size.base, maxWidth: font.weight.regular, mx: "auto", mb: 4, color: palette.slate[950], ...descriptionSx }}
           >
             {description}
           </Typography>
@@ -86,7 +86,7 @@ export default function BindPromptContent({
       </Box>
 
       {secondaryActionTitle || primaryActionTitle ? (
-        <Stack direction="row" spacing={6} sx={{ width: "100%" }}>
+        <Stack direction="row" sx={{ width: "100%", pt: 1 }}>
           {secondaryActionTitle ? (
             <BaseButton
               fullWidth
@@ -104,7 +104,14 @@ export default function BindPromptContent({
               }}
             />
           ) : null}
-          {primaryActionTitle ? <BaseButton fullWidth title={primaryActionTitle} onClick={onPrimaryAction} /> : null}
+          {primaryActionTitle ? (
+            <BaseButton
+              fullWidth
+              title={primaryActionTitle}
+              onClick={onPrimaryAction}
+              sx={{ height: 52, fontSize: font.size.lg, fontWeight: font.weight.bold }}
+            />
+          ) : null}
         </Stack>
       ) : null}
 
