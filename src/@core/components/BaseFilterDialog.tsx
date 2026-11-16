@@ -468,22 +468,27 @@ export default function BaseFilterDialog({
           sx: {
             borderRadius: "20px",
             bgcolor: "#FFFFFF",
-            p: `${padding.xxl}px`,
             width: { xs: "calc(100vw - 32px)", sm: 460 },
             maxWidth: 480,
+            maxHeight: "calc(100vh - 64px)",
             boxSizing: "border-box",
             boxShadow: "0px 20px 40px rgba(15, 23, 42, 0.16)",
+            display: "flex",
+            flexDirection: "column",
           },
         },
       }}
     >
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Header */}
         <Stack
           direction="row"
           sx={{
             justifyContent: "space-between",
             alignItems: "flex-start",
+            flexShrink: 0,
+            p: `${padding.xxl}px`,
+            pb: 0,
             mb: 6,
           }}
         >
@@ -520,7 +525,7 @@ export default function BaseFilterDialog({
         </Stack>
 
         {/* Period Section */}
-        <Box sx={{ mb: 2.5, }}>
+        <Box sx={{ mb: 2.5, px: `${padding.xxl}px`, overflowY: "auto", minHeight: 0 }}>
           <Typography
             sx={{
               fontSize: 14,
@@ -626,8 +631,11 @@ export default function BaseFilterDialog({
           sx={{
             justifyContent: "flex-end",
             alignItems: "center",
-            mt: 5,
-            pt: 1,
+            flexShrink: 0,
+            px: `${padding.xxl}px`,
+            pt: 2,
+            pb: `${padding.xxl}px`,
+            borderTop: `1px solid ${palette.slate[100]}`,
           }}
         >
           <Button

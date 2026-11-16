@@ -119,7 +119,7 @@ export default function ApprovalTable({
   // Date filter dialog state (matches account's TransactionFilterDialog)
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [internalDateFilter, setInternalDateFilter] = useState<BaseFilterValue>({
-    type: "last7Days",
+    type: "thisMonth",
     from: null,
     to: null,
   });
@@ -322,7 +322,7 @@ export default function ApprovalTable({
   const hasActiveFilter = Boolean(
     dateFilter &&
     dateFilter.type !== "all" &&
-    dateFilter.type !== "last7Days" &&
+    dateFilter.type !== "thisMonth" &&
     (dateFilter.type || dateFilter.from || dateFilter.to),
   );
 
@@ -408,8 +408,8 @@ export default function ApprovalTable({
             open={filterDialogOpen}
             label={
               dateFilter && (dateFilter as BaseFilterValue).type
-                ? (BASE_FILTER_TYPE_LABELS[(dateFilter as BaseFilterValue).type] ?? "Last 7 days")
-                : "Last 7 days"
+                ? (BASE_FILTER_TYPE_LABELS[(dateFilter as BaseFilterValue).type] ?? "This Month")
+                : "This Month"
             }
             onClick={() => setFilterDialogOpen((prev) => !prev)}
             inactiveTextColor={palette.slate[700]}

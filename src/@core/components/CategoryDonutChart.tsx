@@ -2,18 +2,38 @@
 
 import type { ReactNode } from "react";
 import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 import AppRecharts from "@/styles/AppRecharts";
-import { palette } from "@/theme/palette";
+import { font, palette } from "@/theme/palette";
 
 export type CategoryDonutDatum = {
   name: string;
   value: number;
   color: string;
+  /** Text shown in the hover tooltip, e.g. a formatted balance — falls back to `value`. */
+  tooltipLabel?: string;
 };
+
+type DonutTooltipProps = {
+  active?: boolean;
+  payload?: Array<{ payload: CategoryDonutDatum }>;
+};
+
+function DonutTooltip({ active, payload }: DonutTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const datum = payload[0].payload;
+  return (
+    <Paper elevation={3} sx={{ px: 1.5, py: 1, borderRadius: 1.5 }}>
+      <Typography sx={{ fontSize: font.size.sm, fontWeight: 400, color: palette.slate[900], whiteSpace: "nowrap" }}>
+        {datum.tooltipLabel ?? datum.value}
+      </Typography>
+    </Paper>
+  );
+}
 
 export type CategoryDonutChartProps = {
   data: CategoryDonutDatum[];
@@ -78,6 +98,12 @@ export default function CategoryDonutChart({
                 <Cell key={`${d.name}-${index}`} fill={d.color} />
               ))}
             </Pie>
+            <Tooltip
+              content={<DonutTooltip />}
+              cursor={false}
+              offset={10}
+              wrapperStyle={{ zIndex: 50, pointerEvents: "none", outline: "none" }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </AppRecharts>

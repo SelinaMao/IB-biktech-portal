@@ -335,14 +335,14 @@ export default function LoanTransactionsCard({
   const [page, setPage] = useState(0);
   const [query, setQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<BaseFilterValue>({
-    type: "all",
+    type: "thisMonth",
     from: null,
     to: null,
   });
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const [downloadAnchor, setDownloadAnchor] = useState<null | HTMLElement>(null);
 
-  const hasActiveFilter = Boolean(dateFilter && dateFilter.type !== "all" && dateFilter.type !== "last7Days");
+  const hasActiveFilter = Boolean(dateFilter && dateFilter.type !== "all" && dateFilter.type !== "thisMonth");
 
   const filtered = useMemo(() => {
     const byStatus = showStatusToggle
@@ -623,7 +623,7 @@ export default function LoanTransactionsCard({
           <BaseFilterButton
             active={hasActiveFilter}
             open={filterDialogOpen}
-            label={BASE_FILTER_TYPE_LABELS[dateFilter.type] ?? "Last 7 days"}
+            label={BASE_FILTER_TYPE_LABELS[dateFilter.type] ?? "This Month"}
             onClick={() => setFilterDialogOpen((prev) => !prev)}
           />
 

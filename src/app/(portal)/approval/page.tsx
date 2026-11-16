@@ -29,7 +29,7 @@ import {
 } from "@/features/approval";
 
 const ROWS_PER_PAGE = 5;
-const DEFAULT_FILTER: BaseFilterValue = { type: "all", from: null, to: null };
+const DEFAULT_FILTER: BaseFilterValue = { type: "thisMonth", from: null, to: null };
 const OPEN_STATUSES: InstanceStatus[] = ["PENDING", "IN_PROGRESS", "ESCALATED"];
 
 export default function ApprovalPage() {
