@@ -13,6 +13,7 @@ import {
   useListInstancesQuery,
   useListWorkflowFunctionsQuery,
   useActOnInstanceMutation,
+  useCancelInstanceMutation,
   type InstanceStatus,
   type WorkflowFunction,
 } from "@/features/workflow";
@@ -38,6 +39,7 @@ export default function ApprovalPage() {
   ]);
   const canSeeTasks = canView;
   const canAct = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_EXECUTE);
+  const canCancel = useCan(CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_CANCEL);
 
   // Dynamic API queries
   const tasksPending = useListMyTasksQuery({ status: "PENDING" }, { skip: !canSeeTasks });
@@ -47,6 +49,7 @@ export default function ApprovalPage() {
   const workflowFunctions = useListWorkflowFunctionsQuery(undefined, { skip: !canView });
 
   const [actOnInstance, { isLoading: isActing }] = useActOnInstanceMutation();
+  const [cancelInstance, { isLoading: isCancelling }] = useCancelInstanceMutation();
 
   const [tab, setTab] = useState<ApprovalTab>("pending");
   const [search, setSearch] = useState("");
@@ -202,6 +205,22 @@ export default function ApprovalPage() {
     }
   };
 
+  const handleCancel = async (entry: ApprovalEntry) => {
+    const workflowId = entry.transactionId || entry.id;
+    if (!workflowId || !canCancel) return;
+
+    try {
+      await cancelInstance(workflowId).unwrap();
+      setSelectedEntry(null);
+      showToast("success", {
+        title: "Request cancelled",
+        message: `${entry.transactionType} to ${entry.payToName} has been cancelled.`,
+      });
+    } catch (error) {
+      showToast("error", toToastError(error, "Could not cancel the request. Please try again."));
+    }
+  };
+
   const handleReject = async (entry: ApprovalEntry, reason: string) => {
     const workflowId = entry.transactionId || entry.id;
     if (!workflowId || !canAct) return;
@@ -314,9 +333,13 @@ export default function ApprovalPage() {
         onClose={() => setSelectedEntry(null)}
         entry={selectedEntry}
         onApprove={handleApprove}
+        onCancel={handleCancel}
         onReject={handleReject}
+        canCancel={canCancel}
+        canAct={canAct}
         isApproving={isActing}
         isRejecting={isActing}
+        isCancelling={isCancelling}
       />
     </Box>
   );

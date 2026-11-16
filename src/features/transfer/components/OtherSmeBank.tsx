@@ -161,7 +161,7 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
           <ControlledBaseInput
             name="toAccountNumber"
             control={control}
-            placeholder="Sokha Chan"
+            placeholder="e.g 110222111 "
             sx={{
               "& .MuiOutlinedInput-root": {
                 bgcolor: "#FFFFFF",

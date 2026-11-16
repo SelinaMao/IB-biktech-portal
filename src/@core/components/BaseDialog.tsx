@@ -58,6 +58,10 @@ export type BaseDialogProps = {
   paperSx?: SxProps<Theme>;
   /** Custom PaperProps passed to MUI Dialog. */
   paperProps?: Partial<PaperProps>;
+  /** Custom styles for the Dialog root. */
+  sx?: SxProps<Theme>;
+  /** Slot props passed to MUI Dialog (e.g. backdrop styling). */
+  slotProps?: DialogProps["slotProps"];
 };
 
 /**
@@ -90,6 +94,8 @@ export default function BaseDialog({
   contentSx,
   paperSx,
   paperProps,
+  sx,
+  slotProps,
 }: BaseDialogProps) {
   const isAction = variant === "action";
   const spacingSx = isAction ? { p: { xs: 4, sm: 4.5, md: 6 } } : undefined;
@@ -104,6 +110,8 @@ export default function BaseDialog({
       }
       maxWidth={maxWidth}
       fullWidth
+      sx={sx}
+      slotProps={slotProps}
       PaperProps={{
         ...paperProps,
         sx: [

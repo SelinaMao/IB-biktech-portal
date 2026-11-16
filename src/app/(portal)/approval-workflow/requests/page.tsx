@@ -121,7 +121,7 @@ export default function ApprovalRequestsPage() {
   const workflowFunctions = useListWorkflowFunctionsQuery(undefined, { skip: !canView });
 
   const [act, actState] = useActOnInstanceMutation();
-  const [cancel] = useCancelInstanceMutation();
+  const [cancel, cancelState] = useCancelInstanceMutation();
   const [raiseApprovalAuthenticator, raiseAuthenticatorState] =
     useRaiseApprovalAuthenticatorMutation();
 
@@ -322,6 +322,30 @@ export default function ApprovalRequestsPage() {
     }
   };
 
+  const handleCancel = async (entry?: DetailDialogEntry | null) => {
+    const target = (entry as ApprovalEntry) || selectedEntry;
+    if (!target) return;
+    const workflowId =
+      target.transactionId ||
+      (allInstances.some((i) => i.id === target.id) ? target.id : target.id);
+
+    if (workflowId && canCancel) {
+      try {
+        await cancel(workflowId).unwrap();
+        setSelectedEntry(null);
+        setOpenWorkflowId(null);
+        showToast("success", {
+          title: "Request cancelled",
+          message: `${target.transactionType} has been cancelled.`,
+        });
+        return;
+      } catch (error) {
+        showToast("error", toToastError(error, "Couldn't cancel the request"));
+        return;
+      }
+    }
+  };
+
   const handleReject = async (entry?: DetailDialogEntry | null, reason?: string) => {
     const target = (entry as ApprovalEntry) || selectedEntry;
     if (!target) return;
@@ -475,7 +499,7 @@ export default function ApprovalRequestsPage() {
         onRowClick={handleRowClick}
       />
 
-      {/* Detail Dialog with live instance context, approval QR authenticator, and reject flow */}
+      {/* Detail Dialog with live instance context, approval QR authenticator, and cancel request flow */}
       {showDetailDialog && (
         <DetailDialog
           open={Boolean(selectedEntry)}
@@ -485,9 +509,13 @@ export default function ApprovalRequestsPage() {
           }}
           entry={selectedEntry}
           onApprove={handleApprove}
+          onCancel={handleCancel}
           onReject={handleReject}
+          canCancel={canCancel}
+          canAct={canAct}
           isApproving={actState.isLoading || raiseAuthenticatorState.isLoading}
           isRejecting={actState.isLoading}
+          isCancelling={cancelState.isLoading}
         />
       )}
 

@@ -29,8 +29,12 @@ export type ApprovalDetailDialogProps = {
   entry: ApprovalEntry | null;
   onApprove?: (entry: ApprovalEntry, authenticatorRequestId?: string) => void;
   onReject?: (entry: ApprovalEntry, reason: string) => void;
+  onCancel?: (entry: ApprovalEntry) => void;
   isApproving?: boolean;
   isRejecting?: boolean;
+  isCancelling?: boolean;
+  canCancel?: boolean;
+  canAct?: boolean;
 };
 
 function formatLast4(acc?: string | null) {
@@ -45,12 +49,17 @@ export default function ApprovalDetailDialog({
   entry,
   onApprove,
   onReject,
+  onCancel,
   isApproving = false,
   isRejecting = false,
+  isCancelling = false,
+  canCancel,
+  canAct,
 }: ApprovalDetailDialogProps) {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectTouched, setRejectTouched] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [qrConfirmOpen, setQrConfirmOpen] = useState(false);
   const [authenticator, setAuthenticator] = useState<AuthenticatorRequest | null>(null);
   const [raiseApprovalAuthenticator, { isLoading: isRaisingAuth }] = useRaiseApprovalAuthenticatorMutation();
@@ -62,6 +71,7 @@ export default function ApprovalDetailDialog({
       setRejectDialogOpen(false);
       setRejectReason("");
       setRejectTouched(false);
+      setCancelDialogOpen(false);
     }
   }, [open]);
 
@@ -112,6 +122,20 @@ export default function ApprovalDetailDialog({
     : "";
   const subtitle = timeLabel ? `Requested by ${requesterName} · ${timeLabel}` : `Requested by ${requesterName}`;
 
+  const handleOpenCancel = () => {
+    setCancelDialogOpen(true);
+  };
+
+  const handleConfirmCancel = () => {
+    setCancelDialogOpen(false);
+    if (onCancel && entry) {
+      onCancel(entry);
+    } else if (onReject && entry) {
+      onReject(entry, "Cancelled by user");
+    }
+    onClose();
+  };
+
   const requestReject = () => {
     setRejectReason("");
     setRejectTouched(false);
@@ -154,6 +178,9 @@ export default function ApprovalDetailDialog({
     onApprove?.(entry, requestId);
     onClose();
   };
+
+  const canCancelAllowed = canCancel !== undefined ? canCancel : Boolean(onCancel || onReject);
+  const canApproveAllowed = canAct !== undefined ? canAct : Boolean(onApprove);
 
   return (
     <>
@@ -294,52 +321,57 @@ export default function ApprovalDetailDialog({
         >
           {isPending ? (
             <>
-              <Button
-                variant="outlined"
-                onClick={requestReject}
-                disabled={isApproving || isRejecting}
-                sx={{
-                  minWidth: 80,
-                  height: 38,
-                  px: 2.5,
-                  borderColor: "#D1D5DB",
-                  color: "#1F2937",
-                  bgcolor: "#FFFFFF",
-                  borderRadius: "8px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  textTransform: "none",
-                  boxShadow: "none",
-                  "&:hover": {
-                    borderColor: "#9CA3AF",
-                    bgcolor: "#F9FAFB",
-                  },
-                }}
-              >
-                Reject
-              </Button>
-              <Button
-                variant="contained"
-                onClick={requestApprove}
-                disabled={isApproving || isRejecting}
-                sx={{
-                  minWidth: 90,
-                  height: 38,
-                  px: 2.5,
-                  bgcolor: "#2764A5",
-                  color: "#FFFFFF",
-                  borderRadius: "8px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  textTransform: "none",
-                  boxShadow: "none",
-                  "&:hover": {
-                    bgcolor: "#1E5186",
-                  },
-                }}
-              >
-                Approve
-              </Button>
+              {canCancelAllowed && (
+                <Button
+                  variant="outlined"
+                  onClick={handleOpenCancel}
+                  disabled={isApproving || isCancelling || isRejecting}
+                  sx={{
+                    minWidth: 120,
+                    height: 38,
+                    px: 2.5,
+                    borderColor: "#D1D5DB",
+                    color: "#1F2937",
+                    bgcolor: "#FFFFFF",
+                    borderRadius: "8px",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    textTransform: "none",
+                    boxShadow: "none",
+                    "&:hover": {
+                      borderColor: "#EF4444",
+                      color: "#DC2626",
+                      bgcolor: "#FEF2F2",
+                    },
+                  }}
+                >
+                  {isCancelling ? "Cancelling..." : "Cancel request"}
+                </Button>
+              )}
+              {canApproveAllowed && (
+                <Button
+                  variant="contained"
+                  onClick={requestApprove}
+                  disabled={isApproving || isCancelling || isRejecting}
+                  sx={{
+                    minWidth: 90,
+                    height: 38,
+                    px: 2.5,
+                    bgcolor: "#2764A5",
+                    color: "#FFFFFF",
+                    borderRadius: "8px",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    textTransform: "none",
+                    boxShadow: "none",
+                    "&:hover": {
+                      bgcolor: "#1E5186",
+                    },
+                  }}
+                >
+                  {isApproving ? "Approving..." : "Approve"}
+                </Button>
+              )}
             </>
           ) : (
             <Button
@@ -417,6 +449,61 @@ export default function ApprovalDetailDialog({
                 "&:hover": { backgroundColor: palette.danger[600] },
               }}
             />
+          </Stack>
+        </Stack>
+      </BaseDialog>
+
+      {/* Cancel Request Confirmation Sub-Dialog */}
+      <BaseDialog
+        open={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+        title="Cancel Request"
+        maxWidth="xs"
+      >
+        <Stack spacing={2.5}>
+          <Typography sx={{ fontSize: 14, color: "#64748B", lineHeight: 1.5 }}>
+            Are you sure you want to cancel this request? Any pending approvals will be stopped.
+          </Typography>
+
+          <Stack direction="row" spacing={1.5} sx={{ justifyContent: "flex-end", pt: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setCancelDialogOpen(false)}
+              disabled={isCancelling}
+              sx={{
+                minWidth: 90,
+                height: 38,
+                px: 2,
+                borderColor: "#D1D5DB",
+                color: "#1F2937",
+                borderRadius: "8px",
+                fontSize: 14,
+                fontWeight: 600,
+                textTransform: "none",
+              }}
+            >
+              No, keep it
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleConfirmCancel}
+              disabled={isCancelling}
+              sx={{
+                minWidth: 120,
+                height: 38,
+                px: 2.5,
+                bgcolor: "#DC2626",
+                color: "#FFFFFF",
+                borderRadius: "8px",
+                fontSize: 14,
+                fontWeight: 600,
+                textTransform: "none",
+                boxShadow: "none",
+                "&:hover": { bgcolor: "#B91C1C" },
+              }}
+            >
+              {isCancelling ? "Cancelling…" : "Cancel request"}
+            </Button>
           </Stack>
         </Stack>
       </BaseDialog>
