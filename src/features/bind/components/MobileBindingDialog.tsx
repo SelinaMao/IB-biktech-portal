@@ -15,8 +15,7 @@ import { useTranslations } from "next-intl";
 import { QRCodeSVG } from "qrcode.react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useAuth } from "@/features/auth/use-auth";
-import { font, palette, radius } from "@/theme/palette";
+import { font, padding, palette, radius } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
 import { formatDateTime } from "@/utils/date-time";
 import { showToast } from "@core/components/AppToast";
@@ -69,10 +68,8 @@ export default function MobileBindingDialog({
   onUseSms,
 }: MobileBindingDialogProps) {
   const t = useTranslations("mobileBinding");
-  const { logout } = useAuth();
   const requestedForOpen = useRef(false);
   const [view, setView] = useState<DialogView>("starting");
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const [session, setSession] = useState<DeviceBindingSession | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [unlinkConfirmOpen, setUnlinkConfirmOpen] = useState(false);
@@ -182,15 +179,6 @@ export default function MobileBindingDialog({
     return () => window.clearInterval(timer);
   }, [activeDeadline, open, terminal, view]);
 
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-    try {
-      await logout();
-    } finally {
-      setIsSigningOut(false);
-    }
-  };
-
   const handleUnlink = async () => {
     if (!unlinkPassword.trim() || !unlinkAgreedTerms) return;
     try {
@@ -267,7 +255,7 @@ export default function MobileBindingDialog({
         title={title}
         subtitle={subtitle}
         hideActions
-        hideCloseButton={dialogView !== "bound"}
+        hideCloseButton
         disableBackdropClick
         maxWidth="xs"
         paperSx={{
@@ -275,8 +263,9 @@ export default function MobileBindingDialog({
           maxWidth: 440,
           boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.12)",
         }}
+
         titleSx={isScanView ? { display: "none" } : undefined}
-        contentSx={isScanView ? { p: { xs: 3, sm: 4 }, pt: { xs: 3.5, sm: 4 } } : undefined}
+        contentSx={isScanView ? { p: padding.sm } : undefined}
       >
         {dialogView === "starting" ? (
           <Stack sx={{ alignItems: "center", py: 8 }} spacing={3}>
@@ -288,65 +277,112 @@ export default function MobileBindingDialog({
         ) : null}
 
         {dialogView === "bound" ? (
-          <BindPromptContent
-            title={t("bound.heading")}
-            titleSx={{ fontWeight: font.weight.regular, fontSize: font.size["xxl"] }}
-            imageInset={20}
-            stackSx={{ pt: 2, px: 8 }}
-            bodyExtra={
-              <>
-                {deviceModel ? (
-                  <Typography variant="body2" sx={{ fontSize: font.size.base, maxWidth: font.weight.regular, mx: "auto", color: palette.slate[950] }}>
-                    {deviceModel}
-                  </Typography>
-                ) : null}
-                {lastSeenAt ? (
-                  <Box
-                    sx={{
-                      width: "100%",
-                      textAlign: "center",
-                      py: 1.5,
-                      px: 2,
-                    }}
-                  >
-                    <Typography variant="caption" sx={{ fontSize: font.size.xs, color: palette.slate[400] }}>
-                      {t("bound.lastLogin")}
+          <Box sx={{ position: "relative" }}>
+            <IconButton
+              onClick={handleClose}
+              aria-label="Close"
+              size="small"
+              sx={{
+                position: "absolute",
+                top: 6,
+                right: 6,
+                width: 32,
+                height: 32,
+                bgcolor: "#EDF0F4",
+                color: "#1E293B",
+                borderRadius: "50%",
+                p: 0,
+                transition: "all 0.15s ease-in-out",
+                "&:hover": {
+                  bgcolor: "#E2E8F0",
+                },
+              }}
+            >
+              <X size={18} />
+            </IconButton>
+
+            <BindPromptContent
+              title={t("bound.heading")}
+              titleSx={{ fontWeight: font.weight.regular, fontSize: font.size["xxl"] }}
+              imageInset={20}
+              stackSx={{ pt: 2, px: 8 }}
+              bodyExtra={
+                <>
+                  {deviceModel ? (
+                    <Typography variant="body2" sx={{ fontSize: font.size.base, maxWidth: font.weight.regular, mx: "auto", color: palette.slate[950] }}>
+                      {deviceModel}
                     </Typography>
-                    <Typography variant="body2" sx={{ mt: 0.25, fontSize: font.size.xs, color: palette.slate[400] }}>
-                      {formatDateTime(lastSeenAt)}
-                    </Typography>
-                  </Box>
-                ) : null}
-              </>
-            }
-          >
-            <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
-              <BaseButton
-                fullWidth
-                title={t("bound.unlink")}
-                onClick={() => setUnlinkConfirmOpen(true)}
-                sx={{
-                  backgroundColor: palette.danger[500],
-                  color: palette.white,
-                  "&:hover": { backgroundColor: palette.danger[500] },
-                }}
-              />
-            </Stack>
-          </BindPromptContent>
+                  ) : null}
+                  {lastSeenAt ? (
+                    <Box
+                      sx={{
+                        width: "100%",
+                        textAlign: "center",
+                        py: 1.5,
+                        px: 2,
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontSize: font.size.xs, color: palette.slate[400] }}>
+                        {t("bound.lastLogin")}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.25, fontSize: font.size.xs, color: palette.slate[400] }}>
+                        {formatDateTime(lastSeenAt)}
+                      </Typography>
+                    </Box>
+                  ) : null}
+                </>
+              }
+            >
+              <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
+                <BaseButton
+                  fullWidth
+                  title={t("bound.unlink")}
+                  onClick={() => setUnlinkConfirmOpen(true)}
+                  sx={{
+                    backgroundColor: palette.danger[500],
+                    color: palette.white,
+                    "&:hover": { backgroundColor: palette.danger[500] },
+                  }}
+                />
+              </Stack>
+            </BindPromptContent>
+          </Box>
         ) : null}
 
         {dialogView === "getStarted" ? (
-          <BindPromptContent
-            title={t("activatePrompt.title")}
-            description={t("activatePrompt.description")}
-            imageInset={20}
-            stackSx={{ pt: 2, px: 8 }}
-            secondaryActionTitle={t("activatePrompt.signOut")}
-            onSecondaryAction={() => void handleSignOut()}
-            secondaryActionLoading={isSigningOut}
-            primaryActionTitle={t("activatePrompt.getStarted")}
-            onPrimaryAction={requestQr}
-          />
+          <Box sx={{ position: "relative" }}>
+            <IconButton
+              onClick={handleClose}
+              aria-label="Close"
+              size="small"
+              sx={{
+                position: "absolute",
+                top: 6,
+                right: 6,
+                width: 32,
+                height: 32,
+                bgcolor: "#EDF0F4",
+                color: "#1E293B",
+                borderRadius: "50%",
+                p: 0,
+                transition: "all 0.15s ease-in-out",
+                "&:hover": {
+                  bgcolor: "#E2E8F0",
+                },
+              }}
+            >
+              <X size={18} />
+            </IconButton>
+
+            <BindPromptContent
+              title={t("activatePrompt.title")}
+              description={t("activatePrompt.description")}
+              imageInset={20}
+              stackSx={{ pt: 2, px: 8 }}
+              primaryActionTitle={t("activatePrompt.getStarted")}
+              onPrimaryAction={requestQr}
+            />
+          </Box>
         ) : null}
 
         {dialogView === "error" ? (
@@ -442,7 +478,7 @@ export default function MobileBindingDialog({
                     })}
                   </Typography>
                 </Box>
-
+                {/* OR Handle */}
                 <Box
                   sx={{
                     width: "100%",
@@ -450,7 +486,7 @@ export default function MobileBindingDialog({
                     borderRadius: "16px",
                     py: 3.5,
                     px: 2,
-                    mt: 2.5,
+                    mt: 4,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -472,7 +508,7 @@ export default function MobileBindingDialog({
                     bgcolor: "#F5F7FA",
                     borderRadius: "16px",
                     p: 2,
-                    mt: 2,
+                    mt: 3,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
@@ -555,9 +591,9 @@ export default function MobileBindingDialog({
             ) : null}
 
             {status === "SCANNED" ? (
-              <Box 
+              <Box
                 sx={{
-                  
+
                   position: "relative",
                   alignSelf: "center",
                   p: 2.5,

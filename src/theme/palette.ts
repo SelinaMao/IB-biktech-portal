@@ -171,6 +171,14 @@ export const padding = {
   xlg: 18
 
 } as const;
+export const Width = {
+  xs: 360,
+  sm: 480,
+  md: 550, // every side drawer
+  lg: 720, // a drawer step that shows a full table
+  xl: 960,
+  xxl: 1080,
+} as const;
 
 /** Shared height for buttons + inputs that must line up (auth forms, dialogs). */
 export const controlBTNHeight = { xs: 42, md: 46 } as const;

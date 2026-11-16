@@ -154,7 +154,7 @@ export default function ApprovalSummaryCards({
     minHeight: 124,
     display: "flex",
     flexDirection: "column",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
     boxShadow: "none",
   };
 
@@ -185,7 +185,8 @@ export default function ApprovalSummaryCards({
                   fontSize: { xs: 28, sm: 32 },
                   fontWeight: 700,
                   color: "#0F172A",
-                  my: 1.25,
+                  mt: 0.5,
+                  mb: 0.5,
                   lineHeight: 1.1,
                 }}
               >
@@ -231,7 +232,8 @@ export default function ApprovalSummaryCards({
                   fontSize: { xs: 24, sm: 28 },
                   fontWeight: 700,
                   color: "#0F172A",
-                  my: 1.25,
+                  mt: 0.5,
+                  mb: 0.5,
                   lineHeight: 1.1,
                 }}
               >

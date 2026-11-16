@@ -266,6 +266,17 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
     setActivatePromptOpen(false);
     logout().catch((err) => console.error("Logout failed:", err));
   };
+
+  // Closing the QR-scan step without finishing device binding leaves the
+  // account unactivated, same as dismissing the activate prompt — so it
+  // forces the same logout. An already-linked device just closes normally
+  // (e.g. viewing device info from the sidebar menu).
+  const handleCloseMobileBinding = () => {
+    setMobileActivateOpen(false);
+    if (!bindingState?.linked) {
+      logout().catch((err) => console.error("Logout failed:", err));
+    }
+  };
   const handleGetStartedActivate = () => {
     setActivatePromptOpen(false);
     setMobileActivateOpen(true);
@@ -554,7 +565,11 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 <Circle
                   size={12}
                   strokeWidth={2.5}
-                  style={{ flexShrink: 0, backgroundColor: palette.success.active, borderRadius: "50%" }}
+                  style={{
+                    flexShrink: 0,
+                    backgroundColor: isLinked ? palette.success.active : "transparent",
+                    borderRadius: "50%",
+                  }}
                   color={isLinked ? "#00875A" : palette.slate[400]}
                 />
               </Box>
@@ -611,7 +626,11 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                   size={12}
                   strokeWidth={2.5}
                   color={isLinked ? "#00875A" : palette.slate[400]}
-                  style={{ flexShrink: 0, backgroundColor: palette.success.active, borderRadius: "50%" }}
+                  style={{
+                    flexShrink: 0,
+                    backgroundColor: isLinked ? palette.success.active : "transparent",
+                    borderRadius: "50%",
+                  }}
                 />
                 <Typography
                   sx={{
@@ -695,7 +714,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         )}
       </Box>
 
-      <MobileBindingDialog open={mobileActivateOpen} linked={Boolean(bindingState?.linked)} deviceModel={bindingState?.deviceModel} lastSeenAt={bindingState?.lastSeenAt} onClose={() => setMobileActivateOpen(false)} />
+      <MobileBindingDialog open={mobileActivateOpen} linked={Boolean(bindingState?.linked)} deviceModel={bindingState?.deviceModel} lastSeenAt={bindingState?.lastSeenAt} onClose={handleCloseMobileBinding} />
 
       <ActivateAppPromptDialog open={activatePromptOpen} onClose={handleCloseActivatePrompt} onGetStarted={handleGetStartedActivate} />
     </Box>
