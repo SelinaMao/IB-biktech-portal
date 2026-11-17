@@ -17,3 +17,4 @@ export { default as LoanDetailCard } from "./components/LoanDetailCard";
 
 export { default as LoanTransactionsCard, LOAN_TRANSACTIONS } from "./components/LoanTransactionsCard";
 export { default as LoanDetailsPanel } from "./components/LoanDetails";
+export { default as LoanTransactionDetailDialog } from "./components/LoanTransactionDetailDialog";
