@@ -28,6 +28,7 @@ export interface MobileTopUpViewProps {
   open?: boolean;
   onClose?: () => void;
   onBackToPayments?: () => void;
+  cardWidth?: number | string;
   onSaveTemplate?: (templateData: {
     name: string;
     type: "Mobile top-up";
@@ -100,6 +101,7 @@ export default function MobileTopUpView({
   onClose,
   onBackToPayments,
   onSaveTemplate,
+  cardWidth = 576,
 }: MobileTopUpViewProps) {
   const router = useRouter();
   const { accounts: fetchedAccounts } = useTransferAccounts(open);
@@ -307,6 +309,7 @@ export default function MobileTopUpView({
       open={open}
       onClose={handleClose}
       title="Mobile Top-Up"
+      cardWidth={cardWidth}
       breadcrumbPrefix="Payment"
       breadcrumbSubPrefix="Mobile Top-up"
       fromAccount={{
@@ -366,7 +369,13 @@ export default function MobileTopUpView({
               <Select
                 value={selectedAccountId}
                 onChange={(e) => setSelectedAccountId(e.target.value)}
-                IconComponent={ChevronDown}
+                IconComponent={(props) => (
+                  <ChevronDown
+                    size={18}
+                    color="#64748B"
+                    className={props.className}
+                  />
+                )}
                 sx={{
                   borderRadius: "12px",
                   height: 48,
@@ -380,6 +389,17 @@ export default function MobileTopUpView({
                   },
                   "& fieldset": {
                     borderColor: palette.slate[200],
+                  },
+                  "& .MuiSelect-icon": {
+                    top: "50% !important",
+                    transform: "translateY(-50%) !important",
+                    right: "14px !important",
+                    position: "absolute",
+                    pointerEvents: "none",
+                    color: "#64748B",
+                    "&.MuiSelect-iconOpen": {
+                      transform: "translateY(-50%) rotate(180deg) !important",
+                    },
                   },
                 }}
                 startAdornment={
@@ -484,7 +504,7 @@ export default function MobileTopUpView({
             </Typography>
 
             {/* Quick Amount Pills */}
-            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1, mb: 1.5 }}>
+            <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.75, mb: 1.5 }}>
               {quickAmounts.map((amt) => {
                 const isSelected = amount === amt;
                 const label = currency === "KHR" ? `${amt.toLocaleString()} ៛` : `$${amt}`;
@@ -495,19 +515,19 @@ export default function MobileTopUpView({
                     type="button"
                     onClick={() => handleSelectQuickAmount(amt)}
                     sx={{
-                      minWidth: 46,
+                      minWidth: 44,
                       height: 36,
                       borderRadius: "8px",
                       border: isSelected ? "1px solid #2764A5" : `1px solid ${palette.slate[200]}`,
                       bgcolor: isSelected ? "#2764A5" : "#FFFFFF",
                       color: isSelected ? "#FFFFFF" : palette.slate[700],
-                      fontSize: 13.5,
+                      fontSize: 13,
                       fontWeight: 600,
                       cursor: "pointer",
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      px: 1.5,
+                      px: { xs: 1, sm: 1.25 },
                       transition: "all 0.15s ease",
                       "&:hover": {
                         borderColor: isSelected ? "#2764A5" : palette.slate[300],
@@ -623,7 +643,29 @@ export default function MobileTopUpView({
                   <Select
                     value={scheduleFreq}
                     onChange={(e) => setScheduleFreq(e.target.value)}
-                    sx={{ borderRadius: "8px", height: 40, bgcolor: "#FFFFFF" }}
+                    IconComponent={(props) => (
+                      <ChevronDown
+                        size={18}
+                        color="#64748B"
+                        className={props.className}
+                      />
+                    )}
+                    sx={{
+                      borderRadius: "8px",
+                      height: 40,
+                      bgcolor: "#FFFFFF",
+                      "& .MuiSelect-icon": {
+                        top: "50% !important",
+                        transform: "translateY(-50%) !important",
+                        right: "14px !important",
+                        position: "absolute",
+                        pointerEvents: "none",
+                        color: "#64748B",
+                        "&.MuiSelect-iconOpen": {
+                          transform: "translateY(-50%) rotate(180deg) !important",
+                        },
+                      },
+                    }}
                   >
                     <MenuItem value="Weekly">Weekly</MenuItem>
                     <MenuItem value="Monthly">Monthly</MenuItem>

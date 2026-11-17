@@ -81,6 +81,20 @@ export default function UsersPage() {
     });
   }, [data, sortAsc]);
 
+  const availableRoles = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of data?.content ?? []) {
+      for (const r of entry.user?.roles ?? []) {
+        const id = (r as any)?.id != null ? String((r as any).id) : (r as any)?.roleId != null ? String((r as any).roleId) : "";
+        const name = r?.name ?? (r as any)?.roleName ?? "";
+        if (id && name) {
+          map.set(id, name);
+        }
+      }
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [data?.content]);
+
   const openEdit = (user: AdminUser) => {
     setActiveUser(user);
     setFormOpen(true);
@@ -244,6 +258,7 @@ export default function UsersPage() {
       <UserFormDialog
         open={formOpen}
         user={activeUser}
+        availableRoles={availableRoles}
         onClose={closeForm}
         canView={canView}
         canEdit={canEdit}
@@ -253,6 +268,7 @@ export default function UsersPage() {
       <UserDetailForm
         open={Boolean(detailTarget)}
         user={detailTarget}
+        availableRoles={availableRoles}
         onClose={() => setDetailTarget(null)}
       />
 

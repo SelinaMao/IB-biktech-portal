@@ -77,9 +77,19 @@ export function getUserInfoValuesFromUser(user: {
   fullName?: string | null;
   email?: string | null;
   phone?: string | null;
-  roles: { name: string; id: string }[];
+  roles?: { name?: string; id?: string; roleId?: string }[];
 }): UserInfoValues {
   const [derivedFirst = "", ...rest] = (user.fullName ?? "").trim().split(/\s+/);
+  const firstRole = (user.roles ?? [])[0] as any;
+  const roleId =
+    firstRole?.id != null
+      ? String(firstRole.id)
+      : firstRole?.roleId != null
+        ? String(firstRole.roleId)
+        : typeof firstRole === "string"
+          ? firstRole
+          : "";
+
   return {
     // Older records predate the split, so a full name still stands in for the two.
     firstName: user.firstName || derivedFirst,
@@ -87,8 +97,7 @@ export function getUserInfoValuesFromUser(user: {
     username: user.username ?? "",
     email: user.email ?? "",
     phone: nationalPhone(user.phone),
-    // role: user.roles?.[0]?.name ?? "",
-    roleId: user.roles?.[0]?.id ?? "",
+    roleId,
     accessLevel: "",
     status: true,
     accountIds: [],

@@ -123,6 +123,11 @@ export type PreviewTransferProps = {
      * keep their existing layout untouched.
      */
     splitView?: boolean;
+    /**
+     * Width of the card container and stepper when splitView is false.
+     * Defaults to 576 (matching the width of other transfer forms).
+     */
+    cardWidth?: number | string;
 };
 
 export type PreviewTransferDialogProps = PreviewTransferProps;
@@ -158,6 +163,7 @@ export default function PreviewTransfer({
     successFields,
     renderSuccess,
     splitView = false,
+    cardWidth = 576,
 }: PreviewTransferProps) {
     const router = useRouter();
     const [step, setStep] = React.useState(0);
@@ -165,6 +171,8 @@ export default function PreviewTransfer({
     const [termsAccepted, setTermsAccepted] = React.useState(false);
     // What the transfer came to once the phone authorized it
     const [result, setResult] = React.useState<TransferResult | null>(null);
+
+    const resolvedCardWidth = cardWidth ?? 576;
 
     const [dynamicTrxId, setDynamicTrxId] = React.useState(generateTransactionId);
     const [dynamicRefNo, setDynamicRefNo] = React.useState(generateReferenceNo);
@@ -463,8 +471,8 @@ export default function PreviewTransfer({
                             </Typography>
                             <Box
                                 sx={{
-                                    width: { xs: "100%", sm: 500, md: 520 },
-                                    maxWidth: "100%",
+                                    width: "100%",
+                                    maxWidth: resolvedCardWidth,
                                     mx: "auto",
                                     mt: 3,
                                     mb: 1,
@@ -481,8 +489,8 @@ export default function PreviewTransfer({
                             <Box
                                 sx={{
                                     mx: "auto",
-                                    width: { xs: "100%", sm: 500, md: 520 },
-                                    maxWidth: "100%",
+                                    width: "100%",
+                                    maxWidth: resolvedCardWidth,
                                     bgcolor: "#FFFFFF",
                                     borderRadius: "20px",
                                     border: "1px solid #EDEDEC",
@@ -502,7 +510,7 @@ export default function PreviewTransfer({
                                     // splitView: hugs the form and sits at the start (left), like the preview
                                     ...(unifyStep0Card
                                         ? { width: "100%", maxWidth: 576 }
-                                        : { maxWidth: "100%", mx: "auto" }),
+                                        : { width: "100%", maxWidth: resolvedCardWidth, mx: "auto" }),
                                 }}
                             >
                                 {unifyStep0Card && (
@@ -534,7 +542,7 @@ export default function PreviewTransfer({
                                         bgcolor: "#FFFFFF",
                                         borderRadius: "20px",
                                         border: "1px solid #EDEDEC",
-                                        p: unifyStep0Card ? 10 : { xs: 3, md: 8 },
+                                        p: unifyStep0Card ? 10 : { xs: 3, md: 4 },
                                         boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                                     }}
                                 >
@@ -559,7 +567,7 @@ export default function PreviewTransfer({
                                     // splitView: card hugs the form and sits at the start (left), like the preview
                                     ...(unifyStep0Card
                                         ? { width: "100%", maxWidth: 576 }
-                                        : { width: { xs: "100%", sm: 500, md: 520 }, maxWidth: "100%", mx: "auto" }),
+                                        : { width: "100%", maxWidth: resolvedCardWidth, mx: "auto" }),
                                 }}
                             >
                                 {unifyStep0Card && (
@@ -619,7 +627,7 @@ export default function PreviewTransfer({
                                     // splitView: card hugs the form and sits at the start (left), like steps 0 & 1
                                     ...(unifyStep0Card
                                         ? { width: "100%", maxWidth: 576 }
-                                        : { width: { xs: "100%", sm: 500, md: 520 }, maxWidth: "100%", mx: "auto" }),
+                                        : { width: "100%", maxWidth: resolvedCardWidth, mx: "auto" }),
                                 }}
                             >
                                 {unifyStep0Card && (
@@ -951,7 +959,7 @@ export default function PreviewTransfer({
                                     mb: 5,
                                     ...(unifyStep0Card && step === 1
                                         ? { width: "100%", maxWidth: 576, mx: 0 }
-                                        : { width: { xs: "100%", sm: 500, md: 520 }, maxWidth: "100%", mx: "auto" }),
+                                        : { width: "100%", maxWidth: resolvedCardWidth, mx: "auto" }),
                                 }}
                             >
                                 {footer}

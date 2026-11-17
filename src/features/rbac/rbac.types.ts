@@ -98,8 +98,10 @@ export type OrgRole = {
   approvalAuthorities: ApprovalAuthority[];
 };
 
-/** Query args for the paginated org role list. */
+/** Query args for the org role list. */
 export type ListOrgRolesArgs = {
+  search?: string;
+  channel?: string;
   page?: number;
   size?: number;
 };

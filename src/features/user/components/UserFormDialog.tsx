@@ -7,7 +7,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import { showToast } from "@core/components/AppToast";
@@ -58,6 +58,8 @@ export type UserFormDialogProps = {
   onClose: () => void;
   /** When set, the dialog edits this user instead of creating a new one. */
   user?: AdminUser | null;
+  /** Available roles in the organization passed from the parent users view. */
+  availableRoles?: { id: string; name: string }[];
   /** Defaults to true — dialog doesn't close on outside click unless explicitly opted out. */
   disableBackdropClick?: boolean;
   /** Whether the caller may open this dialog at all. Defaults to true. */
@@ -80,6 +82,7 @@ export default function UserFormDialog({
   open,
   onClose,
   user = null,
+  availableRoles = [],
   disableBackdropClick = true,
   canView = true,
   canEdit = true,
@@ -108,6 +111,11 @@ export default function UserFormDialog({
   const currentStatus = userDetail?.user?.status ?? user?.status;
   const showUnlock = isEdit && canUnlock && currentStatus === "LOCKED";
 
+  const targetUser = useMemo(
+    () => userDetail?.user ?? ((userDetail as any)?.id ? (userDetail as any) : user),
+    [userDetail, user],
+  );
+
   const provider = useForm<UserInfoValues>({
     resolver: yupResolver(userInfoSchema),
     mode: "onSubmit",
@@ -120,11 +128,11 @@ export default function UserFormDialog({
   useEffect(() => {
     if (!open) return;
     if (user) {
-      reset({ ...getUserInfoValuesFromUser(userDetail?.user ?? user), accountIds: accountsOf(accountScope) });
+      reset({ ...getUserInfoValuesFromUser(targetUser), accountIds: accountsOf(accountScope) });
     } else {
       reset(getUserInfoDefaultValues());
     }
-  }, [open, user, userDetail, accountScope, reset]);
+  }, [open, user, targetUser, accountScope, reset]);
 
   const onSubmit = () => {
     setStep(1);
@@ -281,11 +289,12 @@ export default function UserFormDialog({
             canDeactivate={false}
             open={open}
             isEdit={isEdit}
+            user={targetUser}
+            availableRoles={availableRoles}
           />
         )}
 
         {canView && !readOnly && step === 0 && (
-
           <Box component="form" id={USER_FORM_ID} onSubmit={handleSubmit(onSubmit)} noValidate>
             <UserFormAction
               isSubmitting={isSubmitting}
@@ -294,6 +303,8 @@ export default function UserFormDialog({
               canDeactivate={canDeactivate}
               open={open}
               isEdit={isEdit}
+              user={targetUser}
+              availableRoles={availableRoles}
             />
           </Box>
         )}
@@ -306,6 +317,8 @@ export default function UserFormDialog({
             canDeactivate={canDeactivate}
             open={open}
             isEdit={isEdit}
+            user={targetUser}
+            availableRoles={availableRoles}
           />
         )}
 

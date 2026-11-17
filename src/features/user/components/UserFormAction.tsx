@@ -9,8 +9,9 @@ import { useController } from "react-hook-form";
 
 import { ControlledBaseInput, ControlledBaseMultiSelect, ControlledBaseSelect } from "@core/form";
 import type { UserInfoValues } from "../schema/user.schema";
-import { ACCESS_LEVEL_OPTIONS } from "../user.types";
-import { useListOrgRolesQuery } from "@/features/rbac";
+import { ACCESS_LEVEL_OPTIONS, type AdminUser } from "../user.types";
+import { useListRolesQuery } from "@/features/rbac";
+import { useMeQuery } from "@/features/auth";
 import { useGetMetaQuery } from "@/features/meta";
 import { font, palette } from "@/theme/palette";
 import { PHONE_DIAL_CODE } from "@/utils/phone";
@@ -27,6 +28,10 @@ export type UserFormActionProps = {
   canDeactivate?: boolean;
   /** Editing an existing person: the login ID is shown but never editable. */
   isEdit?: boolean;
+  /** Current user being viewed/edited, so their assigned role can be pre-filled seamlessly. */
+  user?: AdminUser | null;
+  /** Available roles in the organization passed from the parent users view. */
+  availableRoles?: { id: string; name: string }[];
 };
 
 export default function UserFormAction({
@@ -36,16 +41,82 @@ export default function UserFormAction({
   open = true,
   canDeactivate = true,
   isEdit = false,
+  user = null,
+  availableRoles = [],
 }: UserFormActionProps) {
-  const { data: orgRoles, isFetching: isLoadingRoles } = useListOrgRolesQuery(undefined, {
-    // skip: !open,
+  const { data: meData } = useMeQuery(undefined);
+  const {
+    data: rolesData,
+    isFetching: isLoadingRoles,
+    isError: isRolesError,
+    refetch: refetchRoles,
+  } = useListRolesQuery(undefined, {
+    skip: !open,
+    refetchOnMountOrArgChange: true,
   });
   const { data: meta } = useGetMetaQuery();
 
-  const roleOptions = (orgRoles ?? []).map((role) => ({
-    value: role.id,
-    label: role.name,
-  }));
+  const rolesList = Array.isArray(rolesData)
+    ? rolesData
+    : Array.isArray((rolesData as any)?.content)
+      ? (rolesData as any).content
+      : Array.isArray((rolesData as any)?.roles)
+        ? (rolesData as any).roles
+        : [];
+
+  const roleMap = new Map<string, string>();
+
+  // 1. Roles returned from RBAC roles endpoint
+  for (const role of rolesList) {
+    if (role) {
+      const id = String(role.id ?? role.roleId ?? role.code ?? "");
+      const label = String(role.name ?? role.roleName ?? role.code ?? id);
+      if (id && label) roleMap.set(id, label);
+    }
+  }
+
+  // 2. Roles gathered across organization users
+  for (const r of availableRoles ?? []) {
+    const roleId = String((r as any)?.id ?? (r as any)?.roleId ?? "");
+    const roleName = String(r?.name ?? (r as any)?.roleName ?? "");
+    if (roleId && roleName && !roleMap.has(roleId)) {
+      roleMap.set(roleId, roleName);
+    }
+  }
+
+  // 3. Roles from current user session
+  for (const r of (meData?.roles ?? []) as any[]) {
+    const roleId = r?.id != null ? String(r.id) : "";
+    const roleName = String(r?.name ?? r?.code ?? "");
+    if (roleId && roleName && !roleMap.has(roleId)) {
+      roleMap.set(roleId, roleName);
+    }
+  }
+
+  // 4. Ensure any roles assigned to the user being edited are present
+  const assignedRoles = user?.roles ?? [];
+  for (const assigned of assignedRoles) {
+    const roleId = String((assigned as any)?.id ?? (assigned as any)?.roleId ?? "");
+    const roleName = String(assigned?.name ?? (assigned as any)?.roleName ?? (assigned as any)?.code ?? "");
+    if (roleId && roleName && !roleMap.has(roleId)) {
+      roleMap.set(roleId, roleName);
+    }
+  }
+
+  const roleOptions: { value: string; label: string }[] = Array.from(roleMap.entries()).map(
+    ([value, label]) => ({
+      value,
+      label,
+    }),
+  );
+
+  const rolePlaceholder = roleOptions.length > 0
+    ? "Select a role"
+    : isLoadingRoles
+      ? "Loading roles..."
+      : isRolesError
+        ? "Failed to load roles (click to retry)"
+        : "No roles available";
 
   const accountOptions = (meta?.accounts ?? []).map((account) => ({
     value: account.accountNumber,
@@ -123,8 +194,18 @@ export default function UserFormAction({
             label="Role"
             isRequired
             options={roleOptions}
-            placeholder="Select a role"
-            disabled={isSubmitting || disabled || isLoadingRoles}
+            placeholder={rolePlaceholder}
+            helperText={
+              isRolesError && roleOptions.length === 0
+                ? "Could not connect to backend roles service. Click to retry."
+                : undefined
+            }
+            disabled={isSubmitting || disabled || (isLoadingRoles && roleOptions.length === 0)}
+            onClick={() => {
+              if (isRolesError) {
+                refetchRoles();
+              }
+            }}
           />
         </Box>
         {/* <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", flexShrink: 0, pb: 1 }}>
