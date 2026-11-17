@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 
 import { palette } from "@/theme/palette";
+import BaseStep from "@core/components/BaseStep";
 import { showToast } from "@core/components/AppToast";
 import { INITIAL_REVIEW_ROWS, SOURCE_ACCOUNTS } from "../payroll.data";
 import type { PayrollItem, ReviewPayrollRow } from "../payroll.types";
@@ -221,67 +222,19 @@ export default function UploadPayrollWizard({
         Upload payroll
       </Typography>
 
-      {/* Steps Header Navigation: New ──── Review ──── Transfer */}
-      <Box sx={{ width: "100%", maxWidth: 600, mb: 3.5 }}>
-        <Stack direction="row" sx={{ alignItems: "center", position: "relative" }}>
-          {/* Step: New */}
-          <Box
-            onClick={() => setCurrentStep(0)}
-            sx={{
-              cursor: "pointer",
-              pb: 1,
-              borderBottom: "2px solid",
-              borderColor: currentStep === 0 ? "#1B5299" : "transparent",
-              color: currentStep === 0 ? "#1B5299" : "#64748B",
-              fontWeight: currentStep === 0 ? 600 : 500,
-              fontSize: 14,
-              px: 2,
-              textAlign: "center",
-            }}
-          >
-            New
-          </Box>
-
-          <Box sx={{ flex: 1, height: "1px", bgcolor: "#E2E8F0", mb: 1 }} />
-
-          {/* Step: Review */}
-          <Box
-            onClick={() => {
-              if (selectedFile) setCurrentStep(1);
-            }}
-            sx={{
-              cursor: selectedFile ? "pointer" : "default",
-              pb: 1,
-              borderBottom: "2px solid",
-              borderColor: currentStep === 1 ? "#1B5299" : "transparent",
-              color: currentStep === 1 ? "#1B5299" : "#64748B",
-              fontWeight: currentStep === 1 ? 600 : 500,
-              fontSize: 14,
-              px: 2,
-              textAlign: "center",
-            }}
-          >
-            Review
-          </Box>
-
-          <Box sx={{ flex: 1, height: "1px", bgcolor: "#E2E8F0", mb: 1 }} />
-
-          {/* Step: Transfer */}
-          <Box
-            sx={{
-              pb: 1,
-              borderBottom: "2px solid",
-              borderColor: currentStep === 2 ? "#1B5299" : "transparent",
-              color: currentStep === 2 ? "#1B5299" : "#64748B",
-              fontWeight: currentStep === 2 ? 600 : 500,
-              fontSize: 14,
-              px: 2,
-              textAlign: "center",
-            }}
-          >
-            Transfer
-          </Box>
-        </Stack>
+      {/* Steps Header Navigation using BaseStep matching the Transfer page */}
+      <Box sx={{ width: { xs: "100%", sm: 460, md: 500 }, maxWidth: "100%", mb: 3.5 }}>
+        <BaseStep
+          steps={["New", "Review", "Transfer"]}
+          activeStep={currentStep}
+          onStepClick={(index) => {
+            if (index === 0) setCurrentStep(0);
+            else if (index === 1 && selectedFile) setCurrentStep(1);
+            else if (index === 2 && currentStep === 1 && errorCount === 0 && agreedTerms) {
+              setCurrentStep(2);
+            }
+          }}
+        />
       </Box>
 
       {/* ================= STEP 1: NEW (Image 2) ================= */}

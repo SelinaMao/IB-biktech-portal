@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
@@ -21,6 +22,7 @@ import {
   Pencil,
   Plus,
   RotateCw,
+  ShieldCheck,
   Trash2,
 } from "lucide-react";
 
@@ -88,6 +90,7 @@ export default function ScheduleTransactionsTable({
   onDeleteSchedule,
   onViewDetails,
 }: ScheduleTransactionsTableProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
   const [currentPage, setPage] = useState(0);
@@ -329,27 +332,43 @@ export default function ScheduleTransactionsTable({
           spacing={1}
           sx={{ alignItems: "center", justifyContent: "flex-end" }}
         >
-          <Tooltip title={t.status === "Active" ? "Pause schedule" : "Resume schedule"}>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onTogglePause?.(t);
-              }}
-              sx={{
-                color: palette.slate[700],
-                p: 0.5,
-                "&:hover": { bgcolor: palette.slate[100] },
-              }}
-              aria-label={t.status === "Active" ? "Pause schedule" : "Resume schedule"}
-            >
-              {t.status === "Active" ? (
-                <CirclePause size={18} strokeWidth={1} />
-              ) : (
+          {t.status === "Paused" ? (
+            <Tooltip title="Resume schedule">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePause?.(t);
+                }}
+                sx={{
+                  color: palette.slate[700],
+                  p: 0.5,
+                  "&:hover": { bgcolor: palette.slate[100] },
+                }}
+                aria-label="Resume schedule"
+              >
                 <CirclePlay size={18} strokeWidth={1} />
-              )}
-            </IconButton>
-          </Tooltip>
+              </IconButton>
+            </Tooltip>
+          ) : (t.status === "Active" || t.status === "Awaiting Approval") ? (
+            <Tooltip title="Pause schedule">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePause?.(t);
+                }}
+                sx={{
+                  color: palette.slate[700],
+                  p: 0.5,
+                  "&:hover": { bgcolor: palette.slate[100] },
+                }}
+                aria-label="Pause schedule"
+              >
+                <CirclePause size={18} strokeWidth={1} />
+              </IconButton>
+            </Tooltip>
+          ) : null}
 
           <IconButton
             size="small"
@@ -559,6 +578,7 @@ export default function ScheduleTransactionsTable({
         rows={filteredRows}
         getRowKey={(t) => t.id ?? ("ref" in t ? String(t.ref) : t.refNo)}
         isLoading={isLoading}
+        onRowClick={onViewDetails}
         minWidth={640}
         rounded={false}
         headerBgColor={palette.white}
@@ -647,7 +667,7 @@ export default function ScheduleTransactionsTable({
         PaperProps={{
           sx: {
             borderRadius: "12px",
-            minWidth: 160,
+            minWidth: 170,
             boxShadow: "0px 8px 24px rgba(15, 23, 42, 0.08)",
             border: `1px solid ${palette.slate[200]}`,
           },
@@ -665,50 +685,77 @@ export default function ScheduleTransactionsTable({
           <ListItemText primary="View details" />
         </MenuItem>
 
-        <MenuItem
-          onClick={() => {
-            if (selectedSchedule) onEditSchedule?.(selectedSchedule);
-            handleCloseActionMenu();
-          }}
-        >
-          <ListItemIcon>
-            <Pencil size={16} />
-          </ListItemIcon>
-          <ListItemText primary="Edit schedule" />
-        </MenuItem>
+        {selectedSchedule?.status === "Awaiting Approval" && (
+          <MenuItem
+            onClick={() => {
+              router.push("/approval");
+              handleCloseActionMenu();
+            }}
+          >
+            <ListItemIcon>
+              <ShieldCheck size={16} color="#2563EB" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Go to Approvals"
+              primaryTypographyProps={{ sx: { color: "#2563EB", fontWeight: 500 } }}
+            />
+          </MenuItem>
+        )}
 
-        <MenuItem
-          onClick={() => {
-            if (selectedSchedule) onTogglePause?.(selectedSchedule);
-            handleCloseActionMenu();
-          }}
-        >
-          <ListItemIcon>
-            {selectedSchedule?.status === "Active" ? (
-              <CirclePause size={16} />
-            ) : (
-              <CirclePlay size={16} />
-            )}
-          </ListItemIcon>
-          <ListItemText
-            primary={
-              selectedSchedule?.status === "Active" ? "Pause schedule" : "Resume schedule"
-            }
-          />
-        </MenuItem>
+        {selectedSchedule?.status !== "Cancelled" &&
+          selectedSchedule?.status !== "Completed" &&
+          selectedSchedule?.status !== "Awaiting Approval" && (
+            <MenuItem
+              onClick={() => {
+                if (selectedSchedule) onEditSchedule?.(selectedSchedule);
+                handleCloseActionMenu();
+              }}
+            >
+              <ListItemIcon>
+                <Pencil size={16} />
+              </ListItemIcon>
+              <ListItemText primary="Edit schedule" />
+            </MenuItem>
+          )}
 
-        <MenuItem
-          onClick={() => {
-            if (selectedSchedule) onDeleteSchedule?.(selectedSchedule);
-            handleCloseActionMenu();
-          }}
-          sx={{ color: "error.main" }}
-        >
-          <ListItemIcon sx={{ color: "error.main" }}>
-            <Trash2 size={16} />
-          </ListItemIcon>
-          <ListItemText primary="Delete" />
-        </MenuItem>
+        {(selectedSchedule?.status === "Active" ||
+          selectedSchedule?.status === "Paused" ||
+          selectedSchedule?.status === "Awaiting Approval") && (
+          <MenuItem
+            onClick={() => {
+              if (selectedSchedule) onTogglePause?.(selectedSchedule);
+              handleCloseActionMenu();
+            }}
+          >
+            <ListItemIcon>
+              {selectedSchedule?.status === "Paused" ? (
+                <CirclePlay size={16} />
+              ) : (
+                <CirclePause size={16} />
+              )}
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                selectedSchedule?.status === "Paused" ? "Resume schedule" : "Pause schedule"
+              }
+            />
+          </MenuItem>
+        )}
+
+        {selectedSchedule?.status !== "Cancelled" && selectedSchedule?.status !== "Completed" && (
+          <MenuItem
+            onClick={() => {
+              if (selectedSchedule) onDeleteSchedule?.(selectedSchedule);
+              handleCloseActionMenu();
+            }}
+            sx={{ color: "error.main" }}
+          >
+            <ListItemIcon sx={{ color: "error.main" }}>
+              <Trash2 size={16} />
+            </ListItemIcon>
+            <ListItemText primary="Cancel schedule" />
+          </MenuItem>
+        )}
       </Menu>
     </Box>
   );

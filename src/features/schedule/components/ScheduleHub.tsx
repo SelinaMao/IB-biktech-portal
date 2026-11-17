@@ -15,6 +15,7 @@ import {
   type CreateScheduleInput,
   type ScheduledTransaction,
 } from "../schedule.types";
+import { ScheduleTransfer } from "@/features/transfer";
 import CreateScheduleDialog from "./CreateScheduleDialog";
 import ScheduleDetailDialog from "./ScheduleDetailDialog";
 import ScheduleTransactionsTable from "./ScheduleTransactionsTable";
@@ -52,6 +53,7 @@ export default function ScheduleHub() {
   );
 
   // Dialog states
+  const [createTransferOpen, setCreateTransferOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] =
     useState<ScheduledTransaction | null>(null);
@@ -89,8 +91,7 @@ export default function ScheduleHub() {
 
   // Add / Edit handler
   const handleOpenCreate = () => {
-    setEditingSchedule(null);
-    setCreateDialogOpen(true);
+    setCreateTransferOpen(true);
   };
 
   const handleOpenEdit = (schedule: ScheduledTransaction) => {
@@ -144,8 +145,20 @@ export default function ScheduleHub() {
 
   // Toggle active / paused via backend action
   const handleTogglePause = async (schedule: ScheduledTransaction) => {
+    if (
+      schedule.status !== "Active" &&
+      schedule.status !== "Paused" &&
+      schedule.status !== "Awaiting Approval"
+    ) {
+      showToast("info", {
+        title: "Action unavailable",
+        message: `Schedule ${schedule.refNo} is ${schedule.status.toLowerCase()} and cannot be paused or resumed.`,
+      });
+      return;
+    }
+
     const action: "PAUSE" | "RESUME" =
-      schedule.status === "Active" ? "PAUSE" : "RESUME";
+      schedule.status === "Paused" ? "RESUME" : "PAUSE";
     const actionLabel = action === "PAUSE" ? "pause" : "resume";
 
     try {
@@ -170,7 +183,7 @@ export default function ScheduleHub() {
       }
     } catch {
       // Fall back to local state if backend call is not authorized in current session
-      const nextStatus = schedule.status === "Active" ? "Paused" : "Active";
+      const nextStatus = schedule.status === "Paused" ? "Active" : "Paused";
       setLocalCreatedSchedules((prev) =>
         prev.map((item) =>
           item.id === schedule.id ? { ...item, status: nextStatus } : item,
@@ -235,6 +248,15 @@ export default function ScheduleHub() {
         onEditSchedule={handleOpenEdit}
         onDeleteSchedule={handleDeleteSchedule}
         onViewDetails={handleViewDetails}
+      />
+
+      {/* Real Transfer Schedule Dialog (backend-connected) */}
+      <ScheduleTransfer
+        open={createTransferOpen}
+        onClose={() => {
+          setCreateTransferOpen(false);
+          refetch();
+        }}
       />
 
       {/* Create / Edit Dialog */}

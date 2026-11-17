@@ -14,7 +14,7 @@ import {
 import type { PayrollItem } from "../payroll.types";
 import PayrollDetailDialog from "./PayrollDetailDialog";
 import PayrollEmptyState from "./PayrollEmptyState";
-import PayrollHistoryDrawer from "./PayrollHistoryDrawer";
+import PayrollHistoryDialog from "./PayrollHistoryDialog";
 import PayrollTable from "./PayrollTable";
 import UploadPayrollDialog from "./UploadPayrollDialog";
 import UploadPayrollWizard from "./UploadPayrollWizard";
@@ -263,8 +263,8 @@ export default function PayrollHub() {
         </>
       )}
 
-      {/* History Detail Drawer (Image 1) */}
-      <PayrollHistoryDrawer
+      {/* History Detail Dialog (Centered Modal matching design) */}
+      <PayrollHistoryDialog
         open={Boolean(selectedHistoryItem)}
         onClose={() => setSelectedHistoryItem(null)}
         item={selectedHistoryItem}

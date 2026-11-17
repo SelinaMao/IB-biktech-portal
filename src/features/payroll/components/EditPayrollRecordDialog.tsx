@@ -7,18 +7,31 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Slide from "@mui/material/Slide";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import type { TransitionProps } from "@mui/material/transitions";
 import { Trash2, X } from "lucide-react";
 
 import { palette } from "@/theme/palette";
 import type { ReviewPayrollRow } from "../payroll.types";
+
+/** Slide in from the right transition matching Account TransactionDetails */
+const Transition = React.forwardRef(function Transition(
+  props: TransitionProps & {
+    children: React.ReactElement<any, any>;
+  },
+  ref: React.Ref<unknown>,
+) {
+  return <Slide direction="left" ref={ref} {...props} />;
+});
 
 export interface EditPayrollRecordDialogProps {
   open: boolean;
@@ -42,7 +55,6 @@ export default function EditPayrollRecordDialog({
 
   useEffect(() => {
     if (row) {
-      // If the row had an invalid account like 0098 7766 551, suggest/prefill the corrected one like in screenshot
       const initialAccount =
         row.accountNumber === "0098 7766 551" ? "0098 7766 5512" : row.accountNumber;
       setAccountNumber(initialAccount);
@@ -60,7 +72,6 @@ export default function EditPayrollRecordDialog({
 
   const handleSave = () => {
     const rawAmount = parseFloat(amount.replace(/,/g, "")) || 0;
-    // If the account number is now complete (e.g. 12+ digits or fixed) and currency is KHR, validate it
     const isNowValid =
       accountNumber.trim().length >= 11 &&
       !accountNumber.endsWith("551") &&
@@ -89,12 +100,34 @@ export default function EditPayrollRecordDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: "16px",
-          p: { xs: 1, sm: 1.5 },
+      TransitionComponent={Transition}
+      slotProps={{
+        backdrop: {
+          sx: { bgcolor: "rgba(15, 23, 42, 0.4)" },
+        },
+        paper: {
+          sx: {
+            position: "fixed",
+            top: { xs: 8, sm: 8, md: 14 },
+            right: { xs: 8, sm: 8, md: 14 },
+            bottom: { xs: 8, sm: 8, md: 14 },
+            m: 0,
+            width: { xs: "calc(100vw - 16px)", sm: 460, md: 490 },
+            maxWidth: 490,
+            height: {
+              xs: "calc(100vh - 16px)",
+              sm: "calc(100vh - 16px)",
+              md: "calc(100vh - 28px)",
+            },
+            borderRadius: "24px",
+            bgcolor: "#FFFFFF",
+            p: 0,
+            boxSizing: "border-box",
+            boxShadow: "0px 20px 40px rgba(15, 23, 42, 0.16)",
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+          },
         },
       }}
     >
@@ -103,9 +136,9 @@ export default function EditPayrollRecordDialog({
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          pb: 1,
-          pt: 1.5,
-          px: 2.5,
+          pb: 1.5,
+          pt: 2.5,
+          px: 3,
         }}
       >
         <Box>
@@ -116,19 +149,30 @@ export default function EditPayrollRecordDialog({
             Only the account number, amount and remarks can change.
           </Typography>
         </Box>
-        <IconButton size="small" onClick={onClose} sx={{ color: "#64748B" }}>
-          <X size={20} />
+        <IconButton
+          size="small"
+          onClick={onClose}
+          sx={{
+            color: "#64748B",
+            bgcolor: "#F1F5F9",
+            borderRadius: "8px",
+            "&:hover": { bgcolor: "#E2E8F0" },
+          }}
+        >
+          <X size={18} />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ px: 2.5, pt: 1.5, pb: 2 }}>
+      <Divider sx={{ borderColor: palette.slate[100] }} />
+
+      <DialogContent sx={{ px: 3, py: 2.5, flex: 1 }}>
         <Stack spacing={2.5}>
           {/* Top Two-Column Info Box */}
           <Box
             sx={{
               p: 2,
               bgcolor: "#F8FAFC",
-              borderRadius: "10px",
+              borderRadius: "12px",
               border: `1px solid ${palette.slate[100]}`,
             }}
           >
@@ -243,11 +287,12 @@ export default function EditPayrollRecordDialog({
         </Stack>
       </DialogContent>
 
+      <Divider sx={{ borderColor: palette.slate[100] }} />
+
       <DialogActions
         sx={{
-          px: 2.5,
-          pb: 2,
-          pt: 1,
+          px: 3,
+          py: 2,
           justifyContent: "space-between",
           alignItems: "center",
         }}

@@ -1,10 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { ShieldAlert } from "lucide-react";
 
 import { palette } from "@/theme/palette";
 import { formatCCY } from "@/utils/format-ccy";
@@ -26,6 +29,7 @@ export default function ScheduleDetailDialog({
   onClose,
   onEdit,
 }: ScheduleDetailDialogProps) {
+  const router = useRouter();
   const { data: detailData, isLoading } = useGetScheduleDetailQuery(
     schedule?.refNo ?? "",
     {
@@ -34,6 +38,8 @@ export default function ScheduleDetailDialog({
   );
 
   if (!schedule) return null;
+
+  const isAwaitingApproval = schedule.status === "Awaiting Approval";
 
   const backendSchedule = detailData?.schedule ?? schedule.raw;
 
@@ -92,15 +98,63 @@ export default function ScheduleDetailDialog({
       onClose={onClose}
       title="Schedule details"
       subtitle="Complete information for this scheduled transfer."
-      confirmTitle="Edit schedule"
+      confirmTitle={isAwaitingApproval ? "Go to Approvals" : "Edit schedule"}
       onConfirm={() => {
         onClose();
-        if (onEdit) onEdit(schedule);
+        if (isAwaitingApproval) {
+          router.push("/approval");
+        } else if (onEdit) {
+          onEdit(schedule);
+        }
       }}
       cancelTitle="Close"
       maxWidth="sm"
     >
       <Stack spacing={1.5} sx={{ mt: 1 }}>
+        {isAwaitingApproval && (
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: "10px",
+              bgcolor: "#EFF6FF",
+              border: "1px solid #BFDBFE",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1.5,
+              mb: 0.5,
+            }}
+          >
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <ShieldAlert size={20} color="#2563EB" />
+              <Typography sx={{ fontSize: 13, color: "#1E40AF", fontWeight: 500 }}>
+                This schedule is awaiting checker approval. It will execute once approved.
+              </Typography>
+            </Stack>
+            <Button
+              size="small"
+              variant="contained"
+              onClick={() => {
+                onClose();
+                router.push("/approval");
+              }}
+              sx={{
+                bgcolor: "#2563EB",
+                color: "#FFFFFF",
+                fontSize: 12,
+                textTransform: "none",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                px: 2,
+                boxShadow: "none",
+                "&:hover": { bgcolor: "#1D4ED8", boxShadow: "none" },
+              }}
+            >
+              Approve
+            </Button>
+          </Box>
+        )}
+
         {isLoading && (
           <Box sx={{ display: "flex", justifyContent: "center", py: 1 }}>
             <CircularProgress size={20} sx={{ color: palette.slate[400] }} />

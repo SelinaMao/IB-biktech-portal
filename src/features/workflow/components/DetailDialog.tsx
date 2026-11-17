@@ -853,31 +853,15 @@ export default function DetailDialog({
         onClose={() => setCancelDialogOpen(false)}
         title="Cancel Request"
         maxWidth="xs"
+        hideActions
+        disableBackdropClick={isCancelling}
       >
         <Stack spacing={2.5}>
           <Typography sx={{ fontSize: 14, color: "#64748B", lineHeight: 1.5 }}>
             Are you sure you want to cancel this request? Any pending approvals will be stopped.
           </Typography>
 
-          <Stack direction="row" spacing={1.5} sx={{ justifyContent: "flex-end", pt: 1 }}>
-            <Button
-              variant="outlined"
-              onClick={() => setCancelDialogOpen(false)}
-              disabled={isCancelling}
-              sx={{
-                minWidth: 90,
-                height: 38,
-                px: 2,
-                borderColor: "#D1D5DB",
-                color: "#1F2937",
-                borderRadius: "8px",
-                fontSize: 14,
-                fontWeight: 600,
-                textTransform: "none",
-              }}
-            >
-              No, keep it
-            </Button>
+          <Stack direction="row" sx={{ justifyContent: "flex-end", pt: 1 }}>
             <Button
               variant="contained"
               onClick={handleConfirmCancel}

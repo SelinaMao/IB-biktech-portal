@@ -7,18 +7,31 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import FormControl from "@mui/material/FormControl";
 import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Slide from "@mui/material/Slide";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import type { TransitionProps } from "@mui/material/transitions";
 import { Download, FileText, Upload, X } from "lucide-react";
 
 import { palette } from "@/theme/palette";
 import { SOURCE_ACCOUNTS } from "../payroll.data";
 import type { PayrollItem } from "../payroll.types";
+
+/** Slide in from the right transition matching Account TransactionDetails */
+const Transition = React.forwardRef(function Transition(
+  props: TransitionProps & {
+    children: React.ReactElement<any, any>;
+  },
+  ref: React.Ref<unknown>,
+) {
+  return <Slide direction="left" ref={ref} {...props} />;
+});
 
 export interface UploadPayrollDialogProps {
   open: boolean;
@@ -114,8 +127,12 @@ export default function UploadPayrollDialog({
       sourceAccountNumber: sourceAccount.accountNumber,
       records: 20,
       totalAmount: currency === "KHR" ? 6500000 : 1600,
+      fee: 20000,
+      totalDebitAmount: (currency === "KHR" ? 6500000 : 1600) + 20000,
       currency,
       status: "Pending",
+      title: "Batch payroll",
+      processingType: "Immediate",
       createdAt: `${formattedDate} 10:00 AM`,
       uploadedBy: "Rous Samol",
       remarks: remarks || "Batch Payroll Upload",
@@ -132,12 +149,34 @@ export default function UploadPayrollDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: "16px",
-          p: 1,
+      TransitionComponent={Transition}
+      slotProps={{
+        backdrop: {
+          sx: { bgcolor: "rgba(15, 23, 42, 0.4)" },
+        },
+        paper: {
+          sx: {
+            position: "fixed",
+            top: { xs: 8, sm: 8, md: 14 },
+            right: { xs: 8, sm: 8, md: 14 },
+            bottom: { xs: 8, sm: 8, md: 14 },
+            m: 0,
+            width: { xs: "calc(100vw - 16px)", sm: 500, md: 540 },
+            maxWidth: 540,
+            height: {
+              xs: "calc(100vh - 16px)",
+              sm: "calc(100vh - 16px)",
+              md: "calc(100vh - 28px)",
+            },
+            borderRadius: "24px",
+            bgcolor: "#FFFFFF",
+            p: 0,
+            boxSizing: "border-box",
+            boxShadow: "0px 20px 40px rgba(15, 23, 42, 0.16)",
+            overflowY: "auto",
+            display: "flex",
+            flexDirection: "column",
+          },
         },
       }}
     >
@@ -146,20 +185,31 @@ export default function UploadPayrollDialog({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          pb: 1,
-          pt: 2,
+          pb: 1.5,
+          pt: 2.5,
           px: 3,
         }}
       >
         <Typography sx={{ fontSize: 18, fontWeight: 700, color: "#0F172A" }}>
           Upload Payroll File
         </Typography>
-        <IconButton size="small" onClick={onClose} sx={{ color: "#64748B" }}>
-          <X size={20} />
+        <IconButton
+          size="small"
+          onClick={onClose}
+          sx={{
+            color: "#64748B",
+            bgcolor: "#F1F5F9",
+            borderRadius: "8px",
+            "&:hover": { bgcolor: "#E2E8F0" },
+          }}
+        >
+          <X size={18} />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ px: 3, pt: 1, pb: 2 }}>
+      <Divider sx={{ borderColor: palette.slate[100] }} />
+
+      <DialogContent sx={{ px: 3, py: 2.5, flex: 1 }}>
         <Stack spacing={2.5}>
           {/* Source Account Field */}
           <Box>
@@ -351,19 +401,21 @@ export default function UploadPayrollDialog({
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, pb: 2.5, pt: 1, gap: 1.5 }}>
+      <Divider sx={{ borderColor: palette.slate[100] }} />
+
+      <DialogActions sx={{ px: 3, py: 2, gap: 1.5 }}>
         <Button
           variant="outlined"
           onClick={onClose}
           sx={{
-            borderRadius: "10px",
+            borderRadius: "8px",
             borderColor: palette.slate[200],
             color: "#334155",
             textTransform: "none",
-            fontSize: 14,
+            fontSize: 13.5,
             fontWeight: 500,
             px: 2.5,
-            height: 40,
+            height: 38,
             "&:hover": { borderColor: palette.slate[300], bgcolor: "#F8FAFC" },
           }}
         >
@@ -374,14 +426,14 @@ export default function UploadPayrollDialog({
           disabled={!selectedFile || isSubmitting}
           onClick={handleSubmit}
           sx={{
-            borderRadius: "10px",
+            borderRadius: "8px",
             bgcolor: "#1B5299",
             color: "#FFFFFF",
             textTransform: "none",
-            fontSize: 14,
+            fontSize: 13.5,
             fontWeight: 500,
             px: 3,
-            height: 40,
+            height: 38,
             boxShadow: "none",
             "&:hover": { bgcolor: "#15427C", boxShadow: "none" },
             "&.Mui-disabled": { bgcolor: "#E2E8F0", color: "#94A3B8" },
