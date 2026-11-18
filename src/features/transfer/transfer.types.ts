@@ -147,6 +147,7 @@ export interface ExternalAccountInquiryResult extends SmeAccountInquiryResult {
   kycStatus?: string | null;
   status?: string | null;
   bankCode?: string | null;
+  participantCode?: string | null;
   type?: string | null;
 }
 
@@ -167,6 +168,7 @@ export interface BakongLocalBankTransferRequest {
 export interface BakongWalletTransferRequest {
   fromAccountNumber: string;
   bakongId: string;
+  participantCode: string;
   amount: number;
   currency: string;
   remark?: string;
@@ -298,6 +300,7 @@ export interface CalculateTransferRequest {
   fromAccountCurrency: string;
   toAccountNumber?: string;
   toAccountCurrency?: string;
+  participantCode?: string;
   amount: number;
   currency: string;
 }

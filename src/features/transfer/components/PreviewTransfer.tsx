@@ -146,6 +146,8 @@ export default function PreviewTransfer({
     canSubmit,
     previewFields = [],
     summaryRows,
+    summaryStatus,
+    onRetrySummary,
     successMessage,
     children,
     onReset,
@@ -178,6 +180,7 @@ export default function PreviewTransfer({
     const [dynamicRefNo, setDynamicRefNo] = React.useState(generateReferenceNo);
 
     const activeSteps = steps ?? DEFAULT_STEPS;
+    const summaryReady = summaryStatus === undefined || summaryStatus === "ready";
 
     const authorization = useTransferAuthorization({
         submit,
@@ -407,7 +410,7 @@ export default function PreviewTransfer({
                     title="Transfer"
                     variant="contained"
                     fullWidth
-                    disabled={!termsAccepted}
+                    disabled={!termsAccepted || !summaryReady}
                     isLoading={authorization.submitting}
                     onClick={handleReviewNext}
                     sx={{
@@ -616,6 +619,32 @@ export default function PreviewTransfer({
                                     termsAccepted={termsAccepted}
                                     onTermsAcceptedChange={setTermsAccepted}
                                 />
+                                {summaryStatus === "loading" && (
+                                    <Typography
+                                        role="status"
+                                        sx={{ mt: 1.5, color: "#64748B", fontSize: 13 }}
+                                    >
+                                        Loading transfer quote...
+                                    </Typography>
+                                )}
+                                {summaryStatus === "error" && (
+                                    <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        sx={{ mt: 1.5, alignItems: "center", justifyContent: "space-between" }}
+                                    >
+                                        <Typography role="alert" sx={{ color: "#B42318", fontSize: 13 }}>
+                                            Could not load the transfer quote. Try again before continuing.
+                                        </Typography>
+                                        {onRetrySummary && (
+                                            <BaseButton
+                                                title="Retry"
+                                                variant="outlined"
+                                                onClick={onRetrySummary}
+                                            />
+                                        )}
+                                    </Stack>
+                                )}
                             </Box>
                         )}
 
@@ -1030,7 +1059,6 @@ function StepperWithBack({
         </Box>
     );
 }
-
 
 
 

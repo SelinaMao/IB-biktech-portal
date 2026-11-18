@@ -16,7 +16,7 @@ import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import BaseTextArea from "@core/form/BaseTextArea";
 import { showToast } from "@core/components/AppToast";
 import { useGetInstanceQuery, useRaiseApprovalAuthenticatorMutation } from "../workflow.api";
-import type { AuthenticatorRequest } from "@/features/authenticator";
+import type { AuthenticatorRequest, AuthenticatorResult } from "@/features/authenticator";
 import { font, palette } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
 
@@ -67,6 +67,12 @@ export interface DetailDialogProps {
   rejectReason?: string;
   /** Callback when Approve is clicked */
   onApprove?: (entry?: DetailDialogEntry | null, authenticatorRequestId?: string) => void | Promise<void>;
+  /** Callback when the phone authorization has already carried out the approval. */
+  onConsumed?: (
+    entry: DetailDialogEntry | null | undefined,
+    authenticatorRequestId: string,
+    result?: AuthenticatorResult
+  ) => void | Promise<void>;
   /** Callback when Reject is confirmed */
   onReject?: (entry?: DetailDialogEntry | null, reason?: string) => void | Promise<void>;
   /** Callback when Cancel is confirmed */
@@ -106,6 +112,7 @@ export default function DetailDialog({
   status,
   rejectReason: explicitRejectReason,
   onApprove,
+  onConsumed,
   onReject,
   onCancel,
   isApproving = false,
@@ -351,6 +358,13 @@ export default function DetailDialog({
     setQrConfirmOpen(false);
     setAuthenticator(null);
     await onApprove?.(entry, requestId);
+    onClose();
+  };
+
+  const handleQrConsumed = async (requestId: string, result?: AuthenticatorResult) => {
+    setQrConfirmOpen(false);
+    setAuthenticator(null);
+    await onConsumed?.(entry, requestId, result);
     onClose();
   };
 
@@ -894,6 +908,7 @@ export default function DetailDialog({
         isLoading={isRaisingAuth && !authenticator}
         onClose={handleQrClose}
         onAuthorized={handleQrAuthorized}
+        onConsumed={onConsumed ? handleQrConsumed : undefined}
         onApprove={() => handleQrAuthorized(authenticator?.requestId || "")}
         onRenew={async () => {
           const workflowId = entry?.transactionId || (entry?.id ? String(entry.id) : null);

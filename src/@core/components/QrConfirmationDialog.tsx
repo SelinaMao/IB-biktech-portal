@@ -16,7 +16,10 @@ import { ChevronRight, RefreshCw } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 import { useLazyAuthenticatorStatusQuery } from "@/features/authenticator/authenticator.api";
-import type { AuthenticatorRequest } from "@/features/authenticator/authenticator.types";
+import type {
+  AuthenticatorRequest,
+  AuthenticatorResult,
+} from "@/features/authenticator/authenticator.types";
 
 const POLL_MS = 2_000;
 const DEFAULT_COUNTDOWN_SECONDS = 120;
@@ -42,6 +45,8 @@ export type QrConfirmationDialogProps = {
   onApprove?: () => void;
   /** Fired with authenticatorRequestId once mobile authorizes it on backend. */
   onAuthorized?: (requestId: string) => Promise<void> | void;
+  /** Fired when the backend says the authorized action has already been carried out. */
+  onConsumed?: (requestId: string, result?: AuthenticatorResult) => Promise<void> | void;
   /** Real backend authenticator challenge object */
   authenticator?: AuthenticatorRequest | null;
   /** Direct QR payload string from API */
@@ -81,6 +86,7 @@ export default function QrConfirmationDialog({
   onClose,
   onApprove,
   onAuthorized,
+  onConsumed,
   authenticator: initialAuthenticator,
   qrPayload,
   value,
@@ -149,15 +155,16 @@ export default function QrConfirmationDialog({
   }, [open, view]);
 
   const carryOut = React.useCallback(
-    async (id: string) => {
+    async (id: string, consumed: boolean, consumedResult?: AuthenticatorResult) => {
       if (spentFor.current === id) return;
       spentFor.current = id;
       setView("authorizing");
       try {
-        if (onAuthorized) {
+        if (consumed && onConsumed) {
+          await onConsumed(id, consumedResult);
+        } else if (onAuthorized) {
           await onAuthorized(id);
-        }
-        if (onApprove) {
+        } else if (onApprove) {
           onApprove();
         }
       } catch (error) {
@@ -165,7 +172,7 @@ export default function QrConfirmationDialog({
         setErrorMessage(error instanceof Error ? error.message : "The action could not be completed.");
       }
     },
-    [onAuthorized, onApprove]
+    [onAuthorized, onApprove, onConsumed]
   );
 
   // Poll backend status until the mobile phone authorizes
@@ -178,8 +185,12 @@ export default function QrConfirmationDialog({
       try {
         const latest = await loadStatus(effectiveRequestId, false).unwrap();
         if (cancelled) return;
-        if (latest.status === "AUTHORIZED" || latest.status === "CONSUMED") {
-          void carryOut(effectiveRequestId);
+        if (latest.status === "AUTHORIZED") {
+          void carryOut(effectiveRequestId, false);
+          return;
+        }
+        if (latest.status === "CONSUMED") {
+          void carryOut(effectiveRequestId, true, latest.result ?? undefined);
           return;
         }
         if (latest.status === "EXPIRED" || latest.status === "CANCELLED") {
