@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import dayjs from "dayjs";
 import {
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogContent,
   IconButton,
@@ -13,14 +14,16 @@ import {
   Typography,
 } from "@mui/material";
 import type { TransitionProps } from "@mui/material/transitions";
-import { CheckCircle2, Download, FileSpreadsheet, X } from "lucide-react";
+import { Calendar, CheckCircle2, Download, FileText, X } from "lucide-react";
 
+import { font, palette, radius } from "@/theme/palette";
 import { formatAccountNumber } from "@/utils/format-account-number";
 import { downloadBlob } from "@/utils/download-file";
 import BaseBlurText from "@core/components/BaseBlurText";
+import { showToast } from "@core/components/AppToast";
 import type { LoanTransaction } from "../loan.types";
 
-/** Slide in from the right transition matching AccountInformationDetail & Account transaction detail */
+/** Slide in from the right transition matching Account transaction detail */
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {
     children: React.ReactElement<any, any>;
@@ -30,28 +33,22 @@ const Transition = React.forwardRef(function Transition(
   return <Slide direction="left" ref={ref} {...props} />;
 });
 
-/** Row with dotted divider used in loan repayment details modal */
-function SummaryRow({
+/** Clean label-value row with comfortable spacing and padding */
+function DetailRow({
   label,
   value,
-  valueColor = "#0F172A",
-  valueWeight = 600,
-  isLast = false,
-  py = 2.4,
+  dottedDivider = false,
 }: {
   label: string;
   value: React.ReactNode;
-  valueColor?: string;
-  valueWeight?: number;
-  isLast?: boolean;
-  py?: number | string;
+  dottedDivider?: boolean;
 }) {
   if (value === undefined || value === null || value === "") return null;
   return (
     <Box
       sx={{
-        py,
-        borderBottom: isLast ? "none" : "1px dotted #CBD5E1",
+        py: dottedDivider ? 1.6 : 1.35,
+        borderBottom: dottedDivider ? "1px dotted #CBD5E1" : "none",
       }}
     >
       <Stack
@@ -67,6 +64,8 @@ function SummaryRow({
             fontSize: 13.5,
             color: "#64748B",
             fontWeight: 400,
+            lineHeight: 1.5,
+            letterSpacing: "0.1px",
             flexShrink: 0,
           }}
         >
@@ -75,8 +74,9 @@ function SummaryRow({
         <Typography
           sx={{
             fontSize: 13.5,
-            color: valueColor,
-            fontWeight: valueWeight,
+            color: "#0F172A",
+            fontWeight: 600,
+            lineHeight: 1.5,
             textAlign: "right",
             wordBreak: "break-word",
           }}
@@ -88,43 +88,133 @@ function SummaryRow({
   );
 }
 
+/** Section subheader (e.g. "From", "To") with generous spacing */
+function SectionSubhead({ title }: { title: string }) {
+  return (
+    <Typography
+      sx={{
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#0F172A",
+        mt: 2.5,
+        mb: 0.75,
+        letterSpacing: "0.1px",
+      }}
+    >
+      {title}
+    </Typography>
+  );
+}
+
+function formatLoanTxnDateTime(dateStr?: string) {
+  if (!dateStr) return "19 Oct 2026, 08:15 AM";
+  const parsed = dayjs(dateStr);
+  if (parsed.isValid()) {
+    return parsed.format("D MMM YYYY, 08:15 AM");
+  }
+  return dateStr;
+}
+
 export interface LoanTransactionDetailDialogProps {
   open: boolean;
   onClose: () => void;
   transaction: LoanTransaction | null;
   borrowerName?: string;
   borrowerAccountNumber?: string;
+  onDownload?: (transaction: LoanTransaction) => void;
+  onAddSchedule?: (transaction: LoanTransaction) => void;
+  onSaveTemplate?: (transaction: LoanTransaction) => void;
 }
 
+/**
+ * Slide-in Dialog displaying full details of the clicked loan repayment row
+ * matching the latest Account transaction details UI specification.
+ */
 export default function LoanTransactionDetailDialog({
   open,
   onClose,
   transaction,
   borrowerName,
   borrowerAccountNumber,
+  onDownload,
+  onAddSchedule,
+  onSaveTemplate,
 }: LoanTransactionDetailDialogProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+
   if (!transaction) return null;
 
-  const rawAccNumber = borrowerAccountNumber || "0098 1122 3344";
+  const rawAccNumber = borrowerAccountNumber || "0012 3456 7890";
   const formattedAccountNumber = formatAccountNumber(rawAccNumber) || rawAccNumber;
-  const accountDisplayName = borrowerName || "Payroll account";
+  const accountDisplayName = borrowerName || "Operating account";
 
-  const totalAmount = transaction.total || transaction.amount || "KHR 8,240,000";
+  // Amount formatting with negative sign for debit repayment
+  const rawTotal = transaction.total || transaction.amount || "KHR 8,240,000";
+  const displayAmount = rawTotal.startsWith("-")
+    ? rawTotal
+    : rawTotal.startsWith("+")
+      ? rawTotal.replace(/^\+/, "-")
+      : `-${rawTotal}`;
 
-  const handleDownloadCsv = () => {
-    const csv = [
-      "Employee ID,Beneficiary Name,Account Number,Bank,Amount,Currency,Status",
-      "EMP-0101,Dara Vann,0098 1100 2233,Canadia Bank,520000,KHR,Success",
-      "EMP-0102,Mony Keo,0098 2211 3344,ABA Bank,380000,KHR,Success",
-      "EMP-0103,Sok Pisey,0098 4455 6677,Wing Bank,420000,KHR,Success",
-      "EMP-0104,Rithy Keo,0098 3322 1100,ACLEDA Bank,450000,KHR,Success",
-      "EMP-0107,Chan Vuthy,0098 7766 5511,ABA Bank,360000,KHR,Success",
-    ].join("\n");
-    downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), "payroll_oct_2026.csv");
+  const positiveAmount = rawTotal.replace(/^[+-]/, "");
+
+  // Date and Time
+  const formattedDateTime = formatLoanTxnDateTime(transaction.date || transaction.dueDate);
+
+  // Field values with realistic fallbacks matching design
+  const transactionId = transaction.ref || "TXN-88213409";
+  const referenceNo = transaction.ref || "FT2610190008";
+  const toAccountName = "Loan Account";
+  const toAccountNo = "001 234 567";
+  const toBank = "Canadia Bank";
+  const remarks = transaction.title || "October office rent";
+
+  const handleDownloadPdf = async () => {
+    if (onDownload) {
+      onDownload(transaction);
+      return;
+    }
+    setIsDownloading(true);
+    try {
+      const csv = [
+        "Transaction ID,Reference,Date,Description,Amount,Status,Borrower,Borrower Account",
+        `"${transactionId}","${referenceNo}","${formattedDateTime}","${remarks}","${rawTotal}","${transaction.status || "Completed"}","${accountDisplayName}","${formattedAccountNumber}"`,
+      ].join("\n");
+      downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `loan-transaction-${transactionId}.csv`);
+      showToast("success", {
+        title: "Download completed",
+        message: `Transaction statement for ${transactionId} downloaded.`,
+      });
+    } catch {
+      showToast("error", {
+        title: "Download failed",
+        message: "Could not generate transaction document.",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
-  const handleDownloadExcel = () => {
-    handleDownloadCsv();
+  const handleAddSchedule = () => {
+    if (onAddSchedule) {
+      onAddSchedule(transaction);
+      return;
+    }
+    showToast("info", {
+      title: "Add schedule",
+      message: `Schedule created for ${toAccountName}.`,
+    });
+  };
+
+  const handleSaveTemplate = () => {
+    if (onSaveTemplate) {
+      onSaveTemplate(transaction);
+      return;
+    }
+    showToast("success", {
+      title: "Save as template",
+      message: `Template saved for ${toAccountName}.`,
+    });
   };
 
   return (
@@ -162,248 +252,235 @@ export default function LoanTransactionDetailDialog({
       }}
     >
       <DialogContent sx={{ p: 0 }}>
-        {/* Top Header Row */}
+        {/* Header: Title and Close button */}
         <Stack
           direction="row"
           sx={{
             justifyContent: "space-between",
             alignItems: "center",
+            mb: 3,
           }}
         >
-          {/* Completed Badge */}
-          <Box
+          <Typography
             sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 0.75,
-              bgcolor: "#0D7A5F",
-              color: "#FFFFFF",
-              borderRadius: "8px",
-              px: 1.8,
-              py: 1.5,
-              fontSize: 12.5,
-              fontWeight: 600,
-              lineHeight: 1,
+              fontSize: 19,
+              fontWeight: 700,
+              color: "#0F172A",
+              lineHeight: 1.3,
+              letterSpacing: "-0.2px",
             }}
           >
-            <CheckCircle2 size={13} strokeWidth={2.5} color="#FFFFFF" />
-            <span>Completed</span>
-          </Box>
+            Transaction details
+          </Typography>
 
-          {/* Simple Close X Icon Button (No background) */}
           <IconButton
             onClick={onClose}
             size="small"
             aria-label="close"
             sx={{
               color: "#64748B",
-              p: 0.5,
-              "&:hover": { color: "#0F172A", bgcolor: "transparent" },
+              p: 0.75,
+              borderRadius: "8px",
+              "&:hover": { bgcolor: "#F1F5F9" },
             }}
           >
             <X size={18} />
           </IconButton>
         </Stack>
 
-        {/* Transaction Subtitle / Type · Ref */}
-        <Typography
+        {/* Transfer To / From and Status Badge */}
+        <Stack
+          direction="row"
           sx={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: "#64748B",
-            lineHeight: 1.3,
-            mt: 4,
-            mb: 0.5,
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 1.5,
+            mb: 1.25,
           }}
         >
-          Bakong Payment · {transaction.ref || "2819700093P2429"}
-        </Typography>
+          <Typography
+            sx={{
+              fontSize: 14,
+              fontWeight: 500,
+              color: "#0F172A",
+              lineHeight: 1.4,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Transfer to {toAccountName}
+          </Typography>
 
-        {/* Large Bold Amount */}
+          <Box
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.6,
+              bgcolor: "#36A17E",
+              color: "#FFFFFF",
+              borderRadius: "6px",
+              px: 1.45,
+              py: 1.45,
+              fontSize: 11.5,
+              fontWeight: 600,
+              lineHeight: 1,
+              flexShrink: 0,
+            }}
+          >
+            <CheckCircle2 size={13} strokeWidth={2.5} color="#FFFFFF" />
+            <span>
+              {transaction.status === "due"
+                ? "Due"
+                : transaction.status === "upcoming"
+                  ? "Upcoming"
+                  : "Completed"}
+            </span>
+          </Box>
+        </Stack>
+
+        {/* Big Amount */}
         <Typography
           sx={{
-            fontSize: 28,
+            fontSize: 30,
             fontWeight: 800,
-            color: "#0F172A",
+            color: "#D32F2F",
             lineHeight: 1.2,
             letterSpacing: "-0.5px",
-            mb: 0.5,
-            mt:1.5
+            mb: 1,
           }}
         >
-          <BaseBlurText>{totalAmount}</BaseBlurText>
+          <BaseBlurText>{displayAmount}</BaseBlurText>
         </Typography>
 
-        {/* File name / Memo */}
+        {/* Date and Time */}
         <Typography
           sx={{
             fontSize: 13,
             color: "#64748B",
             lineHeight: 1.4,
-            mb: 3,
-            mt:3
+            mb: 1,
           }}
         >
-          payroll_oct_2026.xlsx
+          {formattedDateTime}
         </Typography>
 
-        {/* Section 1: Payroll summary */}
+        {/* Section Heading: Transaction Details */}
         <Typography
           sx={{
-            fontSize: 14.5,
+            fontSize: 15,
             fontWeight: 700,
             color: "#0F172A",
+            mt: 3.5,
             mb: 1.5,
-            mt: 1,
+            letterSpacing: "0.1px",
           }}
         >
-          Payroll summary
+          Transaction Details
         </Typography>
 
-        <Stack sx={{ mb: 4 }}>
-          <SummaryRow
-            label="Source account"
-            value={`${accountDisplayName} · ${formattedAccountNumber}`}
+        {/* Details list */}
+        <Stack spacing={0}>
+          <DetailRow label="Transaction ID" value={transactionId} dottedDivider />
+          <DetailRow label="Reference no." value={referenceNo} />
+
+          <SectionSubhead title="From" />
+          <DetailRow label="Account Name" value={accountDisplayName} />
+          <DetailRow label="Account No" value={formattedAccountNumber} />
+
+          <SectionSubhead title="To" />
+          <DetailRow label="Account Name" value={toAccountName} />
+          <DetailRow label="Account No" value={toAccountNo} />
+          <DetailRow label="Bank" value={toBank} dottedDivider />
+
+          <DetailRow
+            label="Debit amount"
+            value={positiveAmount}
+            dottedDivider
           />
-          <SummaryRow
-            label="Number of records"
-            value={24}
-          />
-          <SummaryRow
-            label="Total payroll amount"
-            value={<BaseBlurText>{totalAmount}</BaseBlurText>}
-          />
-          <SummaryRow
-            label="Processing date"
-            value="14 Oct 2026 · Immediate"
-            isLast
-          />
+          <DetailRow label="Remarks" value={remarks} />
         </Stack>
 
-        {/* Middle Card: List of payroll */}
-        <Box
-          sx={{
-            border: "1px solid #E2E8F0",
-            borderRadius: "14px",
-            p: 2,
-            my: 1.5,
-            bgcolor: "#FFFFFF",
-          }}
-        >
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 2 }}>
-            <Box
-              sx={{
-                width: 36,
-                height: 36,
-                borderRadius: "8px",
-                bgcolor: "#EFF6FF",
-                color: "#1C64B4",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              <FileSpreadsheet size={18} />
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  color: "#0F172A",
-                  lineHeight: 1.3,
-                }}
-              >
-                List of payroll
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: 12,
-                  color: "#64748B",
-                  lineHeight: 1.3,
-                  mt: 0.35,
-                }}
-              >
-                All 24 employees with amounts and status
-              </Typography>
-            </Box>
-          </Stack>
+        {/* Action Buttons */}
+        <Stack spacing={1.5} sx={{ mt: 4.5, mb: 2 }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={
+              isDownloading ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <Download size={16} />
+              )
+            }
+            onClick={handleDownloadPdf}
+            disabled={isDownloading}
+            sx={{
+              height: 42,
+              borderRadius: "10px",
+              borderColor: "#E2E8F0",
+              color: "#0F172A",
+              bgcolor: "#FFFFFF",
+              textTransform: "none",
+              fontSize: 13.5,
+              fontWeight: 600,
+              boxShadow: "none",
+              "&:hover": {
+                borderColor: "#CBD5E1",
+                bgcolor: "#F8FAFC",
+              },
+            }}
+          >
+            Download (PDF)
+          </Button>
 
-          <Stack direction="row" spacing={1.5}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<Download size={14} />}
-              onClick={handleDownloadCsv}
-              sx={{
-                height: 38,
-                borderRadius: "8px",
-                borderColor: "#E2E8F0",
-                color: "#0F172A",
-                bgcolor: "#FFFFFF",
-                textTransform: "none",
-                fontSize: 13,
-                fontWeight: 600,
-                "&:hover": {
-                  borderColor: "#CBD5E1",
-                  bgcolor: "#F8FAFC",
-                },
-              }}
-            >
-              CSV
-            </Button>
-            <Button
-              fullWidth
-              variant="contained"
-              startIcon={<Download size={14} />}
-              onClick={handleDownloadExcel}
-              sx={{
-                height: 38,
-                borderRadius: "8px",
-                bgcolor: "#2E9A74",
-                color: "#FFFFFF",
-                textTransform: "none",
-                fontSize: 13,
-                fontWeight: 600,
-                boxShadow: "none",
-                "&:hover": {
-                  bgcolor: "#247E5F",
-                  boxShadow: "none",
-                },
-              }}
-            >
-              Excel
-            </Button>
-          </Stack>
-        </Box>
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<Calendar size={16} />}
+            onClick={handleAddSchedule}
+            sx={{
+              height: 42,
+              borderRadius: "10px",
+              borderColor: "#E2E8F0",
+              color: "#0F172A",
+              bgcolor: "#FFFFFF",
+              textTransform: "none",
+              fontSize: 13.5,
+              fontWeight: 600,
+              boxShadow: "none",
+              "&:hover": {
+                borderColor: "#CBD5E1",
+                bgcolor: "#F8FAFC",
+              },
+            }}
+          >
+            Add schedule
+          </Button>
 
-        {/* Section 2: Transaction summary */}
-        <Typography
-          sx={{
-            fontSize: 14.5,
-            fontWeight: 700,
-            color: "#0F172A",
-            mt: 4.5,
-            mb: 0.5,
-          }}
-        >
-          Transaction summary
-        </Typography>
-
-        <Stack>
-          <SummaryRow
-            label="Payroll amount"
-            value={<BaseBlurText>{totalAmount}</BaseBlurText>}
-          />
-          <SummaryRow label="Fee" value="KHR 24,000" />
-          <SummaryRow
-            label="Total debit amount"
-            value={<BaseBlurText>{totalAmount === "KHR 8,240,000" ? "KHR 8,264,000" : totalAmount}</BaseBlurText>}
-            valueColor="#1C64B4"
-            valueWeight={700}
-            isLast
-          />
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<FileText size={16} />}
+            onClick={handleSaveTemplate}
+            sx={{
+              height: 42,
+              borderRadius: "10px",
+              borderColor: "#E2E8F0",
+              color: "#0F172A",
+              bgcolor: "#FFFFFF",
+              textTransform: "none",
+              fontSize: 13.5,
+              fontWeight: 600,
+              boxShadow: "none",
+              "&:hover": {
+                borderColor: "#CBD5E1",
+                bgcolor: "#F8FAFC",
+              },
+            }}
+          >
+            Save as template
+          </Button>
         </Stack>
       </DialogContent>
     </Dialog>
