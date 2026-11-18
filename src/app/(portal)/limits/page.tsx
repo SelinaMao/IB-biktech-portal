@@ -48,7 +48,10 @@ export default function LimitsPage() {
  * from is a company-level question they cannot act on.
  */
 function OwnLimits() {
-  const { data, isLoading } = useGetMyLimitsQuery();
+  const { data, isLoading } = useGetMyLimitsQuery(undefined, {
+    pollingInterval: 30_000,
+    refetchOnMountOrArgChange: true,
+  });
 
   return (
     <Card

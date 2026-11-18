@@ -1,7 +1,6 @@
 import type {
   BillCategory,
   BillProvider,
-  PaymentAccount,
   PaymentActionCardItem,
   PaymentTemplate,
 } from "./payment.types";
@@ -75,66 +74,48 @@ export const BILL_CATEGORIES: BillCategory[] = [
   "Water",
   "Internet",
   "Government",
+  "Utilities",
 ];
 
-export const INITIAL_BILL_PROVIDERS: BillProvider[] = [
+export const BILL_PROVIDERS: BillProvider[] = [
   {
-    id: "bp-1",
+    providerId: "electricity-authority",
     name: "Electricity Authority",
     category: "Electricity",
     initials: "EA",
-    slug: "electricity-authority",
+    sampleConsumerId: "EDC-100001",
+    paymentSupported: true,
   },
   {
-    id: "bp-2",
+    providerId: "city-water-supply",
     name: "City Water Supply",
     category: "Water",
     initials: "PW",
-    slug: "city-water-supply",
+    sampleConsumerId: "WTR-200001",
+    paymentSupported: true,
   },
   {
-    id: "bp-3",
+    providerId: "fibrenet-internet",
     name: "FibreNet Internet",
     category: "Internet",
     initials: "FI",
-    slug: "fibrenet-internet",
+    sampleConsumerId: "FNI-300001",
+    paymentSupported: true,
   },
   {
-    id: "bp-4",
+    providerId: "tax-department",
     name: "Tax Department",
     category: "Government",
     initials: "TX",
-    slug: "tax-department",
+    sampleConsumerId: "TAX-400001",
+    paymentSupported: true,
   },
   {
-    id: "bp-5",
+    providerId: "waste-management",
     name: "Waste Management",
     category: "Utilities",
     initials: "WM",
-    slug: "waste-management",
-  },
-];
-
-export const MOCK_PAYMENT_ACCOUNTS: PaymentAccount[] = [
-  {
-    id: "acc-1",
-    name: "Operating Account",
-    accountNumber: "111-001-998",
-    balance: "12,450.00",
-    currency: "USD",
-  },
-  {
-    id: "acc-2",
-    name: "Payroll & Tax Reserve",
-    accountNumber: "111-022-998",
-    balance: "45,820.50",
-    currency: "USD",
-  },
-  {
-    id: "acc-3",
-    name: "KHR Savings Account",
-    accountNumber: "111-045-231",
-    balance: "58,200,000",
-    currency: "KHR",
+    sampleConsumerId: "WST-500001",
+    paymentSupported: true,
   },
 ];

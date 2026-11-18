@@ -23,22 +23,25 @@ export interface PaymentTemplate {
   createdAt: string;
 }
 
-export type BillCategory = "All" | "Electricity" | "Water" | "Internet" | "Government";
+export type BillCategory = "All" | "Electricity" | "Water" | "Internet" | "Government" | "Utilities";
 
 export interface BillProvider {
-  id: string;
+  providerId: string;
   name: string;
   category: string;
   initials: string;
-  slug: string;
+  sampleConsumerId: string;
+  paymentSupported: boolean;
 }
 
-export interface PaymentAccount {
-  id: string;
-  name: string;
-  accountNumber: string;
-  balance: string;
+export interface BillPaymentRequest {
+  fromAccountNumber: string;
+  providerId: string;
+  customerNumber: string;
+  amount: number;
   currency: string;
+  remark?: string;
+  schedule?: TransferSchedule;
 }
 
 export interface PhoneTopUpTransferRequest {
@@ -71,3 +74,7 @@ export interface PhoneInquiryResult {
   totalAmountRiel?: number;
 }
 
+export interface BillInquiryRequest {
+  providerId: string;
+  customerNumber: string;
+}

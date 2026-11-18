@@ -26,6 +26,7 @@ import { useDragReorder } from "../useDragReorder";
 import {
   useListEligibleApproversQuery,
   useListFunctionApproversQuery,
+  useListFunctionApproverUnionQuery,
 } from "../workflow.api";
 import {
   drawnFrom,
@@ -39,7 +40,7 @@ import {
 type Props = {
   index: number;
   quota: ApproverQuota;
-  /** What the rule covers. With several actions, only people who can approve all of them are offered. */
+  /** What the rule covers. With several actions, people who can approve any covered action are offered. */
   functionCodes: string[];
   /** The level's sequence. In order, the people named are asked one at a time, 1 first. */
   sequence: ApprovalSequence;
@@ -176,11 +177,17 @@ export default function RequirementCard({
     [chosen, groups],
   );
 
-  // Asked of the engine, which resolves people the way it will when a request is raised — and,
-  // across several actions, only the people who can sign every one of them.
+  // Asked of the engine for one action. Multiple actions use the union query below instead.
   const lookup = useListFunctionApproversQuery(
     { functionCodes, groupKeys: mode === "GROUP" ? chosen : [] },
-    { skip: functionCodes.length === 0 },
+    { skip: functionCodes.length !== 1 },
+  );
+
+  // A rule covering several actions needs the union of each action's approvers, not their
+  // intersection; the same user must remain selectable if eligible for any covered action.
+  const unionLookup = useListFunctionApproverUnionQuery(
+    { functionCodes, groupKeys: mode === "GROUP" ? chosen : [] },
+    { skip: functionCodes.length <= 1 },
   );
 
   // The function-approvers endpoint can be unavailable for an individual action. The existing
@@ -212,24 +219,49 @@ export default function RequirementCard({
       ? eligible
       : eligible.filter((person) => eligibleGroupMembers.has(person.userId));
   }, [eligibleFallback.data, mode, chosenGroups]);
+  const allActionPeople = useMemo(() => {
+    const eligible = unionLookup.data ?? [];
+    if (mode !== "GROUP") return eligible;
+
+    const eligibleIds = new Set(eligible.map((person) => person.userId));
+    const groupMembers = chosenGroups.flatMap(({ group }) => group?.memberIds ?? []);
+    const eligibleGroupMembers = new Set(groupMembers.filter((id) => eligibleIds.has(id)));
+    const groupFallsBackToPool = chosenGroups.some(
+      ({ group }) => !group || group.memberIds.length === 0,
+    );
+
+    return groupFallsBackToPool || eligibleGroupMembers.size === 0
+      ? eligible
+      : eligible.filter((person) => eligibleGroupMembers.has(person.userId));
+  }, [unionLookup.data, mode, chosenGroups]);
   const people = useMemo(
     () =>
-      [...(lookup.data ?? (lookup.isError ? eligibleFallbackPeople : []))].sort((a, b) =>
-        nameOf(a).localeCompare(nameOf(b)),
-      ),
-    [lookup.data, lookup.isError, eligibleFallbackPeople],
+      [
+        ...(functionCodes.length > 1
+          ? allActionPeople
+          : lookup.data ?? (lookup.isError ? eligibleFallbackPeople : [])),
+      ].sort((a, b) => nameOf(a).localeCompare(nameOf(b))),
+    [functionCodes.length, allActionPeople, lookup.data, lookup.isError, eligibleFallbackPeople],
   );
   const byId = useMemo(() => new Map(people.map((person) => [person.userId, person])), [people]);
   const usingFallback = lookup.isError && functionCodes.length === 1 && eligibleFallback.data !== undefined;
-  const fallbackFailed = lookup.isError && (functionCodes.length !== 1 || eligibleFallback.isError);
+  const fallbackFailed =
+    functionCodes.length > 1
+      ? unionLookup.isError
+      : lookup.isError && eligibleFallback.isError;
   const fallbackLoading =
-    lookup.isError &&
-    functionCodes.length === 1 &&
-    !eligibleFallback.data &&
-    (eligibleFallback.isLoading || eligibleFallback.isFetching);
-  const loaded = usingFallback
-    ? !eligibleFallback.isFetching
-    : !lookup.isFetching && !lookup.isError && lookup.data !== undefined;
+    functionCodes.length > 1
+      ? !unionLookup.data && (unionLookup.isLoading || unionLookup.isFetching)
+      : lookup.isError &&
+        functionCodes.length === 1 &&
+        !eligibleFallback.data &&
+        (eligibleFallback.isLoading || eligibleFallback.isFetching);
+  const loaded =
+    functionCodes.length > 1
+      ? !unionLookup.isFetching && unionLookup.data !== undefined
+      : usingFallback
+        ? !eligibleFallback.isFetching
+        : !lookup.isFetching && !lookup.isError && lookup.data !== undefined;
 
   const picked = quota.specificUserIds ?? [];
   const others = people.filter((person) => !picked.includes(person.userId));
@@ -267,9 +299,8 @@ export default function RequirementCard({
   };
   const reorder = useDragReorder(moveTo);
 
-  // Only a list that belongs to one action describes who "anyone" or a group will reach; across
-  // several actions each copy of the rule reaches its own action's people.
-  const showsPool = mode !== "NAMED" && !several;
+  // Show the union for multi-action rules so users can see who can approve at least one action.
+  const showsPool = mode !== "NAMED";
   const nobody = loaded && people.length === 0;
   const tooMany = quota.requiredCount > people.length;
 
@@ -408,7 +439,7 @@ export default function RequirementCard({
           </Alert>
         )}
 
-        {functionCodes.length === 0 ? (
+        {mode === "GROUP" && groups.length === 0 ? null : functionCodes.length === 0 ? (
           <Hint icon>Pick what is being approved first. The people who can approve it show here.</Hint>
         ) : fallbackFailed ? (
           <Alert severity="error" variant="outlined">
@@ -428,10 +459,10 @@ export default function RequirementCard({
               </Alert>
             )}
             {/* A blank list is indistinguishable from a broken one, so say which it is and how to fix it. */}
-            {nobody && (mode === "NAMED" || !several) && (
+            {nobody && (
               <Alert severity="warning" variant="outlined">
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  Nobody can approve {several ? `all ${functionCodes.length} of these actions` : "this action"} yet
+                  Nobody can approve {several ? "any covered action" : "this action"} yet
                 </Typography>
                 <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
                   Mark a role as an approver under <strong>Roles</strong>, and anyone holding it can
@@ -463,8 +494,8 @@ export default function RequirementCard({
 
             {mode !== "NAMED" && several && (
               <Hint icon>
-                Who can approve differs per action, so each of the {functionCodes.length} is checked
-                when you save.
+                Checkers eligible for any covered action are listed. A selected group is matched
+                against its members who can approve at least one of these actions.
               </Hint>
             )}
 

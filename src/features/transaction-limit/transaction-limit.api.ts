@@ -1,6 +1,7 @@
 import { adminApi } from "@/config/api.config";
 import { baseApi } from "@/store/baseApi";
 import { type TransformResponse } from "@/utils/transform-response";
+import type { AuthenticatorRequest } from "@/features/authenticator";
 
 import type {
   LimitField,
@@ -32,6 +33,9 @@ type LimitRowResponse = Omit<Partial<TransactionLimitRow>, LimitField> &
   };
 type OwnerLimitsResponse = Omit<OwnerLimits, "rows"> & {
   rows: LimitRowResponse[];
+};
+type UpdateUserLimitsResponse = {
+  authenticator?: AuthenticatorRequest | null;
 };
 
 function normalizeLimitValue(
@@ -117,13 +121,16 @@ export const transactionLimitApi = baseApi.injectEndpoints({
       ],
     }),
 
-    updateUserLimits: build.mutation<OwnerLimits, { userId: string; rows: UpdateLimitRow[] }>({
+    updateUserLimits: build.mutation<
+      UpdateUserLimitsResponse,
+      { userId: string; rows: UpdateLimitRow[] }
+    >({
       query: ({ userId, rows }) => ({
         url: bank(withParams(adminApi.TRANSACTION_LIMIT.USER_UPDATE, { userId })),
         method: "PUT",
         body: { rows },
       }),
-      transformResponse: normalizeOwnerLimits,
+      transformResponse: (response: TransformResponse<UpdateUserLimitsResponse>) => response.data,
       invalidatesTags: [{ type: "TransactionLimit", id: "LIST" }],
     }),
 

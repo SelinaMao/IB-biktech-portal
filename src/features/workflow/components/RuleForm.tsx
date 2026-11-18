@@ -304,7 +304,11 @@ export default function RuleForm({ rule, functions, existingRules, isSaving, onC
   }, [isEdit, targets, existingRules, form.target]);
 
   /** The actions this saves a rule for — whose approvers the requirement cards look up. */
-  const targetCodes = isEdit ? form.functionCodes : [...plan.created, ...plan.updated].map((fn) => fn.code);
+  const targetCodes = isEdit
+    ? form.functionCodes
+    : form.target === "ALL"
+      ? allTargets.map((fn) => fn.code)
+      : [...plan.created, ...plan.updated].map((fn) => fn.code);
 
   const groupNameByKey = useMemo(
     () => new Map((groups.data ?? []).map((g) => [g.groupKey, g.name])),

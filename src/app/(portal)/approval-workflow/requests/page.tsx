@@ -35,6 +35,8 @@ import {
   type DetailDialogEntry,
   type WorkflowFunction,
 } from "@/features/workflow";
+import { baseApi } from "@/store/baseApi";
+import { useAppDispatch } from "@/store/hooks";
 import { font } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
 
@@ -100,6 +102,7 @@ const tabSx = (active: boolean) => ({
 });
 
 export default function ApprovalRequestsPage() {
+  const dispatch = useAppDispatch();
   const canView = useCanAny([
     CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW,
     CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_EXECUTE,
@@ -428,6 +431,9 @@ export default function ApprovalRequestsPage() {
       return;
     }
 
+    dispatch(
+      baseApi.util.invalidateTags([{ type: "TransactionLimit", id: "LIST" }]),
+    );
     setSelectedEntry(null);
     setOpenWorkflowId(null);
     if (result?.outcome === "SUCCEEDED") {

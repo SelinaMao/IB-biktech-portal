@@ -29,6 +29,31 @@ const bank = (path: string) => `bank/${path}`;
 const fill = (path: string, key: string, value: string) =>
   path.replace(`{${key}}`, encodeURIComponent(value));
 
+const approversFromResponse = (response: unknown): FunctionApprover[] | null => {
+  const data =
+    Array.isArray(response)
+      ? response
+      : typeof response === "object" &&
+          response !== null &&
+          "data" in response &&
+          Array.isArray(response.data)
+        ? response.data
+        : null;
+  if (!data) return null;
+
+  return data.filter(
+    (person): person is FunctionApprover =>
+      typeof person === "object" &&
+      person !== null &&
+      "userId" in person &&
+      typeof person.userId === "string" &&
+      "username" in person &&
+      typeof person.username === "string" &&
+      "fullName" in person &&
+      typeof person.fullName === "string",
+  );
+};
+
 export const workflowApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     /** The actions this organization can put behind approval. */
@@ -127,6 +152,60 @@ export const workflowApi = baseApi.injectEndpoints({
         return `${adminApi.WORKFLOW.FUNCTION_APPROVERS}?${params.toString()}`;
       },
       transformResponse,
+    }),
+
+    /** Union of each action's engine-resolved approvers, for a rule copied to several actions. */
+    listFunctionApproverUnion: build.query<
+      FunctionApprover[],
+      { functionCodes: string[]; groupKeys?: string[] }
+    >({
+      async queryFn({ functionCodes, groupKeys }, _api, _extraOptions, baseQuery) {
+        const codes = [...new Set(functionCodes.filter(Boolean))];
+        const lookups = await Promise.all(
+          codes.map((code) => {
+            const functionParams = new URLSearchParams({ codes: code });
+            (groupKeys ?? []).forEach((key) => functionParams.append("groupKey", key));
+            return baseQuery(
+              `${adminApi.WORKFLOW.FUNCTION_APPROVERS}?${functionParams.toString()}`,
+            );
+          }),
+        );
+
+        const approvers = new Map<string, FunctionApprover>();
+        for (const [index, lookup] of lookups.entries()) {
+          let data = lookup.error ? null : approversFromResponse(lookup.data);
+          if (!data?.length) {
+            const eligibleParams = new URLSearchParams({ function: codes[index] });
+            const fallback = await baseQuery(
+              `${adminApi.WORKFLOW.ELIGIBLE_APPROVERS}?${eligibleParams.toString()}`,
+            );
+            if (!fallback.error) {
+              const fallbackData = approversFromResponse(fallback.data);
+              if (fallbackData) data = fallbackData;
+              else if (!data) {
+                return {
+                  error: {
+                    status: "CUSTOM_ERROR",
+                    error: "Approver lookup returned an invalid response",
+                  },
+                };
+              }
+            } else if (lookup.error) {
+              return { error: fallback.error };
+            } else if (!data) {
+              return { error: fallback.error };
+            }
+          }
+          if (!data && lookup.error) {
+            return { error: lookup.error };
+          }
+          for (const person of data ?? []) {
+            approvers.set(person.userId, person);
+          }
+        }
+
+        return { data: [...approvers.values()] };
+      },
     }),
 
     listApproverGroups: build.query<ApproverGroup[], void>({
@@ -283,10 +362,13 @@ export const workflowApi = baseApi.injectEndpoints({
         method: "POST",
         body: { decision, reason: reason ?? null, authenticatorRequestId: authenticatorRequestId ?? null },
       }),
-      invalidatesTags: (_result, _error, { id }) => [
+      invalidatesTags: (_result, error, { id, decision }) => [
         { type: "WorkflowInstance", id },
         { type: "WorkflowInstance", id: "LIST" },
         { type: "WorkflowTask", id: "LIST" },
+        ...(!error && decision === "APPROVE"
+          ? [{ type: "TransactionLimit" as const, id: "LIST" }]
+          : []),
       ],
     }),
 
@@ -315,6 +397,7 @@ export const {
   useCloneTemplateMutation,
   useListEligibleApproversQuery,
   useListFunctionApproversQuery,
+  useListFunctionApproverUnionQuery,
   useListApproverGroupsQuery,
   useSetGroupMembersMutation,
   useListUserEntitlementsQuery,

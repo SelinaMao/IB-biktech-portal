@@ -53,30 +53,6 @@ function formatBalance(balance: number | string | undefined | null): string {
   return num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const FALLBACK_ACCOUNTS = [
-  {
-    id: "acc-1",
-    name: "Operating account",
-    number: "0012 3456 7890",
-    balance: 32150.0,
-    currency: "USD",
-  },
-  {
-    id: "acc-2",
-    name: "Payroll account",
-    number: "0012 3456 7891",
-    balance: 15400.0,
-    currency: "USD",
-  },
-  {
-    id: "acc-3",
-    name: "Savings account",
-    number: "0012 3456 7892",
-    balance: 12500000,
-    currency: "KHR",
-  },
-];
-
 /** Detect network provider based on phone prefix */
 function detectNetwork(phone: string): { name: string; tag: string } {
   const clean = phone.replace(/\D/g, "");
@@ -104,23 +80,10 @@ export default function MobileTopUpView({
   cardWidth = 576,
 }: MobileTopUpViewProps) {
   const router = useRouter();
-  const { accounts: fetchedAccounts } = useTransferAccounts(open);
-
-  const accounts = useMemo(() => {
-    if (fetchedAccounts && fetchedAccounts.length > 0) {
-      return fetchedAccounts.map((a) => ({
-        id: a.id,
-        name: a.name,
-        number: a.number,
-        balance: a.balance,
-        currency: a.currency,
-      }));
-    }
-    return FALLBACK_ACCOUNTS;
-  }, [fetchedAccounts]);
+  const { accounts, loading: loadingAccounts } = useTransferAccounts(open);
 
   // Form State
-  const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || FALLBACK_ACCOUNTS[0].id);
+  const [selectedAccountId, setSelectedAccountId] = useState("");
   const [mobileNumber, setMobileNumber] = useState("011 222 2222");
   const [amount, setAmount] = useState<number>(5);
   const [customAmountStr, setCustomAmountStr] = useState<string>("5.00");
@@ -136,15 +99,6 @@ export default function MobileTopUpView({
   const [submitPhoneTopUp] = useSubmitPhoneTopUpMutation();
   const [inquirePhone, { data: inquiryData }] = useInquirePhoneMutation();
 
-  // Sync selected account once real accounts are loaded
-  React.useEffect(() => {
-    if (fetchedAccounts && fetchedAccounts.length > 0) {
-      if (!selectedAccountId || !fetchedAccounts.some((a) => a.id === selectedAccountId)) {
-        setSelectedAccountId(fetchedAccounts[0].id);
-      }
-    }
-  }, [fetchedAccounts, selectedAccountId]);
-
   // Debounced inquiry for live telco lookup from backend API
   React.useEffect(() => {
     const clean = mobileNumber.replace(/\D/g, "");
@@ -157,9 +111,13 @@ export default function MobileTopUpView({
     }
   }, [mobileNumber, inquirePhone]);
 
-  const selectedAccount = useMemo(() => {
-    return accounts.find((a) => a.id === selectedAccountId) ?? accounts[0] ?? FALLBACK_ACCOUNTS[0];
-  }, [accounts, selectedAccountId]);
+  const activeAccountId = accounts.some((account) => account.id === selectedAccountId)
+    ? selectedAccountId
+    : accounts[0]?.id ?? "";
+  const selectedAccount = useMemo(
+    () => accounts.find((account) => account.id === activeAccountId),
+    [accounts, activeAccountId],
+  );
 
   const network = useMemo(() => {
     if (inquiryData?.providerName) {
@@ -171,7 +129,7 @@ export default function MobileTopUpView({
     return detectNetwork(mobileNumber);
   }, [inquiryData, mobileNumber]);
 
-  const currency = selectedAccount.currency || "USD";
+  const currency = selectedAccount?.currency || "USD";
   const quickAmounts = currency === "KHR" ? QUICK_AMOUNTS_KHR : QUICK_AMOUNTS_USD;
 
   // Format amount cleanly for currency (e.g. integer for KHR, 2 decimals for USD)
@@ -208,7 +166,7 @@ export default function MobileTopUpView({
   };
 
   const handleReset = () => {
-    setSelectedAccountId(accounts[0]?.id || FALLBACK_ACCOUNTS[0].id);
+    setSelectedAccountId(accounts[0]?.id ?? "");
     setMobileNumber("011 222 2222");
     setAmount(currency === "KHR" ? 20000 : 5);
     setCustomAmountStr(currency === "KHR" ? "20000" : "5.00");
@@ -231,6 +189,10 @@ export default function MobileTopUpView({
   };
 
   const submit = async (idempotencyKey?: string): Promise<TransferResult> => {
+    if (!selectedAccount) {
+      throw new Error("Select an available account before submitting");
+    }
+
     const cleanPhone = mobileNumber.replace(/\D/g, "");
     const formattedPhone = cleanPhone.startsWith("0") ? cleanPhone : `0${cleanPhone}`;
     const topUpAmount = Number(amount);
@@ -266,7 +228,7 @@ export default function MobileTopUpView({
   const previewFields: TransferPreviewField[] = [
     {
       label: "From Account",
-      value: `${selectedAccount.name} · ${selectedAccount.number}`,
+      value: selectedAccount ? `${selectedAccount.name} · ${selectedAccount.number}` : "-",
     },
     {
       label: "To Account",
@@ -312,17 +274,17 @@ export default function MobileTopUpView({
       cardWidth={cardWidth}
       breadcrumbPrefix="Payment"
       breadcrumbSubPrefix="Mobile Top-up"
-      fromAccount={{
+      fromAccount={selectedAccount ? {
         name: selectedAccount.name,
         accountNumber: selectedAccount.number,
         balance: formatBalance(selectedAccount.balance),
         currency: selectedAccount.currency,
-      }}
+      } : undefined}
       toAccount={{
         name: network.tag,
         accountNumber: mobileNumber,
       }}
-      canSubmit={Boolean(mobileNumber.trim().length >= 8 && amount > 0)}
+      canSubmit={Boolean(selectedAccount && mobileNumber.trim().length >= 8 && amount > 0)}
       previewFields={previewFields}
       summaryRows={summaryRows}
       successTitle="Top-up successful"
@@ -367,8 +329,9 @@ export default function MobileTopUpView({
             </Typography>
             <FormControl fullWidth size="small">
               <Select
-                value={selectedAccountId}
+                value={activeAccountId}
                 onChange={(e) => setSelectedAccountId(e.target.value)}
+                disabled={loadingAccounts || accounts.length === 0}
                 IconComponent={(props) => (
                   <ChevronDown
                     size={18}
@@ -408,6 +371,11 @@ export default function MobileTopUpView({
                   </InputAdornment>
                 }
               >
+                {accounts.length === 0 && (
+                  <MenuItem value="" disabled>
+                    {loadingAccounts ? "Loading accounts..." : "No available accounts"}
+                  </MenuItem>
+                )}
                 {accounts.map((acc) => (
                   <MenuItem key={acc.id} value={acc.id} sx={{ fontSize: 13.5 }}>
                     {`${acc.name} · ${acc.number} · ${acc.currency} ${formatBalance(acc.balance)}`}
