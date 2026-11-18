@@ -38,6 +38,14 @@ export default function PayBillDialog({
   const { accounts, loading: loadingAccounts } = useTransferAccounts(open);
   const canInitiateBill = useCan(CLIENT_PERMISSIONS.PAYMENT.BILL_CREATE);
   const [selectedAccountId, setSelectedAccountId] = useState("");
+  const [selectedBillProviderId, setSelectedBillProviderId] = useState(() => {
+    if (provider) return provider.providerId;
+    return BILL_PROVIDERS.find(
+      (item) =>
+        item.providerId === template?.providerId ||
+        item.name.toLowerCase() === template?.providerName.trim().toLowerCase(),
+    )?.providerId ?? "";
+  });
   const [consumerId, setConsumerId] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -65,12 +73,18 @@ export default function PayBillDialog({
 
   const targetTitle = template ? template.name : provider?.name ?? "Payment";
   const targetInitials = template ? template.providerInitials : provider?.initials ?? "BP";
-  const targetSubtitle = template
-    ? `${template.type} · ${template.providerName}`
-    : provider?.category ?? "Bill Payment";
+  const mappedTemplateProvider = BILL_PROVIDERS.find(
+    (item) =>
+      item.providerId === template?.providerId ||
+      item.name.toLowerCase() === template?.providerName.trim().toLowerCase(),
+  );
   const billProvider =
     provider ??
-    BILL_PROVIDERS.find((item) => item.name === template?.providerName);
+    mappedTemplateProvider ??
+    BILL_PROVIDERS.find((item) => item.providerId === selectedBillProviderId);
+  const targetSubtitle = template
+    ? `${template.type} · ${billProvider?.name ?? template.providerName}`
+    : provider?.category ?? "Bill Payment";
   const billKey = billProvider && consumerId.trim()
     ? `${billProvider.providerId}:${consumerId.trim()}`
     : "";
@@ -153,7 +167,7 @@ export default function PayBillDialog({
       selectedAccount &&
       consumerId.trim() &&
       amount.trim() &&
-      !isNaN(Number(amount)) &&
+      Number.isFinite(Number(amount)) &&
       Number(amount) > 0,
   );
 
@@ -176,9 +190,40 @@ export default function PayBillDialog({
             You do not have permission to initiate bill payments.
           </Alert>
         )}
-        {billProvider == null && (
+        {template?.type === "Bill payment" && !mappedTemplateProvider && !provider && (
+          <>
+            <Alert severity="warning">
+              This saved template is not linked to a CBS bill provider. Select the correct provider to continue.
+            </Alert>
+            <Box>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: palette.slate[700], mb: 0.75 }}>
+                Bill provider
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  displayEmpty
+                  value={selectedBillProviderId}
+                  onChange={(event) => {
+                    setSelectedBillProviderId(event.target.value);
+                    setVerifiedBillKey("");
+                    setInquiryError(null);
+                  }}
+                  sx={{ borderRadius: `${radius.md}px` }}
+                >
+                  <MenuItem value="" disabled>Select the correct bill provider</MenuItem>
+                  {BILL_PROVIDERS.filter((item) => item.paymentSupported).map((item) => (
+                    <MenuItem key={item.providerId} value={item.providerId}>
+                      {item.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </>
+        )}
+        {template?.type === "Bill payment" && !billProvider && (
           <Alert severity="error">
-            This payment template is not linked to a bill provider and cannot be submitted.
+            Select a bill provider before submitting this payment.
           </Alert>
         )}
         {/* Recipient summary card */}
@@ -279,14 +324,6 @@ export default function PayBillDialog({
             Bill details verified.
           </Alert>
         )}
-        {inquiryError?.billKey === billKey && (
-          <Alert severity="warning">
-            {inquiryError.title}: {inquiryError.message}
-            {inquiryError.referenceCode ? ` Reference: ${inquiryError.referenceCode}.` : ""}
-            {" "}You can still submit; the CBS payment endpoint will validate the request.
-          </Alert>
-        )}
-
         {/* Amount */}
         <Box>
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: palette.slate[700], mb: 0.75 }}>

@@ -7,7 +7,7 @@ import Stack from "@mui/material/Stack";
 
 import { showToast } from "@core/components/AppToast";
 import { useTopBarBreadcrumb } from "@core/layout";
-import { INITIAL_PAYMENT_TEMPLATES, PAYMENT_ACTION_CARDS } from "../payment.data";
+import { PAYMENT_ACTION_CARDS } from "../payment.data";
 import type {
   BillProvider,
   PaymentActionSlug,
@@ -29,10 +29,11 @@ export interface PaymentHubProps {
 export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
   const router = useRouter();
   const [currentView, setCurrentView] = useState<"main" | "bill-payment" | "mobile-topup">(initialView);
-  const [templates, setTemplates] = useState<PaymentTemplate[]>(INITIAL_PAYMENT_TEMPLATES);
+  const [templates, setTemplates] = useState<PaymentTemplate[]>([]);
 
   const handleBackToMain = () => {
     setCurrentView("main");
+    setPayTargetTemplate(null);
     if (typeof window !== "undefined" && window.location.pathname.includes("/payment/")) {
       router.push("/payment");
     }
@@ -119,9 +120,24 @@ export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
   };
 
   const handleSelectTemplateForPayment = (template: PaymentTemplate) => {
-    setPayTargetTemplate(template);
-    setPayTargetProvider(null);
-    setPayDialogOpen(true);
+    if (template.type === "Mobile top-up") {
+      setPayTargetTemplate(template);
+      setCurrentView("mobile-topup");
+      setPayDialogOpen(false);
+      return;
+    }
+
+    if (template.type === "Bill payment") {
+      setPayTargetTemplate(template);
+      setPayTargetProvider(null);
+      setPayDialogOpen(true);
+      return;
+    }
+
+    showToast("info", {
+      title: "Charity payment unavailable",
+      message: "Charity templates are not supported yet.",
+    });
   };
 
   const handleSelectProviderForPayment = (provider: BillProvider) => {
@@ -138,6 +154,7 @@ export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
         />
 
         <PayBillDialog
+          key={payTargetTemplate?.id ?? payTargetProvider?.providerId ?? "bill-payment"}
           open={payDialogOpen}
           onClose={() => setPayDialogOpen(false)}
           template={payTargetTemplate}
@@ -151,6 +168,8 @@ export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
     return (
       <Box sx={{ width: "100%" }}>
         <MobileTopUpView
+          key={payTargetTemplate?.type === "Mobile top-up" ? payTargetTemplate.id : "new-mobile-topup"}
+          initialTemplate={payTargetTemplate?.type === "Mobile top-up" ? payTargetTemplate : null}
           onBackToPayments={handleBackToMain}
           onSaveTemplate={(tpl) =>
             handleCreateTemplate({
@@ -207,6 +226,7 @@ export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
       />
 
       <PayBillDialog
+        key={payTargetTemplate?.id ?? payTargetProvider?.providerId ?? "bill-payment"}
         open={payDialogOpen}
         onClose={() => setPayDialogOpen(false)}
         template={payTargetTemplate}

@@ -2,7 +2,6 @@ import type {
   BillCategory,
   BillProvider,
   PaymentActionCardItem,
-  PaymentTemplate,
 } from "./payment.types";
 
 export const PAYMENT_ACTION_CARDS: PaymentActionCardItem[] = [
@@ -26,45 +25,6 @@ export const PAYMENT_ACTION_CARDS: PaymentActionCardItem[] = [
     title: "Charity & donation",
     description: "Give to registered organisations",
     iconName: "charity",
-  },
-];
-
-export const INITIAL_PAYMENT_TEMPLATES: PaymentTemplate[] = [
-  {
-    id: "tpl-1",
-    name: "Head office electricity",
-    type: "Bill payment",
-    providerName: "Electricity Authority",
-    providerInitials: "EA",
-    correspondentId: "Consumer ID 0091 2207",
-    createdAt: "02 Sep 2026",
-  },
-  {
-    id: "tpl-2",
-    name: "Internet — HQ",
-    type: "Bill payment",
-    providerName: "FibreNet Internet",
-    providerInitials: "FI",
-    correspondentId: "Consumer ID 7781 0042",
-    createdAt: "15 Aug 2026",
-  },
-  {
-    id: "tpl-3",
-    name: "Sales team top-up",
-    type: "Mobile top-up",
-    providerName: "Smart · prepaid",
-    providerInitials: "SM",
-    correspondentId: "Mobile no. 011 222 2222",
-    createdAt: "10 Jul 2026",
-  },
-  {
-    id: "tpl-4",
-    name: "Children's Hospital Fund",
-    type: "Charity & donation",
-    providerName: "Health · registered charity",
-    providerInitials: "CH",
-    correspondentId: "Organisation ID CH-0021",
-    createdAt: "01 Jun 2026",
   },
 ];
 

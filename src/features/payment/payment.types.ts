@@ -17,6 +17,7 @@ export interface PaymentTemplate {
   name: string;
   type: PaymentTemplateType;
   providerName: string;
+  providerId?: string;
   providerInitials: string;
   providerSubtitle?: string;
   correspondentId: string;

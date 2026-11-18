@@ -22,13 +22,14 @@ import {
 } from "@/features/transfer";
 import { useTransferAccounts } from "@/features/transfer/use-transfer-accounts";
 import { useInquirePhoneMutation, useSubmitPhoneTopUpMutation } from "../payment.api";
-import type { PhoneTopUpTransferRequest } from "../payment.types";
+import type { PaymentTemplate, PhoneTopUpTransferRequest } from "../payment.types";
 
 export interface MobileTopUpViewProps {
   open?: boolean;
   onClose?: () => void;
   onBackToPayments?: () => void;
   cardWidth?: number | string;
+  initialTemplate?: PaymentTemplate | null;
   onSaveTemplate?: (templateData: {
     name: string;
     type: "Mobile top-up";
@@ -77,6 +78,7 @@ export default function MobileTopUpView({
   onClose,
   onBackToPayments,
   onSaveTemplate,
+  initialTemplate,
   cardWidth = 576,
 }: MobileTopUpViewProps) {
   const router = useRouter();
@@ -84,7 +86,9 @@ export default function MobileTopUpView({
 
   // Form State
   const [selectedAccountId, setSelectedAccountId] = useState("");
-  const [mobileNumber, setMobileNumber] = useState("011 222 2222");
+  const [mobileNumber, setMobileNumber] = useState(() =>
+    initialTemplate?.correspondentId.replace(/^(Mobile no\.|Phone number)\s*/i, "") ?? "011 222 2222",
+  );
   const [amount, setAmount] = useState<number>(5);
   const [customAmountStr, setCustomAmountStr] = useState<string>("5.00");
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
@@ -130,6 +134,11 @@ export default function MobileTopUpView({
   }, [inquiryData, mobileNumber]);
 
   const currency = selectedAccount?.currency || "USD";
+  const normalizedPhone = mobileNumber.replace(/\D/g, "");
+  const phoneIsValid =
+    /^[\d\s()-]+$/.test(mobileNumber.trim()) &&
+    normalizedPhone.length >= 8 &&
+    normalizedPhone.length <= 11;
   const quickAmounts = currency === "KHR" ? QUICK_AMOUNTS_KHR : QUICK_AMOUNTS_USD;
 
   // Format amount cleanly for currency (e.g. integer for KHR, 2 decimals for USD)
@@ -192,8 +201,11 @@ export default function MobileTopUpView({
     if (!selectedAccount) {
       throw new Error("Select an available account before submitting");
     }
+    if (!phoneIsValid || !Number.isFinite(amount) || amount <= 0) {
+      throw new Error("Enter a valid phone number and a positive top-up amount");
+    }
 
-    const cleanPhone = mobileNumber.replace(/\D/g, "");
+    const cleanPhone = normalizedPhone;
     const formattedPhone = cleanPhone.startsWith("0") ? cleanPhone : `0${cleanPhone}`;
     const topUpAmount = Number(amount);
 
@@ -284,7 +296,7 @@ export default function MobileTopUpView({
         name: network.tag,
         accountNumber: mobileNumber,
       }}
-      canSubmit={Boolean(selectedAccount && mobileNumber.trim().length >= 8 && amount > 0)}
+      canSubmit={Boolean(selectedAccount && phoneIsValid && Number.isFinite(amount) && amount > 0)}
       previewFields={previewFields}
       summaryRows={summaryRows}
       successTitle="Top-up successful"
@@ -403,6 +415,12 @@ export default function MobileTopUpView({
               placeholder="011 222 2222"
               value={mobileNumber}
               onChange={(e) => setMobileNumber(e.target.value)}
+              error={mobileNumber.trim().length > 0 && !phoneIsValid}
+              helperText={
+                mobileNumber.trim().length > 0 && !phoneIsValid
+                  ? "Enter a valid phone number with 8 to 11 digits."
+                  : undefined
+              }
               slotProps={{
                 input: {
                   startAdornment: (
@@ -430,7 +448,7 @@ export default function MobileTopUpView({
                 mt: 0.75,
               }}
             >
-              We add the leading 0 for you. Up to 10 digits.
+              We add the leading 0 for you. Enter 8 to 11 digits.
             </Typography>
 
             {/* Detected Operator Pill Badge */}
