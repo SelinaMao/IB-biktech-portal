@@ -134,7 +134,8 @@ export const adminApi = {
     LIST: "payment/schedules",
     ONE: "payment/schedules/{referenceId}",
     TRANSACTIONS: "payment/schedules/{referenceId}/transactions", // Query: view=PENDING|HISTORY, page, size
-    ACTIONS: "payment/schedules/transactions/{referenceId}/actions", // One transaction. Body: {action: PAUSE|RESUME|CANCEL}
+    ACTIONS: "payment/schedules/{referenceId}/actions", // Body: {action: PAUSE|RESUME|CANCEL}
+    TRANSACTION_ACTIONS: "payment/schedules/transactions/{referenceId}/actions", // One transaction. Body: {action: PAUSE|RESUME|CANCEL}
   },
   // Saved receivers; one is saved when the maker authorizes a transfer that asked for it.
   TRANSFER_TEMPLATE: {

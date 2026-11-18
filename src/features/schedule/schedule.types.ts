@@ -116,6 +116,7 @@ export interface ScheduledTransaction {
   amount: number;
   currency: "USD" | "KHR" | string;
   status: ScheduledTransactionStatus;
+  previousStatus?: ScheduledTransactionStatus;
   frequency?: ScheduleFrequency;
   category?: string;
   startDate?: string;
@@ -227,6 +228,7 @@ export function mapScheduleResponseToTransaction(
     amount: Number(item.amount) || 0,
     currency: (item.currency as "USD" | "KHR") || "USD",
     status: mapBackendStatusToUi(item.status),
+    previousStatus: mapBackendStatusToUi(item.status),
     frequency: mapBackendFrequencyToUi(item.frequency),
     startDate: item.startDate || undefined,
     endDate: item.endDate || undefined,

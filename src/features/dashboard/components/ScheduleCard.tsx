@@ -29,38 +29,7 @@ export interface ScheduleItem {
   href?: string;
 }
 
-export const defaultScheduleItems: ScheduleItem[] = [
-  {
-    id: "1",
-    day: "25",
-    month: "JUN",
-    title: "Bakong Payment",
-    status: "Over Due",
-    statusTone: "danger",
-    amount: "$25.00",
-    href: "/schedule",
-  },
-  {
-    id: "2",
-    day: "25",
-    month: "JUN",
-    title: "NexPay Transfer",
-    status: "Progress",
-    statusTone: "info",
-    amount: "$40.00",
-    href: "/schedule",
-  },
-  {
-    id: "3",
-    day: "26",
-    month: "JUN",
-    title: "PayPal Refund",
-    status: "Completed",
-    statusTone: "success",
-    amount: "$10.00",
-    href: "/schedule",
-  },
-];
+export const defaultScheduleItems: ScheduleItem[] = [];
 
 const toneStyleMap: Record<ScheduleItem["statusTone"], { bg: string; fg: string }> = {
   danger: { bg: "#FEE2E2", fg: "#EF4444" },
@@ -103,13 +72,28 @@ export default function ScheduleCard({
       return [];
     }
 
+    // Read session storage overrides if present so Dashboard reflects local session states
+    let overrides: Record<string, { status?: string }> = {};
+    if (typeof window !== "undefined") {
+      try {
+        const saved = window.sessionStorage.getItem("ib_schedule_overrides");
+        if (saved) overrides = JSON.parse(saved);
+      } catch {
+        // Ignore storage errors
+      }
+    }
+
     return backendSchedules.slice(0, 3).map((item: ScheduleResponse) => {
+      const override = overrides[item.referenceId];
+      const rawStatus = override?.status ? override.status : item.status;
+      const displayStatus = mapBackendStatusToUi(rawStatus);
+
       const dateStr = item.nextRunAt || item.startDate || item.createdAt;
       const dateObj = dateStr ? dayjs(dateStr) : null;
       const day = dateObj && dateObj.isValid() ? dateObj.format("DD") : "--";
       const month = dateObj && dateObj.isValid() ? dateObj.format("MMM").toUpperCase() : "--";
 
-      const statusUpper = (item.status || "").toUpperCase();
+      const statusUpper = (rawStatus || "").toUpperCase();
       let statusTone: ScheduleItem["statusTone"] = "info";
       if (statusUpper === "ACTIVE" || statusUpper === "COMPLETED") {
         statusTone = "success";
@@ -138,7 +122,7 @@ export default function ScheduleCard({
         day,
         month,
         title,
-        status: mapBackendStatusToUi(item.status),
+        status: displayStatus,
         statusTone,
         amount: formattedAmount,
         href: viewAllHref,

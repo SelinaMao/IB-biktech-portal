@@ -202,7 +202,13 @@ export default function QrConfirmationDialog({
   }, [open, effectiveRequestId, view, loadStatus, carryOut]);
 
   const handleRenew = async () => {
-    if (!onRenew) return;
+    if (!onRenew) {
+      setSecondsLeft(countdownSeconds);
+      spentFor.current = null;
+      setView("waiting");
+      setErrorMessage(null);
+      return;
+    }
     setRenewing(true);
     try {
       const renewed = await onRenew();
@@ -364,7 +370,19 @@ export default function QrConfirmationDialog({
         {isLoading || !effectivePayload ? (
           <CircularProgress size={36} sx={{ color: "#1B5299" }} />
         ) : (
-          <Box sx={{ opacity: view !== "waiting" ? 0.1 : 1, transition: "opacity 0.2s ease" }}>
+          <Box
+            onClick={() => {
+              if (!effectiveRequestId && view === "waiting") {
+                void carryOut("simulated-approval");
+              }
+            }}
+            title={!effectiveRequestId ? "Click to simulate mobile app approval" : undefined}
+            sx={{
+              opacity: view !== "waiting" ? 0.1 : 1,
+              transition: "opacity 0.2s ease",
+              cursor: !effectiveRequestId && view === "waiting" ? "pointer" : "default",
+            }}
+          >
             <QRCodeSVG
               value={effectivePayload}
               size={180}
@@ -419,25 +437,23 @@ export default function QrConfirmationDialog({
             <Typography sx={{ fontSize: "14px", fontWeight: 600, color: "#0F172A" }}>
               QR Code Expired
             </Typography>
-            {onRenew && (
-              <Button
-                variant="contained"
-                size="small"
-                onClick={() => void handleRenew()}
-                disabled={renewing}
-                sx={{
-                  bgcolor: "#1B5299",
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "13px",
-                  borderRadius: "8px",
-                  px: 2,
-                  "&:hover": { bgcolor: "#15427C" },
-                }}
-              >
-                {renewing ? "Renewing..." : "Renew QR Code"}
-              </Button>
-            )}
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => void handleRenew()}
+              disabled={renewing}
+              sx={{
+                bgcolor: "#1B5299",
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "13px",
+                borderRadius: "8px",
+                px: 2,
+                "&:hover": { bgcolor: "#15427C" },
+              }}
+            >
+              {renewing ? "Renewing..." : "Renew QR Code"}
+            </Button>
           </Stack>
         )}
 
@@ -479,19 +495,38 @@ export default function QrConfirmationDialog({
 
       {/* Countdown timer */}
       {view === "waiting" && (
-        <Typography
-          variant="caption"
-          sx={{
-            display: "block",
-            textAlign: "center",
-            mt: 1.5,
-            color: secondsLeft <= 30 ? "#DC2626" : "#64748B",
-            fontWeight: 500,
-            fontSize: "13px",
-          }}
-        >
-          Expires in {formatCountdown(secondsLeft)}
-        </Typography>
+        <Stack spacing={0.75} sx={{ alignItems: "center", mt: 1.5 }}>
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              textAlign: "center",
+              color: secondsLeft <= 30 ? "#DC2626" : "#64748B",
+              fontWeight: 600,
+              fontSize: "13px",
+            }}
+          >
+            Expires in {formatCountdown(secondsLeft)}
+          </Typography>
+
+          {!effectiveRequestId && (
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => void carryOut("simulated-approval")}
+              sx={{
+                color: "#1B5299",
+                fontSize: "12px",
+                fontWeight: 500,
+                textTransform: "none",
+                p: 0.25,
+                "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+              }}
+            >
+              Tap here to simulate mobile app approval
+            </Button>
+          )}
+        </Stack>
       )}
 
       {/* Use SMS Option */}

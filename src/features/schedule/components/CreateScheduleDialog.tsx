@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
-import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
@@ -34,8 +33,16 @@ export default function CreateScheduleDialog({
 }: CreateScheduleDialogProps) {
   const isEditing = Boolean(initialData);
 
+  const availableTypes = useMemo(() => {
+    const list = [...SCHEDULE_TRANSACTION_TYPES] as string[];
+    if (initialData?.transactionType && !list.includes(initialData.transactionType)) {
+      list.unshift(initialData.transactionType);
+    }
+    return list;
+  }, [initialData]);
+
   const [transactionType, setTransactionType] = useState<string>(
-    SCHEDULE_TRANSACTION_TYPES[0],
+    initialData?.transactionType || SCHEDULE_TRANSACTION_TYPES[0],
   );
   const [payToName, setPayToName] = useState("");
   const [payToAccount, setPayToAccount] = useState("");
@@ -52,8 +59,12 @@ export default function CreateScheduleDialog({
   );
   const [remarks, setRemarks] = useState("");
 
-  useEffect(() => {
-    if (initialData) {
+  const [prevSyncKey, setPrevSyncKey] = useState<string | null>(null);
+  const currentSyncKey = open ? `open-${initialData?.id ?? initialData?.refNo ?? "new"}` : "closed";
+
+  if (currentSyncKey !== prevSyncKey) {
+    setPrevSyncKey(currentSyncKey);
+    if (open && initialData) {
       setTransactionType(initialData.transactionType);
       setPayToName(initialData.payToName);
       setPayToAccount(initialData.payToAccount);
@@ -61,9 +72,9 @@ export default function CreateScheduleDialog({
       setCurrency(initialData.currency === "KHR" ? "KHR" : "USD");
       setFrequency(initialData.frequency ?? "Monthly");
       setExecutionTime(initialData.time);
-      setStartDate(initialData.date);
+      setStartDate(initialData.startDate || initialData.date);
       setRemarks(initialData.remarks ?? "");
-    } else {
+    } else if (open) {
       setTransactionType(SCHEDULE_TRANSACTION_TYPES[0]);
       setPayToName("");
       setPayToAccount("");
@@ -80,7 +91,7 @@ export default function CreateScheduleDialog({
       );
       setRemarks("");
     }
-  }, [initialData, open]);
+  }
 
   const handleSubmit = () => {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
@@ -90,6 +101,7 @@ export default function CreateScheduleDialog({
 
     onSubmit({
       date: startDate,
+      startDate: startDate,
       time: executionTime,
       transactionType,
       payToName: payToName.trim(),
@@ -148,7 +160,7 @@ export default function CreateScheduleDialog({
               onChange={(e) => setTransactionType(e.target.value)}
               sx={{ borderRadius: "10px" }}
             >
-              {SCHEDULE_TRANSACTION_TYPES.map((type) => (
+              {availableTypes.map((type) => (
                 <MenuItem key={type} value={type}>
                   {type}
                 </MenuItem>

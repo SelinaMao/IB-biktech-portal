@@ -14,7 +14,10 @@ import { formatCCY } from "@/utils/format-ccy";
 import { formatDate } from "@/utils/date-time";
 import BaseDialog from "@core/components/BaseDialog";
 import { useGetScheduleDetailQuery } from "../schedule.api";
-import type { ScheduledTransaction } from "../schedule.types";
+import {
+  mapBackendFrequencyToUi,
+  type ScheduledTransaction,
+} from "../schedule.types";
 
 export interface ScheduleDetailDialogProps {
   open: boolean;
@@ -34,6 +37,7 @@ export default function ScheduleDetailDialog({
     schedule?.refNo ?? "",
     {
       skip: !open || !schedule?.refNo,
+      refetchOnMountOrArgChange: true,
     },
   );
 
@@ -45,7 +49,36 @@ export default function ScheduleDetailDialog({
 
   const fromAccount = backendSchedule?.fromAccountName
     ? `${backendSchedule.fromAccountName} (${backendSchedule.fromAccountNumber || ""})`
-    : backendSchedule?.fromAccountNumber || "—";
+    : backendSchedule?.fromAccountNumber || schedule.fromAccountNumber || "—";
+
+  const displayFrequency =
+    schedule.frequency ??
+    (backendSchedule?.frequency
+      ? mapBackendFrequencyToUi(backendSchedule.frequency)
+      : "Monthly");
+
+  const displayNextRun =
+    schedule.date && schedule.time && schedule.date !== "-"
+      ? `${schedule.date} at ${schedule.time}`
+      : backendSchedule?.nextRunAt
+        ? `${formatDate(backendSchedule.nextRunAt, "DD MMM YYYY")} at ${formatDate(backendSchedule.nextRunAt, "hh:mm A")}`
+        : "—";
+
+  const displayStartDate = schedule.startDate
+    ? formatDate(schedule.startDate, "DD MMM YYYY")
+    : backendSchedule?.startDate
+      ? formatDate(backendSchedule.startDate, "DD MMM YYYY")
+      : schedule.date && schedule.date !== "-"
+        ? schedule.date
+        : "—";
+
+  const displayEndDate = schedule.endDate
+    ? formatDate(schedule.endDate, "DD MMM YYYY")
+    : backendSchedule?.endDate
+      ? formatDate(backendSchedule.endDate, "DD MMM YYYY")
+      : "Ongoing";
+
+  const displayRemarks = schedule.remarks || backendSchedule?.remark || "—";
 
   const rows = [
     { label: "Reference Number", value: schedule.refNo },
@@ -61,12 +94,10 @@ export default function ScheduleDetailDialog({
       value: formatCCY(schedule.amount, schedule.currency),
     },
     { label: "Status", value: schedule.status },
-    { label: "Frequency", value: schedule.frequency ?? "Monthly" },
+    { label: "Frequency", value: displayFrequency },
     {
       label: "Next Run",
-      value: backendSchedule?.nextRunAt
-        ? `${formatDate(backendSchedule.nextRunAt, "DD MMM YYYY")} at ${formatDate(backendSchedule.nextRunAt, "hh:mm A")}`
-        : `${schedule.date} at ${schedule.time}`,
+      value: displayNextRun,
     },
     ...(detailData?.pendingCount !== undefined
       ? [{ label: "Pending Runs", value: `${detailData.pendingCount} remaining` }]
@@ -76,19 +107,15 @@ export default function ScheduleDetailDialog({
       : []),
     {
       label: "Start Date",
-      value: backendSchedule?.startDate
-        ? formatDate(backendSchedule.startDate, "DD MMM YYYY")
-        : schedule.startDate || "—",
+      value: displayStartDate,
     },
     {
       label: "End Date",
-      value: backendSchedule?.endDate
-        ? formatDate(backendSchedule.endDate, "DD MMM YYYY")
-        : schedule.endDate || "Ongoing",
+      value: displayEndDate,
     },
     {
       label: "Remarks",
-      value: backendSchedule?.remark || schedule.remarks || "—",
+      value: displayRemarks,
     },
   ];
 
