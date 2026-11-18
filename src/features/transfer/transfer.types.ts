@@ -119,7 +119,12 @@ export interface SmeAccountInquiryResult {
   currency: string;
 }
 
-export type TransferType ="OWN_ACCOUNT" | "OTHER_SME_ACCOUNT" | "BAKONG_LOCAL_BANK" | "BAKONG_WALLET";
+export type TransferType =
+  | "OWN_ACCOUNT"
+  | "OTHER_SME_ACCOUNT"
+  | "BAKONG_LOCAL_BANK"
+  | "BAKONG_WALLET"
+  | "INTERNATIONAL";
 
 /** `GET payment/banks` row: a Bakong member bank a local bank transfer can pay. */
 export interface BakongBank {
@@ -130,6 +135,15 @@ export interface BakongBank {
   logoId?: string | null;
   url?: string | null;
   operations?: string[] | null;
+}
+
+/** CBS SWIFT directory row for international transfer destinations. */
+export interface InternationalBank {
+  bankCode: string;
+  swiftCode: string;
+  bankName: string;
+  countryCode: string;
+  countryName: string;
 }
 
 /** `POST payment/inquiry/external-bank-account`: an account at another bank (BANK) or a Bakong wallet (BAKONG). */
@@ -174,6 +188,18 @@ export interface BakongWalletTransferRequest {
   remark?: string;
   isSaveTemplate?: boolean;
   schedule?: TransferSchedule;
+}
+
+export interface InternationalTransferRequest {
+  fromAccountNumber: string;
+  swiftCode: string;
+  beneficiaryAccountNumber: string;
+  beneficiaryName: string;
+  beneficiaryCountry: string;
+  amount: number;
+  currency: string;
+  purposeOfTransfer: string;
+  remark?: string;
 }
 
 /**

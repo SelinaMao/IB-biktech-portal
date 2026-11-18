@@ -23,10 +23,12 @@ import { Fragment, useMemo, useState } from "react";
 import BaseSelect from "@core/form/BaseSelect";
 
 import { useDragReorder } from "../useDragReorder";
-import { useListFunctionApproversQuery } from "../workflow.api";
+import {
+  useListEligibleApproversQuery,
+  useListFunctionApproversQuery,
+} from "../workflow.api";
 import {
   drawnFrom,
-  groupKeysOf,
   type ApprovalSequence,
   type ApproverGroup,
   type ApproverQuota,
@@ -67,6 +69,7 @@ const plural = (n: number, word: string, words: string) => (n === 1 ? word : wor
 const chipRow = { display: "flex", flexWrap: "wrap", gap: 1, maxHeight: 160, overflowY: "auto" } as const;
 
 const avatar = { width: 24, height: 24, fontSize: 10, fontWeight: 600 } as const;
+const EMPTY_GROUP_KEYS: string[] = [];
 
 /** "− 2 +": how many approvals are needed. The number can be typed too; it never goes below 1. */
 function CountStepper({ value, onChange }: { value: number; onChange: (next: number) => void }) {
@@ -162,7 +165,16 @@ export default function RequirementCard({
 
   const inOrder = sequence === "SEQUENTIAL";
   const several = functionCodes.length > 1;
-  const chosen = groupKeysOf(quota);
+  const groupKeys = quota.groupKeys;
+  const groupKey = quota.groupKey;
+  const chosen = useMemo(
+    () => (groupKeys?.length ? groupKeys : groupKey ? [groupKey] : EMPTY_GROUP_KEYS),
+    [groupKey, groupKeys],
+  );
+  const chosenGroups = useMemo(
+    () => chosen.map((key) => ({ key, group: groups.find((g) => g.groupKey === key) })),
+    [chosen, groups],
+  );
 
   // Asked of the engine, which resolves people the way it will when a request is raised — and,
   // across several actions, only the people who can sign every one of them.
@@ -171,18 +183,53 @@ export default function RequirementCard({
     { skip: functionCodes.length === 0 },
   );
 
+  // The function-approvers endpoint can be unavailable for an individual action. The existing
+  // eligible-approvers endpoint supports the same single-function filter, so use it as a visible
+  // fallback rather than presenting an empty picker or an unfiltered user directory.
+  const eligibleFallback = useListEligibleApproversQuery(
+    { function: functionCodes[0] },
+    { skip: functionCodes.length !== 1 || !lookup.isError },
+  );
+
   // Everyone who may sign, whatever the groups: what a group that reaches nobody falls back to.
   const pool = useListFunctionApproversQuery(
     { functionCodes, groupKeys: [] },
     { skip: functionCodes.length !== 1 || mode !== "GROUP" },
   );
 
+  const eligibleFallbackPeople = useMemo(() => {
+    const eligible = eligibleFallback.data ?? [];
+    if (mode !== "GROUP") return eligible;
+
+    const eligibleIds = new Set(eligible.map((person) => person.userId));
+    const groupMembers = chosenGroups.flatMap(({ group }) => group?.memberIds ?? []);
+    const eligibleGroupMembers = new Set(groupMembers.filter((id) => eligibleIds.has(id)));
+    const groupFallsBackToPool = chosenGroups.some(
+      ({ group }) => !group || group.memberIds.length === 0,
+    );
+
+    return groupFallsBackToPool || eligibleGroupMembers.size === 0
+      ? eligible
+      : eligible.filter((person) => eligibleGroupMembers.has(person.userId));
+  }, [eligibleFallback.data, mode, chosenGroups]);
   const people = useMemo(
-    () => [...(lookup.data ?? [])].sort((a, b) => nameOf(a).localeCompare(nameOf(b))),
-    [lookup.data],
+    () =>
+      [...(lookup.data ?? (lookup.isError ? eligibleFallbackPeople : []))].sort((a, b) =>
+        nameOf(a).localeCompare(nameOf(b)),
+      ),
+    [lookup.data, lookup.isError, eligibleFallbackPeople],
   );
   const byId = useMemo(() => new Map(people.map((person) => [person.userId, person])), [people]);
-  const loaded = !lookup.isFetching && !lookup.isError && lookup.data !== undefined;
+  const usingFallback = lookup.isError && functionCodes.length === 1 && eligibleFallback.data !== undefined;
+  const fallbackFailed = lookup.isError && (functionCodes.length !== 1 || eligibleFallback.isError);
+  const fallbackLoading =
+    lookup.isError &&
+    functionCodes.length === 1 &&
+    !eligibleFallback.data &&
+    (eligibleFallback.isLoading || eligibleFallback.isFetching);
+  const loaded = usingFallback
+    ? !eligibleFallback.isFetching
+    : !lookup.isFetching && !lookup.isError && lookup.data !== undefined;
 
   const picked = quota.specificUserIds ?? [];
   const others = people.filter((person) => !picked.includes(person.userId));
@@ -226,7 +273,6 @@ export default function RequirementCard({
   const nobody = loaded && people.length === 0;
   const tooMany = quota.requiredCount > people.length;
 
-  const chosenGroups = chosen.map((key) => ({ key, group: groups.find((g) => g.groupKey === key) }));
   const remainingGroups = groups.filter((g) => !chosen.includes(g.groupKey));
   const groupNames = chosenGroups.map(({ key, group }) => group?.name ?? key).join(" or ");
   const signers = useMemo(() => new Set((pool.data ?? []).map((person) => person.userId)), [pool.data]);
@@ -364,15 +410,23 @@ export default function RequirementCard({
 
         {functionCodes.length === 0 ? (
           <Hint icon>Pick what is being approved first. The people who can approve it show here.</Hint>
-        ) : lookup.isError ? (
+        ) : fallbackFailed ? (
           <Alert severity="error" variant="outlined">
             Couldn&apos;t load who can approve this. The list is empty because the lookup failed, not
             because nobody qualifies.
           </Alert>
+        ) : fallbackLoading ? (
+          <Hint icon>Trying another approved-user lookup…</Hint>
         ) : lookup.isFetching && !lookup.data ? (
           <Hint icon>Looking up who can approve…</Hint>
         ) : (
           <>
+            {usingFallback && (
+              <Alert severity="warning" variant="outlined">
+                The action-specific lookup failed. This list uses the alternate function-filtered
+                approver lookup.
+              </Alert>
+            )}
             {/* A blank list is indistinguishable from a broken one, so say which it is and how to fix it. */}
             {nobody && (mode === "NAMED" || !several) && (
               <Alert severity="warning" variant="outlined">

@@ -21,6 +21,7 @@ const TRANSFER_TYPE_LABEL: Record<TransferTemplate["transferType"], string> = {
   OTHER_SME_ACCOUNT: "Other",
   BAKONG_LOCAL_BANK: "Local Bank",
   BAKONG_WALLET: "Bakong Account",
+  INTERNATIONAL: "International",
 };
 
 export type TemplateTransfersTableProps = {

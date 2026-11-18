@@ -1,8 +1,16 @@
 import { adminApi } from "@/config/api.config";
 import { baseApi } from "@/store/baseApi";
-import { transformResponse } from "@/utils/transform-response";
+import { type TransformResponse } from "@/utils/transform-response";
 
-import type { LimitRowIdentity, OwnerLimits, UpdateLimitRow } from "./transaction-limit.types";
+import type {
+  LimitField,
+  LimitFieldSetting,
+  LimitRowIdentity,
+  LimitValueSource,
+  OwnerLimits,
+  TransactionLimitRow,
+  UpdateLimitRow,
+} from "./transaction-limit.types";
 
 /**
  * Corporate-side limits. There is no organization id in any of these calls — the core takes it
@@ -15,11 +23,76 @@ const withParams = (path: string, values: Record<string, string>) =>
     path,
   );
 
+type LimitFigure = number | null | LimitFieldSetting;
+type LimitRowResponse = Omit<Partial<TransactionLimitRow>, LimitField> &
+  LimitRowIdentity & {
+    maxAmountPerTransaction?: LimitFigure;
+    maxAmountPerDay?: LimitFigure;
+    maxNumberTransactionPerDay?: LimitFigure;
+  };
+type OwnerLimitsResponse = Omit<OwnerLimits, "rows"> & {
+  rows: LimitRowResponse[];
+};
+
+function normalizeLimitValue(
+  value: LimitFigure | undefined,
+  source: LimitValueSource | undefined,
+) {
+  if (typeof value === "object" && value !== null) {
+    return { value: value.value, source: value.source };
+  }
+  return { value: value ?? null, source: source ?? "INHERITED" };
+}
+
+function normalizeLimitRow(row: LimitRowResponse): TransactionLimitRow {
+  const perTransaction = normalizeLimitValue(
+    row.maxAmountPerTransaction,
+    row.srcMaxAmountPerTransaction,
+  );
+  const perDay = normalizeLimitValue(row.maxAmountPerDay, row.srcMaxAmountPerDay);
+  const transactionsPerDay = normalizeLimitValue(
+    row.maxNumberTransactionPerDay,
+    row.srcMaxNumberTransactionPerDay,
+  );
+
+  return {
+    ...row,
+    maxAmountPerTransaction: perTransaction.value,
+    srcMaxAmountPerTransaction: perTransaction.source,
+    maxAmountPerDay: perDay.value,
+    srcMaxAmountPerDay: perDay.source,
+    maxNumberTransactionPerDay: transactionsPerDay.value,
+    srcMaxNumberTransactionPerDay: transactionsPerDay.source,
+    code: row.code ?? (row.functionCode === "TRANSFER:INTERNATIONAL" ? "INTERNATIONAL" : ""),
+    name:
+      row.functionCode === "TRANSFER:INTERNATIONAL"
+        ? "International Transfer"
+        : row.name ?? row.functionCode,
+    sequence: row.sequence ?? null,
+    parentMaxAmountPerTransaction: row.parentMaxAmountPerTransaction ?? null,
+    parentMaxAmountPerDay: row.parentMaxAmountPerDay ?? null,
+    parentMaxNumberTransactionPerDay: row.parentMaxNumberTransactionPerDay ?? null,
+    minTransactionAmount: row.minTransactionAmount ?? null,
+    minTransactionAmountKhr: row.minTransactionAmountKhr ?? null,
+    hardMaxAmountPerTransaction: row.hardMaxAmountPerTransaction ?? null,
+    hardMaxAmountPerDay: row.hardMaxAmountPerDay ?? null,
+    hardMaxNumberTransactionPerDay: row.hardMaxNumberTransactionPerDay ?? null,
+    validatePerTransactionType: row.validatePerTransactionType ?? false,
+  };
+}
+
+function normalizeOwnerLimits(response: TransformResponse<OwnerLimitsResponse>): OwnerLimits {
+  return {
+    ...response.data,
+    rows: response.data.rows.map(normalizeLimitRow),
+  };
+}
+
 export const transactionLimitApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
     getMyLimits: build.query<OwnerLimits, void>({
       query: () => bank(adminApi.TRANSACTION_LIMIT.ME),
-      transformResponse,
+      transformResponse: normalizeOwnerLimits,
       providesTags: [
         { type: "TransactionLimit" as const, id: "ME" },
         { type: "TransactionLimit" as const, id: "LIST" },
@@ -28,7 +101,7 @@ export const transactionLimitApi = baseApi.injectEndpoints({
 
     getOrganizationLimits: build.query<OwnerLimits, void>({
       query: () => bank(adminApi.TRANSACTION_LIMIT.ORGANIZATION),
-      transformResponse,
+      transformResponse: normalizeOwnerLimits,
       providesTags: [
         { type: "TransactionLimit" as const, id: "ORGANIZATION" },
         { type: "TransactionLimit" as const, id: "LIST" },
@@ -37,7 +110,7 @@ export const transactionLimitApi = baseApi.injectEndpoints({
 
     getUserLimits: build.query<OwnerLimits, string>({
       query: (userId) => bank(withParams(adminApi.TRANSACTION_LIMIT.USER, { userId })),
-      transformResponse,
+      transformResponse: normalizeOwnerLimits,
       providesTags: (_result, _error, userId) => [
         { type: "TransactionLimit" as const, id: userId },
         { type: "TransactionLimit" as const, id: "LIST" },
@@ -50,7 +123,7 @@ export const transactionLimitApi = baseApi.injectEndpoints({
         method: "PUT",
         body: { rows },
       }),
-      transformResponse,
+      transformResponse: normalizeOwnerLimits,
       invalidatesTags: [{ type: "TransactionLimit", id: "LIST" }],
     }),
 
@@ -62,7 +135,7 @@ export const transactionLimitApi = baseApi.injectEndpoints({
         ),
         method: "DELETE",
       }),
-      transformResponse,
+      transformResponse: normalizeOwnerLimits,
       invalidatesTags: [{ type: "TransactionLimit", id: "LIST" }],
     }),
   }),

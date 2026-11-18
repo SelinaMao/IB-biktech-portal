@@ -10,7 +10,8 @@ import BaseFromAccount from "@core/components/BaseFromAccount";
 import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
-import { transferCountries, transferPurposes } from "../transfer.data";
+import { internationalBanks, transferPurposes } from "../transfer.data";
+import { useSubmitInternationalTransferMutation } from "../transfer.api";
 import {
   accountOptionLabel,
   amountPreviewValue,
@@ -18,11 +19,11 @@ import {
   currencyLabel,
   CURRENCY_OPTIONS,
   findAccount,
+  parseTransferAmount,
 } from "../transfer.utils";
 import { useTransferAccounts } from "../use-transfer-accounts";
 import PreviewTransfer, { type TransferPreviewField } from "./PreviewTransfer";
 import { BaseAmountCurrencyField } from "@core/form";
-import TransferScheduleSection from "./TransferScheduleSection";
 
 export type InternationalProps = {
   open: boolean;
@@ -34,21 +35,17 @@ const INITIAL_VALUES = {
   swiftCode: "",
   beneficiaryAccountNumber: "",
   beneficiaryName: "",
-  beneficiaryCountry: transferCountries[0],
+  beneficiaryCountry: "",
   amount: "",
   currency: "USD",
   purpose: transferPurposes[0],
   remark: "",
-  scheduleTransfer: false,
-  frequency: "one-time" as "one-time" | "weekly" | "monthly" | "recurring",
-  timing: "today" as "today" | "later" | "weekly",
-  scheduleDate: "",
-  endCondition: "after-transfers" as "after-transfers" | "no-end-date",
 };
 
 export default function International({ open, onClose }: InternationalProps) {
   const [values, setValues] = React.useState(INITIAL_VALUES);
   const { accounts } = useTransferAccounts(open);
+  const [submitInternationalTransfer] = useSubmitInternationalTransferMutation();
   const { control, watch, setValue, reset } = useForm({
     defaultValues: { fromAccountId: "" },
   });
@@ -68,35 +65,49 @@ export default function International({ open, onClose }: InternationalProps) {
   ) => setValues((prev) => ({ ...prev, [key]: value }));
 
   const fromAccount = findAccount(accounts, fromAccountId);
+  const selectedBank = internationalBanks.find((bank) => bank.swiftCode === values.swiftCode);
+  const amount = parseTransferAmount(values.amount);
+  const amountIsValid = Number.isFinite(amount) && amount > 0;
 
   const previewFields: TransferPreviewField[] = [
     { label: "From Account", value: fromAccount ? accountOptionLabel(fromAccount) : "-" },
+    { label: "Beneficiary Bank", value: selectedBank?.bankName || "-" },
     { label: "SWIFT / Bank Code", value: values.swiftCode || "-" },
     { label: "Beneficiary Account", value: values.beneficiaryAccountNumber || "-" },
     { label: "Beneficiary Name", value: values.beneficiaryName || "-" },
     { label: "Country", value: values.beneficiaryCountry },
     { label: "Amount", value: amountPreviewValue(values.amount, values.currency) },
     { label: "Purpose", value: values.purpose },
-    ...(values.scheduleTransfer
-      ? [
-          {
-            label: "Frequency",
-            value:
-              values.frequency === "weekly"
-                ? "Weekly"
-                : values.frequency === "monthly"
-                ? "Monthly"
-                : values.frequency === "recurring"
-                ? "Recurring"
-                : "One-time",
-          },
-          { label: "Start Date", value: values.scheduleDate || "Immediately" },
-        ]
-      : []),
     ...(values.remark ? [{ label: "Remark", value: values.remark }] : []),
   ];
 
   const summaryRows = buildTransferSummaryRows(values.amount, values.currency);
+  const submit = (idempotencyKey?: string) => {
+    if (
+      !fromAccount ||
+      !selectedBank ||
+      !amountIsValid ||
+      !values.beneficiaryAccountNumber.trim() ||
+      !values.beneficiaryName.trim()
+    ) {
+      throw new Error("Complete the beneficiary and transfer details before submitting");
+    }
+
+    return submitInternationalTransfer({
+      body: {
+        fromAccountNumber: fromAccount.number,
+        swiftCode: selectedBank.swiftCode,
+        beneficiaryAccountNumber: values.beneficiaryAccountNumber.trim(),
+        beneficiaryName: values.beneficiaryName.trim(),
+        beneficiaryCountry: values.beneficiaryCountry,
+        amount,
+        currency: values.currency,
+        purposeOfTransfer: values.purpose,
+        remark: values.remark.trim() || undefined,
+      },
+      idempotencyKey: idempotencyKey || crypto.randomUUID(),
+    }).unwrap();
+  };
 
   return (
     <PreviewTransfer
@@ -118,14 +129,15 @@ export default function International({ open, onClose }: InternationalProps) {
         />
       }
       canSubmit={Boolean(
-        values.amount &&
-        values.swiftCode &&
+        amountIsValid &&
+        selectedBank &&
         values.beneficiaryAccountNumber &&
         values.beneficiaryName &&
         fromAccountId,
       )}
       previewFields={previewFields}
       summaryRows={summaryRows}
+      submit={submit}
       successMessage={`${values.amount} ${currencyLabel(values.currency)} sent to ${values.beneficiaryName || "the beneficiary"} in ${values.beneficiaryCountry}.`}
       onReset={() => {
         setValues(INITIAL_VALUES);
@@ -133,12 +145,31 @@ export default function International({ open, onClose }: InternationalProps) {
       }}
     >
       <Stack spacing={2.5}>
-        <BaseInput
-          label="SWIFT / Bank Code"
+        <BaseSelect
+          label="Beneficiary Bank"
           value={values.swiftCode}
-          onChange={(e) => set("swiftCode", e.target.value)}
-          placeholder="e.g. BOFAUS3N"
+          onChange={(event) => {
+            const bank = internationalBanks.find((candidate) => candidate.swiftCode === event.target.value);
+            if (!bank) return;
+            setValues((prev) => ({
+              ...prev,
+              swiftCode: bank.swiftCode,
+              beneficiaryCountry: bank.countryName,
+            }));
+          }}
+          options={internationalBanks.map((bank) => ({
+            value: bank.swiftCode,
+            label: `${bank.bankName} (${bank.swiftCode}) · ${bank.countryCode}`,
+          }))}
+          placeholder="Select a beneficiary bank"
         />
+        {selectedBank && (
+          <BaseInput
+            label="SWIFT / Bank Code"
+            value={`${selectedBank.swiftCode} / ${selectedBank.bankCode}`}
+            disabled
+          />
+        )}
         <BaseInput
           label="Beneficiary Account Number / IBAN"
           value={values.beneficiaryAccountNumber}
@@ -149,11 +180,11 @@ export default function International({ open, onClose }: InternationalProps) {
           value={values.beneficiaryName}
           onChange={(e) => set("beneficiaryName", e.target.value)}
         />
-        <BaseSelect
+        <BaseInput
           label="Beneficiary Country"
           value={values.beneficiaryCountry}
-          onChange={(e) => set("beneficiaryCountry", e.target.value as string)}
-          options={transferCountries.map((c) => ({ value: c, label: c }))}
+          disabled
+          placeholder="Selected bank country appears here"
         />
 
         <Box>
@@ -170,19 +201,6 @@ export default function International({ open, onClose }: InternationalProps) {
             options={CURRENCY_OPTIONS}
           />
         </Box>
-
-        <TransferScheduleSection
-          enabled={values.scheduleTransfer}
-          onToggle={(val) => set("scheduleTransfer", val)}
-          frequency={values.frequency}
-          onFrequencyChange={(val) => set("frequency", val)}
-          timing={values.timing}
-          onTimingChange={(val) => set("timing", val)}
-          startDate={values.scheduleDate}
-          onStartDateChange={(val) => set("scheduleDate", val)}
-          endCondition={values.endCondition}
-          onEndConditionChange={(val) => set("endCondition", val)}
-        />
 
         <BaseSelect
           label="Purpose of Transfer"
