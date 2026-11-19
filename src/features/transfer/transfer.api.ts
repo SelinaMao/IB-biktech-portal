@@ -12,6 +12,7 @@ import type {
   CalculateTransferResult,
   ExternalAccountInquiryRequest,
   ExternalAccountInquiryResult,
+  InternationalTransferRequest,
   OtherSmeAccountTransferRequest,
   OwnAccountTransferRequest,
   SmeAccountInquiryResult,
@@ -104,6 +105,20 @@ export const transferApi = baseApi.injectEndpoints({
       }),
       transformResponse,
       invalidatesTags: ["Schedule", "Account", "TransferTemplate"],
+    }),
+
+    submitInternationalTransfer: build.mutation<
+      TransferResult,
+      Idempotent<InternationalTransferRequest>
+    >({
+      query: ({ body, idempotencyKey }) => ({
+        url: bank(adminApi.TRANSFER.INTERNATIONAL),
+        method: "POST",
+        body,
+        headers: idemHeader(idempotencyKey),
+      }),
+      transformResponse,
+      invalidatesTags: ["Account"],
     }),
 
     /** Bakong member banks, for the local bank picker. */
@@ -220,6 +235,7 @@ export const {
   useSubmitOtherSmeAccountTransferMutation,
   useSubmitBakongLocalBankTransferMutation,
   useSubmitBakongWalletTransferMutation,
+  useSubmitInternationalTransferMutation,
   useListBakongBanksQuery,
   useInquireExternalAccountMutation,
   useInquireSmeAccountMutation,

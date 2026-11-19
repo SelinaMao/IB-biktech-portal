@@ -105,10 +105,11 @@ export const adminApi = {
     OWN_ACCOUNT: "payment/transfers/own-account", // Body: {fromAccountNumber, toAccountNumber, amount, currency, remark}
     OTHER_SME_ACCOUNT: "payment/transfers/other-sme-account", // Body: {fromAccountNumber, toAccountNumber, amount, currency, remark}
     BAKONG_LOCAL_BANK: "payment/transfers/bakong-local-bank", // Body: {fromAccountNumber, bankCode, toAccountNumber, amount, currency, remark, isSaveTemplate, schedule}
-    BAKONG_WALLET: "payment/transfers/bakong-wallet", // Body: {fromAccountNumber, bakongId, amount, currency, remark, isSaveTemplate, schedule}
+    BAKONG_WALLET: "payment/transfers/bakong-wallet", // Body: {fromAccountNumber, bakongId, participantCode, amount, currency, remark, isSaveTemplate, schedule}
+    INTERNATIONAL: "payment/transfers/international",
     NEW_AUTHENTICATOR: "payment/transfers/{referenceId}/authenticator",
     BANKS: "payment/banks", // Bakong member banks a local bank transfer can pay
-    BILL: "payment/bills", // Body: {fromAccountNumber, billerCode, customerNumber, amount, currency, remark, schedule}
+    BILL: "payment/bills", // Body: {fromAccountNumber, providerId, customerNumber, amount, currency, remark, schedule}
     PHONE_TOPUP_PINLESS: "payment/bills/phone-topup/pinless",
     PHONE_TOPUP_PINCODE: "payment/bills/phone-topup/pincode",
     PHONE_TOPUP_INQUIRY: "payment/phone-topups/inquiry",

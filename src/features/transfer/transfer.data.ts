@@ -1,4 +1,4 @@
-import type { TransferAccount, TransferTemplate } from "./transfer.types";
+import type { InternationalBank, TransferAccount, TransferTemplate } from "./transfer.types";
 
 /** Mock accounts for transfer flows. Replace with RTK Query endpoints when wired. */
 export const transferAccounts: TransferAccount[] = [
@@ -56,6 +56,50 @@ export const transferCountries = [
   "Vietnam",
   "Japan",
   "Australia",
+];
+
+/** CBS SWIFT/BIC directory used by the international transfer form. */
+export const internationalBanks: InternationalBank[] = [
+  { bankCode: "BOFAUS3N", swiftCode: "BOFAUS3N", bankName: "Bank of America, N.A.", countryCode: "US", countryName: "United States" },
+  { bankCode: "DBSSSGSG", swiftCode: "DBSSSGSG", bankName: "DBS Bank Ltd.", countryCode: "SG", countryName: "Singapore" },
+  { bankCode: "CTBAAU2S", swiftCode: "CTBAAU2S", bankName: "Commonwealth Bank of Australia", countryCode: "AU", countryName: "Australia" },
+  { bankCode: "HBUKGB4B", swiftCode: "HBUKGB4B", bankName: "HSBC UK Bank plc", countryCode: "GB", countryName: "United Kingdom" },
+  { bankCode: "DEUTDEFF", swiftCode: "DEUTDEFF", bankName: "Deutsche Bank AG", countryCode: "DE", countryName: "Germany" },
+  { bankCode: "ROYCCAT2", swiftCode: "ROYCCAT2", bankName: "Royal Bank of Canada", countryCode: "CA", countryName: "Canada" },
+  { bankCode: "BOTKJPJT", swiftCode: "BOTKJPJT", bankName: "MUFG Bank, Ltd.", countryCode: "JP", countryName: "Japan" },
+  { bankCode: "ICBKCNBJ", swiftCode: "ICBKCNBJ", bankName: "Industrial and Commercial Bank of China", countryCode: "CN", countryName: "China" },
+  { bankCode: "HDFCINBB", swiftCode: "HDFCINBB", bankName: "HDFC Bank Limited", countryCode: "IN", countryName: "India" },
+  { bankCode: "KOEXKRSE", swiftCode: "KOEXKRSE", bankName: "Hana Bank", countryCode: "KR", countryName: "South Korea" },
+  { bankCode: "EBILAEAD", swiftCode: "EBILAEAD", bankName: "Emirates NBD Bank PJSC", countryCode: "AE", countryName: "United Arab Emirates" },
+  { bankCode: "ANZBNZ22", swiftCode: "ANZBNZ22", bankName: "ANZ Bank New Zealand Limited", countryCode: "NZ", countryName: "New Zealand" },
+  { bankCode: "UBSWCHZH80A", swiftCode: "UBSWCHZH80A", bankName: "UBS Switzerland AG", countryCode: "CH", countryName: "Switzerland" },
+  { bankCode: "DEUTNL2A", swiftCode: "DEUTNL2A", bankName: "Deutsche Bank AG, Amsterdam Branch", countryCode: "NL", countryName: "Netherlands" },
+  { bankCode: "BSCHESMM", swiftCode: "BSCHESMM", bankName: "Banco Santander, S.A.", countryCode: "ES", countryName: "Spain" },
+  { bankCode: "UNCRITMM", swiftCode: "UNCRITMM", bankName: "UniCredit S.p.A.", countryCode: "IT", countryName: "Italy" },
+  { bankCode: "DNBANOKK", swiftCode: "DNBANOKK", bankName: "DNB Bank ASA", countryCode: "NO", countryName: "Norway" },
+  { bankCode: "ESSESESS", swiftCode: "ESSESESS", bankName: "Skandinaviska Enskilda Banken AB", countryCode: "SE", countryName: "Sweden" },
+  { bankCode: "DABADKKK", swiftCode: "DABADKKK", bankName: "Danske Bank A/S", countryCode: "DK", countryName: "Denmark" },
+  { bankCode: "HSBCHKHH", swiftCode: "HSBCHKHH", bankName: "The Hongkong and Shanghai Banking Corporation Limited", countryCode: "HK", countryName: "Hong Kong" },
+  { bankCode: "MBBEMYKL", swiftCode: "MBBEMYKL", bankName: "Malayan Banking Berhad", countryCode: "MY", countryName: "Malaysia" },
+  { bankCode: "DEUTIDJA", swiftCode: "DEUTIDJA", bankName: "Deutsche Bank AG, Jakarta Branch", countryCode: "ID", countryName: "Indonesia" },
+  { bankCode: "DEUTPHMM", swiftCode: "DEUTPHMM", bankName: "Deutsche Bank AG, Manila Branch", countryCode: "PH", countryName: "Philippines" },
+  { bankCode: "DEUTVNVX", swiftCode: "DEUTVNVX", bankName: "Deutsche Bank AG, Ho Chi Minh City Branch", countryCode: "VN", countryName: "Vietnam" },
+  { bankCode: "DEUTTWTP", swiftCode: "DEUTTWTP", bankName: "Deutsche Bank AG, Taipei Branch", countryCode: "TW", countryName: "Taiwan" },
+  { bankCode: "DEUTBRSP", swiftCode: "DEUTBRSP", bankName: "Deutsche Bank S.A., Brazil", countryCode: "BR", countryName: "Brazil" },
+  { bankCode: "ICBKMXMM", swiftCode: "ICBKMXMM", bankName: "Industrial and Commercial Bank of China (Mexico)", countryCode: "MX", countryName: "Mexico" },
+  { bankCode: "SBZAZAJJ", swiftCode: "SBZAZAJJ", bankName: "The Standard Bank of South Africa Limited", countryCode: "ZA", countryName: "South Africa" },
+  { bankCode: "DEUTTRIS", swiftCode: "DEUTTRIS", bankName: "Deutsche Bank A.S., Istanbul Branch", countryCode: "TR", countryName: "Türkiye" },
+  { bankCode: "AIBKIE2D", swiftCode: "AIBKIE2D", bankName: "Allied Irish Banks, p.l.c.", countryCode: "IE", countryName: "Ireland" },
+  { bankCode: "BPKOPLPW", swiftCode: "BPKOPLPW", bankName: "Powszechna Kasa Oszczednosci Bank Polski S.A.", countryCode: "PL", countryName: "Poland" },
+  { bankCode: "DEUTBEBE", swiftCode: "DEUTBEBE", bankName: "Deutsche Bank AG, Brussels Branch", countryCode: "BE", countryName: "Belgium" },
+  { bankCode: "DEUTATWW", swiftCode: "DEUTATWW", bankName: "Deutsche Bank AG, Vienna Branch", countryCode: "AT", countryName: "Austria" },
+  { bankCode: "DEUTPTPL", swiftCode: "DEUTPTPL", bankName: "Deutsche Bank AG, Lisbon Branch", countryCode: "PT", countryName: "Portugal" },
+  { bankCode: "ETHNGRAA", swiftCode: "ETHNGRAA", bankName: "National Bank of Greece S.A.", countryCode: "GR", countryName: "Greece" },
+  { bankCode: "QNBAQAQA", swiftCode: "QNBAQAQA", bankName: "Qatar National Bank", countryCode: "QA", countryName: "Qatar" },
+  { bankCode: "KFHOKWKW", swiftCode: "KFHOKWKW", bankName: "Kuwait Finance House", countryCode: "KW", countryName: "Kuwait" },
+  { bankCode: "BBKUBHBM", swiftCode: "BBKUBHBM", bankName: "Bank of Bahrain and Kuwait B.S.C.", countryCode: "BH", countryName: "Bahrain" },
+  { bankCode: "BCEELULL", swiftCode: "BCEELULL", bankName: "Banque et Caisse d'Epargne de l'Etat, Luxembourg", countryCode: "LU", countryName: "Luxembourg" },
+  { bankCode: "CEKOCZPP", swiftCode: "CEKOCZPP", bankName: "Ceskoslovenska obchodni banka, a.s.", countryCode: "CZ", countryName: "Czechia" },
 ];
 
 export const transferPurposes = [

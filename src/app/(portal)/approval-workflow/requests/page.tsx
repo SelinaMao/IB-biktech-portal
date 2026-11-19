@@ -16,7 +16,11 @@ import {
   type ApprovalTab,
 } from "@/features/approval";
 import { CLIENT_PERMISSIONS, useCan, useCanAny } from "@/features/auth";
-import { AuthenticatorDialog, type AuthenticatorRequest } from "@/features/authenticator";
+import {
+  AuthenticatorDialog,
+  type AuthenticatorRequest,
+  type AuthenticatorResult,
+} from "@/features/authenticator";
 import { useListUsersQuery } from "@/features/user";
 import {
   InstanceDetailDialog,
@@ -31,6 +35,8 @@ import {
   type DetailDialogEntry,
   type WorkflowFunction,
 } from "@/features/workflow";
+import { baseApi } from "@/store/baseApi";
+import { useAppDispatch } from "@/store/hooks";
 import { font } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
 
@@ -96,6 +102,7 @@ const tabSx = (active: boolean) => ({
 });
 
 export default function ApprovalRequestsPage() {
+  const dispatch = useAppDispatch();
   const canView = useCanAny([
     CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_VIEW,
     CLIENT_PERMISSIONS.WORKFLOW.INSTANCE_EXECUTE,
@@ -409,6 +416,40 @@ export default function ApprovalRequestsPage() {
     setOpenWorkflowId(null);
   };
 
+  const handleConsumedApproval = async (
+    _authenticatorRequestId: string,
+    result?: AuthenticatorResult
+  ) => {
+    setPhoneApproval(null);
+    void Promise.all([tasksPending.refetch(), tasksAll.refetch(), instances.refetch()]);
+
+    if (result?.outcome === "FAILED") {
+      showToast("error", {
+        title: "Approval not completed",
+        message: result.message || "The phone authorization was consumed, but the approval failed.",
+      });
+      return;
+    }
+
+    dispatch(
+      baseApi.util.invalidateTags([{ type: "TransactionLimit", id: "LIST" }]),
+    );
+    setSelectedEntry(null);
+    setOpenWorkflowId(null);
+    if (result?.outcome === "SUCCEEDED") {
+      showToast("success", {
+        title: "Approved",
+        message: "The phone authorization and approval have completed.",
+      });
+      return;
+    }
+
+    showToast("info", {
+      title: "Authorization completed",
+      message: "The request status has been refreshed.",
+    });
+  };
+
   const renewApprovalAuthenticator = async () => {
     if (!openWorkflowId) throw new Error("No request is open");
     return raiseApprovalAuthenticator(openWorkflowId).unwrap();
@@ -509,6 +550,9 @@ export default function ApprovalRequestsPage() {
           }}
           entry={selectedEntry}
           onApprove={handleApprove}
+          onConsumed={(_entry, authenticatorRequestId, result) =>
+            handleConsumedApproval(authenticatorRequestId, result)
+          }
           onCancel={handleCancel}
           onReject={handleReject}
           canCancel={canCancel}
@@ -541,6 +585,7 @@ export default function ApprovalRequestsPage() {
           authenticator={phoneApproval.authenticator}
           subject="approval"
           onAuthorized={approveWithPhone}
+          onConsumed={handleConsumedApproval}
           onRenew={renewApprovalAuthenticator}
           onClose={() => setPhoneApproval(null)}
         />

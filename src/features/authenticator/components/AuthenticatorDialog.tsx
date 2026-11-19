@@ -2,7 +2,7 @@
 
 import React from "react";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
-import type { AuthenticatorRequest } from "../authenticator.types";
+import type { AuthenticatorRequest, AuthenticatorResult } from "../authenticator.types";
 
 export type AuthenticatorDialogProps = {
   open: boolean;
@@ -12,6 +12,8 @@ export type AuthenticatorDialogProps = {
   subject: string;
   /** Carries the action out once the phone has authorized it; a throw is shown in the dialog. */
   onAuthorized: (requestId: string) => Promise<void>;
+  /** Handles an action the backend reports as already carried out. */
+  onConsumed?: (requestId: string, result?: AuthenticatorResult) => Promise<void> | void;
   /** Raises a new QR for the same action. */
   onRenew: () => Promise<AuthenticatorRequest>;
   /** Closed; `spent` once the authorization was used, so the action no longer waits for one. */
@@ -27,6 +29,7 @@ export default function AuthenticatorDialog({
   authenticator,
   subject,
   onAuthorized,
+  onConsumed,
   onRenew,
   onClose,
 }: AuthenticatorDialogProps) {
@@ -43,6 +46,11 @@ export default function AuthenticatorDialog({
     await onAuthorized(requestId);
   };
 
+  const handleConsumed = async (requestId: string, result?: AuthenticatorResult) => {
+    setSpent(true);
+    await onConsumed?.(requestId, result);
+  };
+
   const handleClose = () => {
     onClose(spent);
   };
@@ -57,6 +65,7 @@ export default function AuthenticatorDialog({
       appName="Biktech Banking App"
       onClose={handleClose}
       onAuthorized={handleAuthorized}
+      onConsumed={onConsumed ? handleConsumed : undefined}
       onRenew={onRenew}
     />
   );
