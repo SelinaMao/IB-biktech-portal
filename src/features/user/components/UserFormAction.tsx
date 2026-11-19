@@ -4,15 +4,19 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Switch from "@mui/material/Switch";
 import Typography from "@mui/material/Typography";
+import { useEffect, useMemo } from "react";
 import type { Control } from "react-hook-form";
-import { useController } from "react-hook-form";
+import { useController, useWatch } from "react-hook-form";
 
 import { ControlledBaseInput, ControlledBaseMultiSelect, ControlledBaseSelect } from "@core/form";
 import type { UserInfoValues } from "../schema/user.schema";
-import { ACCESS_LEVEL_OPTIONS, type AdminUser } from "../user.types";
+import { ACCESS_LEVEL_OPTIONS, MANAGE_ACCOUNT_OPTIONS, type AdminUser } from "../user.types";
 import { useListRolesQuery } from "@/features/rbac";
 import { useMeQuery } from "@/features/auth";
 import { useGetMetaQuery } from "@/features/meta";
+import { selectAccountsResponse, useListAccountsMutation } from "@/features/account";
+import { useAppSelector } from "@/store/hooks";
+import { formatAccountNumber } from "@/utils/format-account-number";
 import { font, palette } from "@/theme/palette";
 import { PHONE_DIAL_CODE } from "@/utils/phone";
 
@@ -118,11 +122,86 @@ export default function UserFormAction({
         ? "Failed to load roles (click to retry)"
         : "No roles available";
 
-  const accountOptions = (meta?.accounts ?? []).map((account) => ({
-    value: account.accountNumber,
-    label: account.accountName,
-    description: account.accountNumber,
-  }));
+  const [listAccounts, { isLoading: isLoadingAccounts }] = useListAccountsMutation();
+  const accountsData = useAppSelector(selectAccountsResponse);
+
+  useEffect(() => {
+    if (open) {
+      listAccounts().catch(() => {});
+    }
+  }, [open, listAccounts]);
+
+  const selectedAccountIds = useWatch({ control, name: "accountIds" }) ?? [];
+
+  const accountOptions = useMemo(() => {
+    const accountMap = new Map<string, { label: React.ReactNode; description?: React.ReactNode }>();
+
+    // 1. Live accounts from account-service
+    const liveAccounts = accountsData?.accounts ?? [];
+    for (const acc of liveAccounts) {
+      const accNum = String(acc?.accountNumber || acc?.id || "").trim();
+      if (accNum) {
+        const name = acc.accountName || acc.accountClassDescription || "Account";
+        const formattedNum = formatAccountNumber(accNum) || accNum;
+        const ccy = acc.ccy ? ` • ${acc.ccy}` : "";
+        accountMap.set(accNum, {
+          label: name,
+          description: `${formattedNum}${ccy}`,
+        });
+      }
+    }
+
+    // 2. Meta accounts (if provided by meta lookup)
+    const metaAccounts = Array.isArray((meta as any)?.accounts)
+      ? (meta as any).accounts
+      : Array.isArray((meta as any)?.account)
+        ? (meta as any).account
+        : [];
+    for (const acc of metaAccounts) {
+      const accNum = String(acc?.accountNumber || acc?.id || "").trim();
+      if (accNum && !accountMap.has(accNum)) {
+        const name = acc.accountName || acc.accountClassDescription || "Account";
+        const formattedNum = formatAccountNumber(accNum) || accNum;
+        const ccy = acc.ccy ? ` • ${acc.ccy}` : "";
+        accountMap.set(accNum, {
+          label: name,
+          description: `${formattedNum}${ccy}`,
+        });
+      }
+    }
+
+    // 3. Keep any accounts currently assigned to the user being edited/viewed
+    for (const accNum of selectedAccountIds) {
+      const cleanNum = String(accNum).trim();
+      if (cleanNum && !accountMap.has(cleanNum)) {
+        accountMap.set(cleanNum, {
+          label: `Account ${formatAccountNumber(cleanNum) || cleanNum}`,
+          description: formatAccountNumber(cleanNum) || cleanNum,
+        });
+      }
+    }
+
+    // 4. Fallback to default account options if backend returns no accounts
+    if (accountMap.size === 0) {
+      for (const opt of MANAGE_ACCOUNT_OPTIONS) {
+        accountMap.set(opt.id, {
+          label: opt.type,
+          description: opt.number,
+        });
+      }
+    }
+
+    return Array.from(accountMap.entries()).map(([value, { label, description }]) => ({
+      value,
+      label,
+      description,
+    }));
+  }, [accountsData?.accounts, meta, selectedAccountIds]);
+
+  const accountPlaceholder =
+    isLoadingAccounts && accountOptions.length === 0
+      ? "Loading accounts..."
+      : "Select Account List";
   const {
     field: { value: statusValue, onChange: onStatusChange },
   } = useController({ name: "status", control });
@@ -238,7 +317,7 @@ export default function UserFormAction({
         name="accountIds"
         control={control}
         label="Manage Account"
-        placeholder="Select Account List"
+        placeholder={accountPlaceholder}
         isRequired
         options={accountOptions}
         disabled={isSubmitting || disabled}

@@ -25,6 +25,8 @@ export type UsersTableProps = {
   onDelete?: (user: AdminUser) => void;
   /** No reset-password API exists yet — wired for when the backend adds one. */
   onReset?: (user: AdminUser) => void;
+  /** Unlocks a locked user account. */
+  onUnlock?: (user: AdminUser) => void;
   pagination?: BaseTablePagination;
   /** Opens the read-only detail panel for the clicked row. */
   onRowClick?: (entry: AdminUserEntry) => void;
@@ -38,6 +40,8 @@ export type UsersTableProps = {
   canDelete?: boolean;
   /** ID of the currently selected user (e.g. when detail side panel is open). */
   selectedUserId?: string;
+  /** ID of the logged-in user so self-deactivation is prevented. */
+  currentUserId?: string;
 };
 
 /** The row's "⋮" menu — styled with the same bordered rounded icon button. */
@@ -45,10 +49,12 @@ function RowActionsMenu({
   user,
   onView,
   onReset,
+  onUnlock,
 }: {
   user: AdminUser;
   onView?: () => void;
   onReset?: () => void;
+  onUnlock?: () => void;
 }) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
@@ -93,6 +99,17 @@ function RowActionsMenu({
           },
         }}
       >
+        {onUnlock && (
+          <MenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              setAnchorEl(null);
+              onUnlock();
+            }}
+          >
+            Unlock
+          </MenuItem>
+        )}
         <MenuItem
           onClick={(e) => {
             e.stopPropagation();
@@ -124,6 +141,7 @@ export default function UsersTable({
   onDeactivate,
   onDelete,
   onReset,
+  onUnlock,
   pagination,
   onRowClick,
   canEdit = true,
@@ -131,6 +149,7 @@ export default function UsersTable({
   canDeactivate = true,
   canDelete = true,
   selectedUserId,
+  currentUserId,
 }: UsersTableProps) {
   const headSx = {
     color: palette.slate[400],
@@ -255,9 +274,63 @@ export default function UsersTable({
       render: (entry) => {
         const { user } = entry;
         const isActive = user.status === "ACTIVE";
+        const isPendingActivation = user.status === "PENDING_ACTIVATION";
+        const isLocked = user.status === "LOCKED";
+        const isDeactivatedOrInactive = user.status === "DEACTIVATED" || user.status === "INACTIVE";
+        const isSelf = Boolean(currentUserId && user.id === currentUserId);
+
+        let toggleDisabled = false;
+        let toggleTooltip = "";
+        let toggleOnClick: (() => void) | undefined = undefined;
+
+        if (isActive) {
+          if (isSelf) {
+            toggleDisabled = true;
+            toggleTooltip = "Cannot deactivate your own account";
+          } else if (!canDeactivate) {
+            toggleDisabled = true;
+            toggleTooltip = "No permission to deactivate users";
+          } else {
+            toggleDisabled = false;
+            toggleTooltip = "Deactivate user";
+            toggleOnClick = () => onDeactivate(user);
+          }
+        } else if (isPendingActivation) {
+          toggleDisabled = true;
+          toggleTooltip = "User is pending activation";
+        } else if (isLocked) {
+          toggleDisabled = true;
+          toggleTooltip = "User is locked: unlock from Edit User or menu";
+        } else if (isDeactivatedOrInactive) {
+          if (!canActivate) {
+            toggleDisabled = true;
+            toggleTooltip = "No permission to activate users";
+          } else {
+            toggleDisabled = false;
+            toggleTooltip = "Activate user";
+            toggleOnClick = () => onActivate(user);
+          }
+        } else {
+          toggleDisabled = true;
+          toggleTooltip = "Status does not allow activation";
+        }
+
         return (
-          <Stack direction="row" spacing={1} onClick={(e) => e.stopPropagation()} sx={{ justifyContent: "flex-end", alignItems: "center" }}>
-            {canEdit && <BaseIconButton isBorder icon={<Pencil size={font.size.md} />} tooltip="Edit user" onClick={() => onEdit(user)} aria-label={`Edit ${user.username}`} />}
+          <Stack
+            direction="row"
+            spacing={1}
+            onClick={(e) => e.stopPropagation()}
+            sx={{ justifyContent: "flex-end", alignItems: "center" }}
+          >
+            {canEdit && (
+              <BaseIconButton
+                isBorder
+                icon={<Pencil size={font.size.md} />}
+                tooltip="Edit user"
+                onClick={() => onEdit(user)}
+                aria-label={`Edit ${user.username}`}
+              />
+            )}
 
             {canDelete && (
               <BaseIconButton
@@ -270,16 +343,24 @@ export default function UsersTable({
               />
             )}
 
-            {(isActive ? canDeactivate : canActivate) && (
-              <BaseToggleSwitch
-                checked={isActive}
-                onClick={() => (isActive ? onDeactivate(user) : onActivate(user))}
-                aria-label={isActive ? `Deactivate ${user.username}` : `Activate ${user.username}`}
-                tooltip={isActive ? "Deactivate user" : "Activate user"}
-              />
-            )}
+            <BaseToggleSwitch
+              checked={isActive}
+              disabled={toggleDisabled}
+              onClick={toggleOnClick}
+              aria-label={
+                isActive
+                  ? `Deactivate ${user.username}`
+                  : `Activate ${user.username}`
+              }
+              tooltip={toggleTooltip}
+            />
 
-            <RowActionsMenu user={user} onView={() => onRowClick?.(entry)} onReset={() => onReset?.(user)} />
+            <RowActionsMenu
+              user={user}
+              onView={() => onRowClick?.(entry)}
+              onReset={() => onReset?.(user)}
+              onUnlock={isLocked && onUnlock ? () => onUnlock(user) : undefined}
+            />
           </Stack>
         );
       },

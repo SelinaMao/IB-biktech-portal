@@ -44,6 +44,20 @@ export const accountApi = baseApi.injectEndpoints({
         }
       },
     }),
+    listAccountsQuery: build.query<CoreAccountsResponse, AccountListRequest | void>({
+      query: (body) => ({ url: bank(adminApi.ACCOUNT.LIST), method: "POST", body: body || undefined }),
+      transformResponse: (response: TransformResponse<CoreAccountsResponse>) =>
+        response.data,
+      providesTags: [{ type: "Account", id: "LIST" }],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          dispatch(setAccounts(data));
+        } catch {
+          // Handled by caller
+        }
+      },
+    }),
     getAccountDetail: build.mutation<IAccountDetailResponses, AccountDetailRequest>({
       query: (body) => ({
         url: bank(adminApi.ACCOUNT.DETAIL),
@@ -117,6 +131,8 @@ export const {
   useGetCashFlowMutation,
   useListTransactionsMutation,
 } = accountApi;
+
+export const useListAccountsQuery = accountApi.endpoints.listAccountsQuery.useQuery;
 
 
 export async function downloadAccountCertificate(body: AccountDownloadRequest): Promise<Blob> {

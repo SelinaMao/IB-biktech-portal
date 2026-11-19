@@ -13,6 +13,8 @@ import { FormProvider, useForm } from "react-hook-form";
 import { showToast } from "@core/components/AppToast";
 import BaseButton from "@core/components/BaseButton";
 import BaseSideDialog from "@core/components/BaseSideDialog";
+import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
+import type { AuthenticatorRequest } from "@/features/authenticator/authenticator.types";
 import { palette, radius } from "@/theme/palette";
 import { toToastError } from "@/utils/api-error";
 
@@ -26,10 +28,11 @@ import {
   useCreateUserMutation,
   useGetUserAccountScopeQuery,
   useGetUserDetailQuery,
+  useRequestOrgChangeAuthenticatorMutation,
   useUnlockUserMutation,
   useUpdateUserMutation,
 } from "../user.api";
-import type { AdminUser, UserAccountScope } from "../user.types";
+import type { AdminUser, UserAccountScope, UserChangeResponse } from "../user.types";
 
 import UserFormAction from "./UserFormAction";
 
@@ -90,6 +93,12 @@ export default function UserFormDialog({
   canUnlock = true,
 }: UserFormDialogProps) {
   const [step, setStep] = useState(0);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [changeId, setChangeId] = useState<string | null>(null);
+  const [authenticator, setAuthenticator] = useState<AuthenticatorRequest | null>(null);
+  const [qrPayload, setQrPayload] = useState<string | undefined>(undefined);
+  const [isAwaitingApproval, setIsAwaitingApproval] = useState(false);
+
   const isEdit = Boolean(user);
   // Create is gated by the caller (e.g. the "Add User" button) — canEdit only
   // restricts editing of an existing user.
@@ -98,6 +107,7 @@ export default function UserFormDialog({
   const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
   const [unlockUser, { isLoading: isUnlocking }] = useUnlockUserMutation();
+  const [requestOrgChangeAuth] = useRequestOrgChangeAuthenticatorMutation();
   // Row data from the table is partial (no phone/access level) — fetch the
   // full record by id so the edit form opens pre-filled with real data.
   const { data: userDetail, isFetching: isLoadingDetail } = useGetUserDetailQuery(
@@ -143,17 +153,61 @@ export default function UserFormDialog({
     try {
       if (isEdit && user) {
         const accountsChanged = !sameAccounts(values.accountIds, accountsOf(accountScope));
-        await updateUser({ id: user.id, ...values, accountsChanged }).unwrap();
+        const res = (await updateUser({ id: user.id, ...values, accountsChanged }).unwrap()) as
+          | AdminUser
+          | UserChangeResponse;
+        if (
+          (res as UserChangeResponse)?.authenticator ||
+          (res as UserChangeResponse)?.status === "AWAITING_AUTHORIZATION"
+        ) {
+          const auth = (res as UserChangeResponse).authenticator ?? null;
+          setChangeId((res as UserChangeResponse).changeId ?? null);
+          setAuthenticator(auth);
+          setQrPayload(auth?.qrPayload ?? undefined);
+          setIsAwaitingApproval(true);
+          setConfirmOpen(true);
+          return;
+        }
+        setIsAwaitingApproval(false);
         setStep(2);
         return;
       }
 
-      await createUser(values).unwrap();
+      const res = (await createUser(values).unwrap()) as AdminUser | UserChangeResponse;
+      if (
+        (res as UserChangeResponse)?.authenticator ||
+        (res as UserChangeResponse)?.status === "AWAITING_AUTHORIZATION"
+      ) {
+        const auth = (res as UserChangeResponse).authenticator ?? null;
+        setChangeId((res as UserChangeResponse).changeId ?? null);
+        setAuthenticator(auth);
+        setQrPayload(auth?.qrPayload ?? undefined);
+        setIsAwaitingApproval(true);
+        setConfirmOpen(true);
+        return;
+      }
+      setIsAwaitingApproval(false);
       setStep(2);
     } catch (error) {
       showToast("error", toToastError(error, isEdit ? "Couldn't update user" : "Couldn't create user"));
     }
   };
+
+  const handleQrApprove = () => {
+    setConfirmOpen(false);
+    setAuthenticator(null);
+    setQrPayload(undefined);
+    setStep(2);
+    showToast("info", {
+      title: isEdit ? "User update submitted" : "User creation submitted",
+      message: "Waiting for checker approval. It will take effect once approved.",
+    });
+  };
+
+  const handleQrClose = () => {
+    setConfirmOpen(false);
+  };
+
   const handleUnlock = () => {
     if (!user) return;
     unlockUser(user.id)
@@ -171,6 +225,11 @@ export default function UserFormDialog({
     // Wait out the drawer's close transition before wiping the form.
     setTimeout(() => {
       setStep(0);
+      setIsAwaitingApproval(false);
+      setChangeId(null);
+      setAuthenticator(null);
+      setQrPayload(undefined);
+      setConfirmOpen(false);
       reset(getUserInfoDefaultValues());
     }, 200);
   };
@@ -326,7 +385,7 @@ export default function UserFormDialog({
           <Stack spacing={2} sx={{ alignItems: "center", textAlign: "center", py: 3 }}>
             <Image src="/assets/icons/Ico.svg" alt="Success" width={40} height={40} />
             <Typography sx={{ fontWeight: 600, fontSize: 14, color: palette.slate[500] }}>
-              {isEdit ? "Saved" : "Created"}
+              {isAwaitingApproval ? "Submitted" : isEdit ? "Saved" : "Created"}
             </Typography>
 
             <Stack
@@ -368,15 +427,62 @@ export default function UserFormDialog({
               />
             </Stack>
 
-            <Typography variant="h6">{isEdit ? "Changes saved" : "User created"}</Typography>
-            <Typography variant="body2" sx={{ color: palette.slate[400] }}>
-              {isEdit
-                ? "Their details and role are up to date."
-                : "They are waiting on activation. Their login ID and password are sent to them separately — the password always by text message."}
+            <Typography variant="h6">
+              {isAwaitingApproval
+                ? isEdit
+                  ? "User changes submitted for approval"
+                  : "User submitted for approval"
+                : isEdit
+                  ? "Changes saved"
+                  : "User created"}
             </Typography>
+            <Typography variant="body2" sx={{ color: palette.slate[400] }}>
+              {isAwaitingApproval
+                ? "The request has been sent to checkers. The user will be created once approved."
+                : isEdit
+                  ? "Their details and role are up to date."
+                  : "They are waiting on activation. Their login ID and password are sent to them separately — the password always by text message."}
+            </Typography>
+
+            <BaseButton
+              title="Done"
+              variant="contained"
+              fullWidth
+              onClick={handleClose}
+              sx={{
+                ...ACTION_BUTTON_SX,
+                bgcolor: "#1B5299",
+                color: "#FFFFFF",
+                mt: 2,
+                "&:hover": {
+                  bgcolor: "#15427C",
+                  boxShadow: "none",
+                },
+              }}
+            />
           </Stack>
         )}
       </BaseSideDialog>
+
+      <QrConfirmationDialog
+        open={confirmOpen}
+        authenticator={authenticator}
+        qrPayload={qrPayload}
+        requestId={authenticator?.requestId}
+        onClose={handleQrClose}
+        onApprove={handleQrApprove}
+        onAuthorized={handleQrApprove}
+        onConsumed={handleQrApprove}
+        onRenew={async () => {
+          if (!changeId) return;
+          const result = await requestOrgChangeAuth(changeId).unwrap();
+          setAuthenticator(result);
+          setQrPayload(result.qrPayload ?? undefined);
+          return result;
+        }}
+        title="Confirm on Mobile"
+        subtitle="Scan this QR code with your Biktech Mobile App to submit for checker approval."
+      />
     </FormProvider>
   );
 }

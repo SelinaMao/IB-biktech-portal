@@ -8,13 +8,16 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { ArrowUpDown } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import BaseButton from "@core/components/BaseButton";
+import { showToast } from "@core/components/AppToast";
 import { BaseInput } from "@core/form";
 import { useDebounce } from "@core/hooks/use-debounce";
 import { palette } from "@/theme/palette";
-import { CLIENT_PERMISSIONS, useCan } from "@/features/auth";
+import { toToastError } from "@/utils/api-error";
+import { CLIENT_PERMISSIONS, useCan, useMeQuery } from "@/features/auth";
+import { useListAccountsMutation } from "@/features/account";
 
 import {
   UserFormDialog,
@@ -23,6 +26,7 @@ import {
   UserDetailForm,
   UsersTable,
   useListUsersQuery,
+  useUnlockUserMutation,
   type AdminUser,
 } from "@/features/user";
 
@@ -35,6 +39,28 @@ export default function UsersPage() {
   const canActivate = useCan(CLIENT_PERMISSIONS.USER.UPDATE);
   const canDeactivate = useCan(CLIENT_PERMISSIONS.USER.UPDATE);
   const canUnlock = useCan(CLIENT_PERMISSIONS.USER.UPDATE);
+
+  const { data: me } = useMeQuery(undefined);
+  const [unlockUser] = useUnlockUserMutation();
+
+  const handleUnlockUser = (target: AdminUser) => {
+    unlockUser(target.id)
+      .unwrap()
+      .then(() => {
+        showToast("success", {
+          title: "User unlocked",
+          message: `${target.fullName || target.username} can try signing in again.`,
+        });
+      })
+      .catch((error) => {
+        showToast("error", toToastError(error, "Couldn't unlock user"));
+      });
+  };
+
+  const [listAccounts] = useListAccountsMutation();
+  useEffect(() => {
+    listAccounts().catch(() => {});
+  }, [listAccounts]);
 
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
@@ -241,6 +267,8 @@ export default function UsersPage() {
           onEdit={openEdit}
           onActivate={setActivateTarget}
           onDeactivate={setDeactivateTarget}
+          onUnlock={canUnlock ? handleUnlockUser : undefined}
+          currentUserId={me?.id}
           canEdit={canEdit}
           canActivate={canActivate}
           canDeactivate={canDeactivate}

@@ -54,7 +54,7 @@ export const transferOptions: TransferOption[] = [
   },
   {
     slug: "bulk",
-    label: "Bakong Wallet",
+    label: "Bulk Transfer",
     description: "Transfer funds securely to international bank accounts.",
     icon: <Image src="/assets/icons/bakong.svg" alt="" width={20} height={20} />,
     color: palette.danger.main,

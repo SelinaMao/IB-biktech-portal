@@ -64,6 +64,7 @@ async function handler(
       acceptLanguage: locale,
       idempotencyKey,
     });
+
     if (!upstream.ok) {
       const cloned = upstream.clone();
       const text = await cloned.text();

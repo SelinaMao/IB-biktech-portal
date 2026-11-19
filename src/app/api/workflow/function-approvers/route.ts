@@ -33,11 +33,20 @@ export async function GET(request: Request) {
   // Several groups are an "or": anyone in any of them counts.
   [...new Set(incoming.getAll("groupKey").filter(Boolean))].forEach((key) => params.append("groupKey", key));
 
+  let upstreamRes: Response;
   if (codes.length === 1) {
-    return coreFetch(`workflow/functions/${encodeURIComponent(codes[0])}/approvers?${params}`, {
+    upstreamRes = await coreFetch(`workflow/functions/${encodeURIComponent(codes[0])}/approvers?${params}`, {
       accessToken: token,
     });
+  } else {
+    codes.forEach((code) => params.append("codes", code));
+    upstreamRes = await coreFetch(`workflow/functions/approvers?${params}`, { accessToken: token });
   }
-  codes.forEach((code) => params.append("codes", code));
-  return coreFetch(`workflow/functions/approvers?${params}`, { accessToken: token });
+
+  const rawText = await upstreamRes.text();
+  console.log(`[function-approvers codes=${codes.join(",")}] upstream status=${upstreamRes.status} body=${rawText}`);
+  return new Response(rawText, {
+    status: upstreamRes.status,
+    headers: { "Content-Type": "application/json" },
+  });
 }

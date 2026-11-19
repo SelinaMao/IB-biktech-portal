@@ -29,6 +29,7 @@ export type Role = {
   id: string;
   name: string;
   description: string;
+  code?: string;
   channel: RoleChannel;
   /** System roles are seeded by the platform — not editable or deletable. */
   isSystem: boolean;

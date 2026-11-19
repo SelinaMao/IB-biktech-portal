@@ -6,6 +6,7 @@ import type { AuthenticatorRequest } from "@/features/authenticator";
 
 import type {
   ApproverGroup,
+  ApproverGroupChangeResponse,
   AssignEntitlementPayload,
   EligibleApprover,
   Entitlement,
@@ -41,17 +42,37 @@ const approversFromResponse = (response: unknown): FunctionApprover[] | null => 
         : null;
   if (!data) return null;
 
-  return data.filter(
-    (person): person is FunctionApprover =>
-      typeof person === "object" &&
-      person !== null &&
-      "userId" in person &&
-      typeof person.userId === "string" &&
-      "username" in person &&
-      typeof person.username === "string" &&
-      "fullName" in person &&
-      typeof person.fullName === "string",
-  );
+  const approvers: FunctionApprover[] = [];
+  for (const person of data) {
+    if (typeof person !== "object" || person === null) continue;
+    const raw = person as Record<string, unknown>;
+    const userId =
+      typeof raw.userId === "string"
+        ? raw.userId
+        : typeof raw.id === "string"
+          ? raw.id
+          : null;
+    const username =
+      typeof raw.username === "string"
+        ? raw.username
+        : typeof raw.name === "string"
+          ? raw.name
+          : "";
+    const fullName =
+      typeof raw.fullName === "string"
+        ? raw.fullName
+        : typeof raw.name === "string"
+          ? raw.name
+          : "";
+    if (!userId || !username) continue;
+    approvers.push({
+      userId,
+      username,
+      fullName: fullName || username,
+      selfApproval: Boolean(raw.selfApproval),
+    });
+  }
+  return approvers;
 };
 
 export const workflowApi = baseApi.injectEndpoints({
@@ -151,7 +172,7 @@ export const workflowApi = baseApi.injectEndpoints({
         (groupKeys ?? []).forEach((key) => params.append("groupKey", key));
         return `${adminApi.WORKFLOW.FUNCTION_APPROVERS}?${params.toString()}`;
       },
-      transformResponse,
+      transformResponse: (response: unknown) => approversFromResponse(response) ?? [],
     }),
 
     /** Union of each action's engine-resolved approvers, for a rule copied to several actions. */
@@ -215,23 +236,30 @@ export const workflowApi = baseApi.injectEndpoints({
     }),
 
     /** The organization's own group. Its key is what a rule references, so it never changes. */
-    createApproverGroup: build.mutation<ApproverGroup, SaveApproverGroupPayload>({
+    createApproverGroup: build.mutation<
+      ApproverGroup | ApproverGroupChangeResponse,
+      SaveApproverGroupPayload
+    >({
       query: (body) => ({ url: bank(adminApi.APPROVER_GROUP.CREATE), method: "POST", body }),
       transformResponse,
       invalidatesTags: [{ type: "ApproverGroup", id: "LIST" }],
     }),
 
     /** Only the name is editable; the key a mandate names never changes. */
-    updateApproverGroup: build.mutation<ApproverGroup, { groupId: string; name: string }>({
-      query: ({ groupId, name }) => ({
-        url: `${bank(fill(adminApi.APPROVER_GROUP.UPDATE, "groupId", groupId))}?name=${encodeURIComponent(name)}`,
-        method: "PATCH",
+    updateApproverGroup: build.mutation<
+      ApproverGroup | ApproverGroupChangeResponse,
+      { groupId: string; name: string; memberIds?: string[] }
+    >({
+      query: ({ groupId, name, memberIds = [] }) => ({
+        url: bank(fill(adminApi.APPROVER_GROUP.UPDATE, "groupId", groupId)),
+        method: "PUT",
+        body: { name, memberIds },
       }),
       transformResponse,
       invalidatesTags: [{ type: "ApproverGroup", id: "LIST" }],
     }),
 
-    deleteApproverGroup: build.mutation<void, string>({
+    deleteApproverGroup: build.mutation<void | ApproverGroupChangeResponse, string>({
       query: (groupId) => ({
         url: bank(fill(adminApi.APPROVER_GROUP.DELETE, "groupId", groupId)),
         method: "DELETE",
@@ -240,16 +268,26 @@ export const workflowApi = baseApi.injectEndpoints({
     }),
 
     /** List order is the order approvers are asked in under a sequential level. */
-    setGroupMembers: build.mutation<ApproverGroup, { groupId: string; userIds: string[] }>({
-      query: ({ groupId, userIds }) => ({
-        url: bank(fill(adminApi.APPROVER_GROUP.MEMBERS, "groupId", groupId)),
+    setGroupMembers: build.mutation<
+      ApproverGroup | ApproverGroupChangeResponse,
+      { groupId: string; name?: string; userIds: string[] }
+    >({
+      query: ({ groupId, name = "", userIds }) => ({
+        url: bank(fill(adminApi.APPROVER_GROUP.UPDATE, "groupId", groupId)),
         method: "PUT",
-        // SetMembersRequest binds `memberIds`. Sending `userIds` bound to nothing, so the
-        // @NotNull refused the request before it reached the handler.
-        body: { memberIds: userIds },
+        body: { name, memberIds: userIds },
       }),
       transformResponse,
       invalidatesTags: [{ type: "ApproverGroup", id: "LIST" }],
+    }),
+
+    /** Fetches / renews the authenticator QR code for a pending approver group change. */
+    requestApproverGroupChangeAuthenticator: build.mutation<AuthenticatorRequest, string>({
+      query: (changeId) => ({
+        url: bank(fill(adminApi.APPROVER_GROUP.CHANGE_AUTHENTICATOR, "changeId", changeId)),
+        method: "POST",
+      }),
+      transformResponse,
     }),
 
     listUserEntitlements: build.query<Entitlement[], string>({
@@ -388,6 +426,7 @@ export const {
   useCreateApproverGroupMutation,
   useUpdateApproverGroupMutation,
   useDeleteApproverGroupMutation,
+  useRequestApproverGroupChangeAuthenticatorMutation,
   useAssignEntitlementsMutation,
   useListWorkflowFunctionsQuery,
   useListOrgRulesQuery,

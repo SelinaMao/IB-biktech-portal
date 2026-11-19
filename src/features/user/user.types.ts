@@ -1,4 +1,5 @@
 import type { PageArgs } from "@core/types/pagination";
+import type { AuthenticatorRequest } from "@/features/authenticator/authenticator.types";
 
 /**
  * Backoffice user domain types — mirrors the auth-service admin surface
@@ -12,6 +13,14 @@ export type AdminUserRole = {
   name: string;
   description: string;
   isSystem: boolean;
+};
+
+/** Dual-control maker-checker response when creating/updating user requires approval. */
+export type UserChangeResponse = {
+  changeId?: string;
+  type?: string;
+  status?: string;
+  authenticator?: AuthenticatorRequest;
 };
 
 /** The user object nested inside each list item. */

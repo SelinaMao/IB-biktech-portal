@@ -155,7 +155,7 @@ export default function QrConfirmationDialog({
   }, [open, view]);
 
   const carryOut = React.useCallback(
-    async (id: string, consumed: boolean, consumedResult?: AuthenticatorResult) => {
+    async (id: string, consumed = false, consumedResult?: AuthenticatorResult) => {
       if (spentFor.current === id) return;
       spentFor.current = id;
       setView("authorizing");

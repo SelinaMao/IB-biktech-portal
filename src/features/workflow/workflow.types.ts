@@ -1,3 +1,5 @@
+import type { AuthenticatorRequest } from "@/features/authenticator";
+
 /**
  * Approval workflow contracts for the corporate side — mirrors workflow-service's DTOs.
  *
@@ -231,6 +233,17 @@ export type AssignEntitlementPayload = {
 export type SaveApproverGroupPayload = {
   groupKey: string;
   name: string;
+  memberIds?: string[];
+};
+
+/** Dual-control maker-checker response when creating/updating approver groups requires approval. */
+export type ApproverGroupChangeResponse = {
+  changeId?: string;
+  type?: string;
+  status?: string;
+  authenticator?: AuthenticatorRequest | null;
+  message?: string;
+  messageCode?: string;
 };
 
 // ---------------------------------------------------------------- runtime

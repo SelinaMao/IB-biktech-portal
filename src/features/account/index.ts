@@ -2,6 +2,7 @@ export * from "./account.types";
 export {
   accountApi,
   useListAccountsMutation,
+  useListAccountsQuery,
   useGetAccountDetailMutation,
   useGetAccountSummaryMutation,
   useGetCashFlowMutation,

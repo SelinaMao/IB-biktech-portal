@@ -3,6 +3,7 @@ import { adminApi } from "@/config/api.config";
 import { toIntlPhone } from "@/utils/phone";
 import { transformResponse } from "@/utils/transform-response";
 import type { PageResponse } from "@core/types/pagination";
+import type { AuthenticatorRequest } from "@/features/authenticator/authenticator.types";
 import type {
   ActivateUserPayload,
   AdminUser,
@@ -11,6 +12,7 @@ import type {
   DeactivateUserPayload,
   ListUsersArgs,
   UserAccountScope,
+  UserChangeResponse,
 } from "./user.types";
 import { UserInfoValues } from "./schema/user.schema";
 
@@ -92,7 +94,7 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: (_result, _error, id) => [{ type: "User", id }],
     }),
 
-    createUser: build.mutation<AdminUser, UserInfoValues>({
+    createUser: build.mutation<AdminUser | UserChangeResponse, UserInfoValues>({
       query: (values) => ({
         url: bank(adminApi.USER.CREATE),
         method: "POST",
@@ -109,7 +111,10 @@ export const userApi = baseApi.injectEndpoints({
      * changing someone's role in the dialog did nothing at all, silently. Accounts are sent only
      * when they changed, so saving a name never touches what the user may use.
      */
-    updateUser: build.mutation<AdminUser, UserInfoValues & { id: string; accountsChanged?: boolean }>({
+    updateUser: build.mutation<
+      AdminUser | UserChangeResponse,
+      UserInfoValues & { id: string; accountsChanged?: boolean }
+    >({
       async queryFn({ id, accountsChanged, ...values }, _api, _extra, baseQuery) {
         const { username, ...person } = personOf(values);
         void username; // Permanent, and the details endpoint does not accept it.
@@ -151,7 +156,7 @@ export const userApi = baseApi.injectEndpoints({
       invalidatesTags: (_r, _e, id) => [{ type: "User", id }, { type: "User", id: "LIST" }],
     }),
 
-    activateUser: build.mutation<AdminUser, ActivateUserPayload>({
+    activateUser: build.mutation<AdminUser | UserChangeResponse, ActivateUserPayload>({
       query: ({ id, reason }) => ({
         url: bank(withId(adminApi.USER.ACTIVATE, id)),
         method: "PATCH",
@@ -164,7 +169,7 @@ export const userApi = baseApi.injectEndpoints({
       ],
     }),
 
-    deactivateUser: build.mutation<AdminUser, DeactivateUserPayload>({
+    deactivateUser: build.mutation<AdminUser | UserChangeResponse, DeactivateUserPayload>({
       query: ({ id, reason }) => ({
         url: bank(withId(adminApi.USER.DEACTIVATE, id)),
         method: "PATCH",
@@ -175,6 +180,15 @@ export const userApi = baseApi.injectEndpoints({
         { type: "User", id },
         { type: "User", id: "LIST" },
       ],
+    }),
+
+    /** Fetches / renews the authenticator QR code for a pending org change (e.g. user creation). */
+    requestOrgChangeAuthenticator: build.mutation<AuthenticatorRequest, string>({
+      query: (changeId) => ({
+        url: bank(withId(adminApi.ORG_CHANGE.AUTHENTICATOR, changeId)),
+        method: "POST",
+      }),
+      transformResponse,
     }),
   }),
 });
@@ -187,5 +201,6 @@ export const {
   useUpdateUserMutation,
   useActivateUserMutation,
   useDeactivateUserMutation,
-  useUnlockUserMutation
+  useUnlockUserMutation,
+  useRequestOrgChangeAuthenticatorMutation,
 } = userApi;
