@@ -7,6 +7,7 @@ import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
+import Popover from "@mui/material/Popover";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useTranslations } from "next-intl";
@@ -22,6 +23,51 @@ import { ArrowLeftRight, BanknoteArrowDown, CalendarSync, ChevronDown, ChevronUp
 import { CLIENT_PERMISSIONS, useAuth, useMeQuery } from "@/features/auth";
 import { setHideAmount } from "@/store/global/global.slice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+
+/* ------------------------------------------------------------------ */
+/* Animation + layout constants                                        */
+/* ------------------------------------------------------------------ */
+const EASE = "cubic-bezier(0.4, 0, 0.2, 1)";
+const DURATION = "0.3s";
+
+const ICON_SIZE = 20;
+const LIST_PX = 12; // horizontal padding of the list (same collapsed / expanded)
+
+/**
+ * Horizontal padding inside each item (same collapsed / expanded).
+ * Derived so the icon sits exactly centered in the collapsed rail:
+ *   collapsedWidth = 2 * LIST_PX + 2 * ITEM_PX + ICON_SIZE
+ * Assumes SIDEBAR_COLLAPSED_WIDTH is a number of px (e.g. 68 -> ITEM_PX = 14).
+ */
+const ITEM_PX = (Number(SIDEBAR_COLLAPSED_WIDTH) - 2 * LIST_PX - ICON_SIZE) / 2;
+
+/** Label stays mounted; it fades and shrinks instead of unmounting. */
+const labelSx = (collapsed: boolean) => ({
+  m: 0,
+  flex: "0 1 auto",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  opacity: collapsed ? 0 : 1,
+  maxWidth: collapsed ? 0 : 180, // must be >= your longest label
+  transition: `opacity 0.2s ${EASE}, max-width ${DURATION} ${EASE}`,
+});
+
+/** Same geometry and padding in both states. */
+const itemBaseSx = {
+  borderRadius: `${radius.sm}px`,
+  mb: 0.5,
+  minHeight: 44,
+  height: 44,
+  flexGrow: 0,
+  flexShrink: 0,
+  width: "100%",
+  justifyContent: "flex-start",
+  alignItems: "center",
+  overflow: "hidden",
+  pl: `${ITEM_PX}px`,
+  pr: `${ITEM_PX}px`,
+  transition: "background-color 0.15s ease, color 0.15s ease",
+} as const;
 
 /**
  * Navy sidebar — the ONLY component allowed to reference `palette.navy`
@@ -149,7 +195,7 @@ const NAV_HREFS = NAV_ITEMS.flatMap((navItem) => [navItem.href, ...("children" i
 
 // BOTTOM_ITEMS is now defined dynamically inside the component to support React state and custom click actions (CLAUDE.md/USER directive)
 
-const renderNavIcon = (Icon: React.ElementType | string, size = 20) => {
+const renderNavIcon = (Icon: React.ElementType | string, size = ICON_SIZE) => {
   if (typeof Icon === "string") {
     const src = Icon.replace(/^\/?public[\\/]/, "/").replace(/\\/g, "/");
     const cleanSrc = src.startsWith("/") ? src : `/${src}`;
@@ -183,6 +229,16 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
   const [hasShownActivatePrompt, setHasShownActivatePrompt] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [closedActiveKey, setClosedActiveKey] = useState<string | null>(null);
+
+  // Collapsed-rail flyout (dropdown) for items with children
+  const [flyoutKey, setFlyoutKey] = useState<string | null>(null);
+  const [flyoutAnchor, setFlyoutAnchor] = useState<HTMLElement | null>(null);
+
+  const closeFlyout = () => {
+    setFlyoutAnchor(null);
+    setFlyoutKey(null);
+  };
+
   const meQueryResult = useMeQuery(undefined);
   const { logout } = useAuth();
 
@@ -234,12 +290,21 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
     });
   }, [meQueryResult.data?.permissions]);
 
+  // Collapsing resets the inline accordion; expanding closes the flyout.
   useEffect(() => {
     if (collapsed) {
       setExpandedKey(null);
       setClosedActiveKey(null);
+    } else {
+      closeFlyout();
     }
   }, [collapsed]);
+
+  // Close the flyout whenever the route changes.
+  useEffect(() => {
+    closeFlyout();
+  }, [pathname]);
+
   const { data: bindingState, isLoading: bindingStateLoading } = useCurrentDeviceBindingQuery(undefined, {
     pollingInterval: 30_000,
     refetchOnFocus: true,
@@ -289,6 +354,14 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
   const statusText = isLinked ? "ACTIVE" : bindingStateLoading ? "..." : "INACTIVE";
   const isHelpActive = isPathActive("/help");
 
+  // Tooltips only show while collapsed, but the element is always mounted
+  const tooltipProps = {
+    placement: "right" as const,
+    disableHoverListener: !collapsed,
+    disableFocusListener: !collapsed,
+    disableTouchListener: !collapsed,
+  };
+
   return (
     <Box
       component="nav"
@@ -302,7 +375,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         top: `${TOPBAR_HEIGHT}px`,
         height: `calc(100vh - ${TOPBAR_HEIGHT}px)`,
         maxHeight: `calc(100vh - ${TOPBAR_HEIGHT}px)`,
-        transition: "width 200ms ease",
+        transition: `width ${DURATION} ${EASE}`,
         overflow: "hidden",
         borderRight: `1px solid ${palette.slate[200]}`,
         zIndex: 10,
@@ -310,7 +383,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
     >
       {/* Navigation */}
       <List sx={{
-        px: collapsed ? 1.5 : 2,
+        px: `${LIST_PX}px`, // same padding collapsed or expanded
         py: 2,
         flex: 1,
         minHeight: 0,
@@ -318,7 +391,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         overflowX: "hidden",
         display: "flex",
         flexDirection: "column",
-        alignItems: collapsed ? "center" : "stretch",
+        alignItems: "stretch",
         "&::-webkit-scrollbar": {
           width: "4px",
         },
@@ -334,7 +407,6 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         },
         scrollbarWidth: "thin",
         scrollbarColor: `${palette.slate[300]} transparent`,
-
       }}>
         {visibleNavItems.map((navItem) => {
           const { key, href, Icon } = navItem;
@@ -343,151 +415,214 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
           if (children) {
             const childActive = children.some((child) => isPathActive(child.href));
             const isOpen = !collapsed && (childActive ? closedActiveKey !== key : expandedKey === key);
+            const flyoutOpen = collapsed && flyoutKey === key && Boolean(flyoutAnchor);
 
             const parentButton = (
               <ListItemButton
-                component={collapsed ? Link : "div"}
-                href={collapsed ? children[0].href : undefined}
-                onClick={collapsed ? undefined : () => (childActive ? setClosedActiveKey((prev) => (prev === key ? null : key)) : setExpandedKey((prev) => (prev === key ? null : key)))}
+                component="div"
+                onClick={(e: React.MouseEvent<HTMLElement>) => {
+                  if (collapsed) {
+                    setFlyoutAnchor(e.currentTarget);
+                    setFlyoutKey(key);
+                    return;
+                  }
+                  if (childActive) {
+                    setClosedActiveKey((prev) => (prev === key ? null : key));
+                  } else {
+                    setExpandedKey((prev) => (prev === key ? null : key));
+                  }
+                }}
                 sx={{
-                  borderRadius: collapsed ? "12px" : `${radius.sm}px`,
-                  mb: collapsed ? 1 : 0.5,
-                  minHeight: 44,
-                  height: 44,
-                  flexGrow: 0,
-                  flexShrink: 0,
-                  width: collapsed ? 44 : "100%",
-                  justifyContent: collapsed ? "center" : "flex-start",
-                  alignItems: "center",
-                  p: collapsed ? 0 : undefined,
-                  px: collapsed ? 0 : 4,
-                  mx: collapsed ? "auto" : undefined,
+                  ...itemBaseSx,
                   cursor: "pointer",
-                  color: childActive ? palette.primary[40] : palette.black30,
-                  bgcolor: childActive ? (collapsed ? "#EBF3FC" : palette.hover[10]) : "transparent",
+                  color: childActive || flyoutOpen ? palette.primary[40] : palette.black30,
+                  bgcolor: childActive || flyoutOpen ? (collapsed ? "#EBF3FC" : palette.hover[10]) : "transparent",
                   "&:hover": {
                     bgcolor: childActive ? (collapsed ? "#E2EDF9" : palette.hover[10]) : palette.hover[10],
                     color: palette.black30,
                   },
-                  // color: childActive ? palette.white : palette.black30,
-                  //             bgcolor: childActive ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.white,
-                  //             "&:hover": {
-                  //               bgcolor: childActive ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.primary[40],
-                  //               color: childActive ? palette.white : palette.white ,
-                  //             },
                 }}
               >
                 <ListItemIcon
                   sx={{
                     minWidth: 0,
-                    mr: collapsed ? 0 : 1.5,
+                    mr: 1.5,
                     justifyContent: "center",
                     alignItems: "center",
                     color: "inherit",
                   }}
                 >
-                  {renderNavIcon(Icon, 20)}
+                  {renderNavIcon(Icon, ICON_SIZE)}
                 </ListItemIcon>
-                {!collapsed && (
-                  <>
-                    <ListItemText
-                      primary={t(key)}
-                      slotProps={{
-                        primary: {
-                          sx: {
-                            fontSize: font.size.md,
-                            fontWeight: childActive ? font.weight.semibold : font.weight.medium,
-                            whiteSpace: "nowrap",
-                          },
-                        },
-                      }}
-                    />
-                    {isOpen ? <ChevronUp size={16} style={{ flexShrink: 0 }} /> : <ChevronDown size={16} style={{ flexShrink: 0 }} />}
-                  </>
-                )}
+                <ListItemText
+                  primary={t(key)}
+                  sx={labelSx(collapsed)}
+                  slotProps={{
+                    primary: {
+                      sx: {
+                        fontSize: font.size.md,
+                        fontWeight: childActive ? font.weight.semibold : font.weight.medium,
+                        whiteSpace: "nowrap",
+                      },
+                    },
+                  }}
+                />
+                <Box
+                  sx={{
+                    display: "flex",
+                    ml: "auto",
+                    flexShrink: 0,
+                    opacity: collapsed ? 0 : 1,
+                    transition: `opacity 0.2s ${EASE}`,
+                  }}
+                >
+                  {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </Box>
               </ListItemButton>
             );
 
             return (
-              <Box key={key} sx={{ width: collapsed ? 44 : "100%", flexShrink: 0 }}>
-                {collapsed ? (
-                  <Tooltip title={t(key)} placement="right">
-                    {parentButton}
-                  </Tooltip>
-                ) : (
-                  parentButton
-                )}
-                {!collapsed && (
-                  <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                    <List sx={{ py: 0 }}>
-                      {children.map((child) => {
-                        const childIsActive = isPathActive(child.href);
-                        return (
-                          <ListItemButton
-                            key={child.key}
-                            component={Link}
-                            href={child.href}
-                            sx={{
-                              borderRadius: `${radius.sm}px`,
-                              mb: 0.5,
-                              minHeight: 40,
-                              height: 40,
-                              flexGrow: 0,
-                              flexShrink: 0,
-                              pl: 8,
-                              pr: 4,
+              <Box key={key} sx={{ width: "100%", flexShrink: 0 }}>
+                <Tooltip
+                  title={t(key)}
+                  {...tooltipProps}
+                  disableHoverListener={!collapsed || flyoutOpen}
+                >
+                  {parentButton}
+                </Tooltip>
+
+                {/* Expanded: inline accordion */}
+                <Collapse in={isOpen} timeout={300} unmountOnExit>
+                  <List sx={{ py: 0 }}>
+                    {children.map((child) => {
+                      const childIsActive = isPathActive(child.href);
+                      return (
+                        <ListItemButton
+                          key={child.key}
+                          component={Link}
+                          href={child.href}
+                          sx={{
+                            borderRadius: `${radius.sm}px`,
+                            mb: 0.5,
+                            minHeight: 40,
+                            height: 40,
+                            flexGrow: 0,
+                            flexShrink: 0,
+                            pl: 8,
+                            pr: 4,
+                            color: childIsActive ? palette.white : palette.black30,
+                            bgcolor: childIsActive ? palette.primary[40] : "transparent",
+                            "&:hover": {
+                              bgcolor: childIsActive ? palette.primary[40] : palette.hover[10],
                               color: childIsActive ? palette.white : palette.black30,
-                              bgcolor: childIsActive ? (collapsed ? "#EBF3FC" : palette.primary[40]) : "transparent",
-                              "&:hover": {
-                                bgcolor: childIsActive ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.hover[10],
-                                color: childIsActive ? palette.white : palette.black30,
+                            },
+                          }}
+                        >
+                          <ListItemText
+                            primary={t(child.key)}
+                            slotProps={{
+                              primary: {
+                                sx: {
+                                  fontSize: font.size.md,
+                                  fontWeight: childIsActive ? font.weight.semibold : font.weight.medium,
+                                  whiteSpace: "nowrap",
+                                },
                               },
                             }}
-                          >
-                            <ListItemText
-                              primary={t(child.key)}
-                              slotProps={{
-                                primary: {
-                                  sx: {
-                                    fontSize: font.size.md,
-                                    fontWeight: childIsActive ? font.weight.semibold : font.weight.medium,
-                                    whiteSpace: "nowrap",
-                                  },
-                                },
-                              }}
-                            />
-                          </ListItemButton>
-                        );
-                      })}
-                    </List>
-                  </Collapse>
-                )}
+                          />
+                        </ListItemButton>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+
+                {/* Collapsed: flyout dropdown (portal, so the sidebar's overflow:hidden doesn't clip it) */}
+                <Popover
+                  open={flyoutOpen}
+                  anchorEl={flyoutAnchor}
+                  onClose={closeFlyout}
+                  anchorOrigin={{ vertical: "top", horizontal: "right" }}
+                  transformOrigin={{ vertical: "top", horizontal: "left" }}
+                  disableScrollLock
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        ml: 1,
+                        minWidth: 200,
+                        p: 1,
+                        borderRadius: `${radius.sm}px`,
+                        border: `1px solid ${palette.slate[200]}`,
+                        boxShadow: "0 8px 24px rgba(15, 23, 42, 0.12)",
+                      },
+                    },
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      px: 2,
+                      py: 1,
+                      fontSize: "12px",
+                      fontWeight: font.weight.semibold,
+                      color: palette.slate[500],
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    {t(key)}
+                  </Typography>
+
+                  {children.map((child) => {
+                    const childIsActive = isPathActive(child.href);
+                    return (
+                      <ListItemButton
+                        key={child.key}
+                        component={Link}
+                        href={child.href}
+                        onClick={closeFlyout}
+                        sx={{
+                          borderRadius: `${radius.sm}px`,
+                          mb: 0.5,
+                          minHeight: 40,
+                          px: 3,
+                          color: childIsActive ? palette.white : palette.black30,
+                          bgcolor: childIsActive ? palette.primary[40] : "transparent",
+                          "&:hover": {
+                            bgcolor: childIsActive ? palette.primary[40] : palette.hover[10],
+                            color: childIsActive ? palette.white : palette.black30,
+                          },
+                        }}
+                      >
+                        <ListItemText
+                          primary={t(child.key)}
+                          slotProps={{
+                            primary: {
+                              sx: {
+                                fontSize: font.size.md,
+                                fontWeight: childIsActive ? font.weight.semibold : font.weight.medium,
+                                whiteSpace: "nowrap",
+                              },
+                            },
+                          }}
+                        />
+                      </ListItemButton>
+                    );
+                  })}
+                </Popover>
               </Box>
             );
           }
+
           const active = isPathActive(href);
           const item = (
             <ListItemButton
-              key={key}
               component={Link}
               href={href}
               sx={{
-                borderRadius: collapsed ? "8px" : `${radius.sm}px`,
-                mb: collapsed ? 1 : 0.5,
-                minHeight: 44,
-                height: 44,
-                flexGrow: 0,
-                flexShrink: 0,
-                width: collapsed ? 44 : "100%",
-                justifyContent: collapsed ? "center" : "flex-start",
-                alignItems: "center",
-                p: collapsed ? 0 : undefined,
-                px: collapsed ? 0 : 4,
-                mx: collapsed ? "auto" : undefined,
+                ...itemBaseSx,
                 color: active ? palette.white : palette.black30,
-                bgcolor: active ? (collapsed ? palette.primary[40] : palette.primary[40]) : "transparent",
+                bgcolor: active ? palette.primary[40] : "transparent",
                 "&:hover": {
-                  bgcolor: active ? (collapsed ? palette.primary[40] : palette.primary[40]) : palette.hover[10],
+                  bgcolor: active ? palette.primary[40] : palette.hover[10],
                   color: active ? palette.white : palette.black30,
                 },
               }}
@@ -495,39 +630,34 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
               <ListItemIcon
                 sx={{
                   minWidth: 0,
-                  mr: collapsed ? 0 : 1.5,
+                  mr: 1.5,
                   justifyContent: "center",
                   alignItems: "center",
                   color: "inherit",
                 }}
               >
-                {renderNavIcon(Icon, 20)}
+                {renderNavIcon(Icon, ICON_SIZE)}
               </ListItemIcon>
-              {!collapsed && (
-                <ListItemText
-                  primary={t(key)}
-                  slotProps={{
-                    primary: {
-                      sx: {
-                        fontSize: font.size.md,
-                        fontWeight: active ? font.weight.semibold : font.weight.medium,
-                        whiteSpace: "nowrap",
-                      },
+              <ListItemText
+                primary={t(key)}
+                sx={labelSx(collapsed)}
+                slotProps={{
+                  primary: {
+                    sx: {
+                      fontSize: font.size.md,
+                      fontWeight: active ? font.weight.semibold : font.weight.medium,
+                      whiteSpace: "nowrap",
                     },
-                  }}
-                />
-              )}
-
-
+                  },
+                }}
+              />
             </ListItemButton>
           );
 
-          return collapsed ? (
-            <Tooltip key={key} title={t(key)} placement="right">
+          return (
+            <Tooltip key={key} title={t(key)} {...tooltipProps}>
               {item}
             </Tooltip>
-          ) : (
-            item
           );
         })}
       </List>
@@ -537,184 +667,111 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         sx={{
           flexShrink: 0,
           borderTop: `1px solid ${palette.slate[200]}`,
-          px: collapsed ? 1.5 : 2,
+          px: `${LIST_PX}px`, // same padding collapsed or expanded
           py: 2,
           mt: "auto",
         }}
       >
-        {collapsed ? (
-          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-            <Tooltip title={`${t("mobile-activate")} — ${statusText}`} placement="right">
-              <Box
-                onClick={() => setMobileActivateOpen(true)}
-                sx={{
-                  width: 44,
-                  height: 44,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "1.5px solid",
-                  borderColor: palette.slate[200],
-                  borderRadius: "10px",
-                  bgcolor: "#FFFFFF",
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  "&:hover": {
-                    bgcolor: palette.hover[10],
-                    borderColor: palette.slate[300],
-                  },
-                }}
-              >
-                <Circle
-                  size={12}
-                  strokeWidth={2.5}
-                  style={{
-                    flexShrink: 0,
-                    backgroundColor: isLinked ? palette.success.active : "transparent",
-                    borderRadius: "50%",
-                  }}
-                  color={isLinked ? "#00875A" : palette.slate[400]}
-                />
-              </Box>
-            </Tooltip>
-            {/* <Tooltip title={t("help")} placement="right">
-              <ListItemButton
-                component={Link}
-                href="/help"
-                sx={{
-                  width: 44,
-                  height: 44,
-                  minWidth: 44,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  borderRadius: "10px",
-                  p: 0,
-                  color: isHelpActive ? palette.primary[40] : palette.slate[700],
-                  bgcolor: isHelpActive ? palette.hover[10] : "transparent",
-                  "&:hover": {
-                    bgcolor: palette.hover[10],
-                    color: palette.slate[900],
-                  },
-                }}
-              >
-                <ListCollapse size={20} strokeWidth={2} />
-              </ListItemButton>
-            </Tooltip> */}
-          </Box>
-        ) : (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {/* Mobile Activate Card */}
+        <Tooltip
+          title={`${t("mobile-activate")} — ${statusText}`}
+          placement="right"
+          disableHoverListener={!collapsed}
+          disableFocusListener={!collapsed}
+          disableTouchListener={!collapsed}
+        >
+          <Box
+            onClick={() => setMobileActivateOpen(true)}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              height: 44,
+              width: "100%",
+              overflow: "hidden",
+              border: "1.5px solid",
+              borderColor: palette.slate[200],
+              borderRadius: "10px",
+              bgcolor: "#FFFFFF",
+              cursor: "pointer",
+              // same padding in both states; centers the 12px dot in the collapsed rail
+              pl: `${ITEM_PX + (ICON_SIZE - 12) / 2 - 1.5}px`,
+              pr: `${ITEM_PX}px`,
+              transition: "background-color 0.15s ease, border-color 0.15s ease",
+              "&:hover": {
+                bgcolor: palette.hover[10],
+                borderColor: palette.slate[300],
+              },
+            }}
+          >
+            <Circle
+              size={12}
+              strokeWidth={2.5}
+              color={isLinked ? "#00875A" : palette.slate[400]}
+              style={{
+                flexShrink: 0,
+                backgroundColor: isLinked ? palette.success.active : "transparent",
+                borderRadius: "50%",
+              }}
+            />
+            <Typography
+              sx={{
+                ml: 1.25,
+                fontSize: "14px",
+                fontWeight: font.weight.medium,
+                color: palette.slate[700],
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                opacity: collapsed ? 0 : 1,
+                maxWidth: collapsed ? 0 : 160,
+                transition: `opacity 0.2s ${EASE}, max-width ${DURATION} ${EASE}`,
+              }}
+            >
+              {t("mobile-activate")}
+            </Typography>
             <Box
-              onClick={() => setMobileActivateOpen(true)}
               sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                ml: "auto",
+                px: 1.25,
+                py: 1.35,
+                bgcolor: isLinked ? "#E6F9F0" : palette.slate[100],
                 border: "1.5px solid",
-                borderColor: palette.slate[200],
-                borderRadius: "10px",
-                px: 2,
-                py: 2,
-                bgcolor: "#FFFFFF",
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                "&:hover": {
-                  bgcolor: "#F8FAFC",
-                  borderColor: palette.slate[300],
-                },
+                borderColor: isLinked ? "#7FE3B5" : palette.slate[300],
+                borderRadius: "5px",
+                color: isLinked ? "#065F46" : palette.slate[500],
+                fontSize: "12px",
+                fontWeight: font.weight.bold,
+                letterSpacing: "0.5px",
+                lineHeight: 1.2,
+                textTransform: "uppercase",
+                flexShrink: 0,
+                opacity: collapsed ? 0 : 1,
+                transition: `opacity 0.2s ${EASE}`,
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
-                <Circle
-                  size={12}
-                  strokeWidth={2.5}
-                  color={isLinked ? "#00875A" : palette.slate[400]}
-                  style={{
-                    flexShrink: 0,
-                    backgroundColor: isLinked ? palette.success.active : "transparent",
-                    borderRadius: "50%",
-                  }}
-                />
-                <Typography
-                  sx={{
-                    fontSize: "14px",
-                    fontWeight: font.weight.medium,
-                    color: palette.slate[700],
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {t("mobile-activate")}
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  px: 1.25,
-                  py: 1.35,
-                  bgcolor: isLinked ? "#E6F9F0" : palette.slate[100],
-                  border: "1.5px solid",
-                  borderColor: isLinked ? "#7FE3B5" : palette.slate[300],
-                  borderRadius: "5px",
-                  color: isLinked ? "#065F46" : palette.slate[500],
-                  fontSize: "12px",
-                  fontWeight: font.weight.bold,
-                  letterSpacing: "0.5px",
-                  lineHeight: 1.2,
-                  textTransform: "uppercase",
-                  flexShrink: 0,
-                }}
-              >
-                {statusText}
-              </Box>
+              {statusText}
             </Box>
-
-            {/* Help & Support Link */}
-            {/* <ListItemButton
-              component={Link}
-              href="/help"
-              sx={{
-                borderRadius: "10px",
-                py: 1,
-                px: 1.5,
-                color: isHelpActive ? palette.primary[40] : palette.slate[700],
-                bgcolor: isHelpActive ? palette.hover[10] : "transparent",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 1.5,
-                "&:hover": {
-                  bgcolor: palette.hover[10],
-                  color: palette.slate[900],
-                },
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  minWidth: 0,
-                  color: "inherit",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <ListCollapse size={20} strokeWidth={2} />
-              </ListItemIcon>
-              <ListItemText
-                primary={t("help")}
-                slotProps={{
-                  primary: {
-                    sx: {
-                      fontSize: "14px",
-                      fontWeight: font.weight.medium,
-                      color: "inherit",
-                      whiteSpace: "nowrap",
-                    },
-                  },
-                }}
-              />
-            </ListItemButton> */}
           </Box>
-        )}
+        </Tooltip>
+
+        {/* Help & Support Link (disabled)
+        <Tooltip title={t("help")} {...tooltipProps}>
+          <ListItemButton
+            component={Link}
+            href="/help"
+            sx={{
+              ...itemBaseSx,
+              mt: 1,
+              color: isHelpActive ? palette.primary[40] : palette.slate[700],
+              bgcolor: isHelpActive ? palette.hover[10] : "transparent",
+              "&:hover": { bgcolor: palette.hover[10], color: palette.slate[900] },
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 0, mr: 1.5, color: "inherit", justifyContent: "center" }}>
+              <ListCollapse size={20} strokeWidth={2} />
+            </ListItemIcon>
+            <ListItemText primary={t("help")} sx={labelSx(collapsed)} />
+          </ListItemButton>
+        </Tooltip>
+        */}
       </Box>
 
       <MobileBindingDialog open={mobileActivateOpen} linked={Boolean(bindingState?.linked)} deviceModel={bindingState?.deviceModel} lastSeenAt={bindingState?.lastSeenAt} onClose={handleCloseMobileBinding} />

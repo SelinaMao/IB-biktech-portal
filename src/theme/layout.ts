@@ -4,7 +4,7 @@
  */
 export const SIDEBAR_WIDTH = 240;
 export const SIDEBAR_COLLAPSED_WIDTH = 82;
-export const TOPBAR_HEIGHT = 64;
+export const TOPBAR_HEIGHT = 84;
 
 /** Default gap (theme spacing units) between a topbar vertical divider and its neighbors. Pass `sx={{ mx }}` to a <Divider> to override per-instance. */
 export const TOPBAR_DIVIDER_SPACING = 2;
