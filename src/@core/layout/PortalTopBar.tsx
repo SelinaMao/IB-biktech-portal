@@ -20,7 +20,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Bell, ChevronLeft } from "lucide-react";
-
+import { keyframes } from "@mui/material/styles";
 import { useTopBar } from "./TopBarContext";
 import { useAuth } from "@/features/auth";
 import { useAppSelector } from "@/store/hooks";
@@ -43,7 +43,12 @@ import {
   INITIAL_NOTIFICATIONS,
   type NotificationItem,
 } from "@/features/notification";
+const EASE = "cubic-bezier(0.4, 0, 0.2, 1)";
 
+const fadeIn = keyframes`
+  from { opacity: 0; transform: scale(1); }
+  to   { opacity: 1; transform: scale(1); }
+`;
 const ROUTE_TITLES: { prefix: string; title: string; subPrefix?: string }[] = [
   { prefix: "/dashboard", title: "Dashboard" },
   { prefix: "/transfer", title: "Transfer" },
@@ -196,79 +201,84 @@ export default function PortalTopBar({
               display: "flex",
               alignItems: "center",
               cursor: "pointer",
-              p:collapsed ? 1 : { xs: 2, sm: 6 },
+              overflow: "hidden",
+              p: collapsed ? 1 : { xs: 2, sm: 6 },
+              transition: `padding 0.5s ${EASE}`,
             }}
             onClick={() => router.push("/dashboard")}
           >
             {collapsed ? (
-              <Image
-                src="/branding/BikTech Official Logo 2.png"
-                alt="BiKTECH"
-                width={50}
-                height={50}
-                style={{
-                  marginLeft: "10px",
-                  height: "50px",
-                  width: "50px",
-                  objectFit: "contain",
-                }}
-                priority
-              />
+              <Box key="collapsed" sx={{ display: "flex", animation: `${fadeIn} 0.9s ${EASE}` }}>
+                <Image
+                  src="/branding/BikTech Official Logo 2.png"
+                  alt="BiKTECH"
+                  width={50}
+                  height={50}
+                  style={{
+                    marginLeft: "10px",
+                    height: "50px",
+                    width: "50px",
+                    objectFit: "contain",
+                  }}
+                  priority
+                />
+              </Box>
             ) : (
-              <Image
-                src="/branding/BiKTECH.png"
-                alt="BiKTECH Solution"
-                width={140}
-                height={28}
-                style={{
-                  height: "28px",
-                  width: "auto",
-                  objectFit: "contain",
-                }}
-                priority
-              />
+              <Box key="expanded" sx={{ display: "flex", animation: `${fadeIn} 0.9s ${EASE}` }}>
+                <Image
+                  src="/branding/BiKTECH.png"
+                  alt="BiKTECH Solution"
+                  width={140}
+                  height={28}
+                  style={{
+                    height: "28px",
+                    width: "auto",
+                    objectFit: "contain",
+                  }}
+                  priority
+                />
+              </Box>
             )}
           </Box>
           <IconButton
             edge="start"
             onClick={onToggleSidebar}
             aria-label="Toggle sidebar"
+            disableRipple
             sx={{
               marginTop: "2px",
               marginLeft: collapsed ? "5px" : "10px",
-              p: collapsed ? 0 : 0,
+              p: 0,
               color: palette.slate[700],
               borderRadius: "8px",
               flexShrink: 0,
-              transition: "background-color 0.15s ease",
-              // "&:hover": {
-              //   bgcolor: palette.slate[100],
-              // },
+              transition: `margin-left 0.9s ${EASE}`,
             }}
           >
-            {collapsed ? <Image
-              src="/assets/icons/double_arrow_left.svg"
-              alt="double_right"
-              width={140}
-              height={28}
-              style={{
-                height: "22px",
-                width: "auto",
-                objectFit: "contain",
-              }}
-              priority
-            /> : <Image
-              src="/assets/icons/double_arrow_right.svg"
-              alt="double_right"
-              width={140}
-              height={28}
-              style={{
-                height: "28px",
-                width: "auto",
-                objectFit: "contain",
-              }}
-              priority
-            />}
+            <Box
+              key={collapsed ? "collapsed" : "expanded"}
+              sx={{ display: "flex", animation: `${fadeIn} 0.9s ${EASE}` }}
+            >
+              {collapsed ? (
+                <Image
+                  src="/assets/icons/double_arrow_left.svg"
+                  alt="expand sidebar"
+                  width={140}
+                  height={28}
+                  style={{ height: "22px", width: "auto", objectFit: "contain" }}
+                  priority
+                />
+              ) : (
+                <Image
+                  src="/assets/icons/double_arrow_right.svg"
+                  alt="collapse sidebar"
+                  width={140}
+                  height={28}
+                  style={{ height: "28px", width: "auto", objectFit: "contain" }}
+                  priority
+                />
+              )}
+            </Box>
           </IconButton>
         </Box>
 
