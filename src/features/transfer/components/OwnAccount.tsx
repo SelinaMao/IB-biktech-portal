@@ -18,6 +18,7 @@ import {
   accountOptionLabel,
   accountSelectOptions,
   amountPreviewValue,
+  buildTransferSchedule,
   CURRENCY_OPTIONS,
   findAccount,
   formatAmount,
@@ -134,6 +135,13 @@ export default function OwnAccount({ open, onClose }: OwnAccountProps) {
         amount,
         currency: values.currency,
         remark: values.remark.trim() || undefined,
+        schedule: values.scheduleTransfer
+          ? buildTransferSchedule({
+              scheduleTransfer: values.scheduleTransfer,
+              frequency: values.frequency,
+              scheduleDate: values.scheduleDate,
+            })
+          : undefined,
       },
       idempotencyKey: idempotencyKey || crypto.randomUUID(),
     }).unwrap();

@@ -47,7 +47,15 @@ export const rbacApi = baseApi.injectEndpoints({
         const query = params.toString();
         return query ? `${bank(adminApi.ROLE.LIST)}?${query}` : bank(adminApi.ROLE.LIST);
       },
-      transformResponse,
+      transformResponse: (response: any) => {
+        const data = response?.data !== undefined ? response.data : response;
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data?.content)) return data.content;
+        if (Array.isArray(data?.roles)) return data.roles;
+        if (Array.isArray(data?.items)) return data.items;
+        if (Array.isArray(data?.records)) return data.records;
+        return [];
+      },
       providesTags: (result) =>
         result
           ? [
@@ -66,15 +74,36 @@ export const rbacApi = baseApi.injectEndpoints({
      */
     listOrgRoles: build.query<OrgRole[], ListOrgRolesArgs | void>({
       query: (args) => {
-        const { page = 0, size = 200 } = args ?? {};
-        const params = new URLSearchParams({
-          page: String(page),
-          size: String(size),
-        });
-        return `${bank(adminApi.ORG_ROLE.LIST)}?${params.toString()}`;
+        const { search, channel } = (args ?? {}) as { search?: string; channel?: string };
+        const params = new URLSearchParams();
+        if (search?.trim()) params.set("search", search.trim());
+        if (channel) params.set("channel", channel);
+        const query = params.toString();
+        return query ? `${bank(adminApi.ORG_ROLE.LIST)}?${query}` : bank(adminApi.ORG_ROLE.LIST);
       },
-      transformResponse,
-      providesTags: [{ type: "Role" as const, id: "ORG_LIST" }],
+      transformResponse: (response: any) => {
+        const data = response?.data !== undefined ? response.data : response;
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data?.content)) return data.content;
+        if (Array.isArray(data?.roles)) return data.roles;
+        if (Array.isArray(data?.items)) return data.items;
+        if (Array.isArray(data?.records)) return data.records;
+        return [];
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((role) => ({
+                type: "Role" as const,
+                id: role.id,
+              })),
+              { type: "Role" as const, id: "LIST" },
+              { type: "Role" as const, id: "ORG_LIST" },
+            ]
+          : [
+              { type: "Role" as const, id: "LIST" },
+              { type: "Role" as const, id: "ORG_LIST" },
+            ],
     }),
 
     /** GET org/roles/{id} — single role, same shape as a `listRoles` row. */

@@ -29,6 +29,7 @@ export type Role = {
   id: string;
   name: string;
   description: string;
+  code?: string;
   channel: RoleChannel;
   /** System roles are seeded by the platform — not editable or deletable. */
   isSystem: boolean;
@@ -98,8 +99,10 @@ export type OrgRole = {
   approvalAuthorities: ApprovalAuthority[];
 };
 
-/** Query args for the paginated org role list. */
+/** Query args for the org role list. */
 export type ListOrgRolesArgs = {
+  search?: string;
+  channel?: string;
   page?: number;
   size?: number;
 };

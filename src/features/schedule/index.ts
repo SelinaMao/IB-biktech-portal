@@ -1,5 +1,6 @@
 export * from "./schedule.types";
 export * from "./schedule.data";
+export * from "./schedule.api";
 
 export { default as ScheduleTransactionsTable } from "./components/ScheduleTransactionsTable";
 export { default as CreateScheduleDialog } from "./components/CreateScheduleDialog";

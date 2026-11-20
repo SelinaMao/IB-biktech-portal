@@ -11,7 +11,6 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
 import Paper from "@mui/material/Paper";
-import Popover from "@mui/material/Popover";
 import Popper from "@mui/material/Popper";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
@@ -20,19 +19,16 @@ import { useTranslations } from "next-intl";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Bell, ChevronLeft, ChevronsLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Bell, ChevronLeft } from "lucide-react";
 
 import { useTopBar } from "./TopBarContext";
 import { useAuth } from "@/features/auth";
-import { toggleHideAmount } from "@/store/global/global.slice";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useAppSelector } from "@/store/hooks";
 import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH, TOPBAR_HEIGHT } from "@/theme/layout";
-import { font, palette } from "@/theme/palette";
+import { palette } from "@/theme/palette";
 import { SwitchLanguageMenu } from "@core/components/SwitchLanguageMenu";
 import {
   ChevronRightRounded,
-  CloseRounded,
-  KeyboardArrowDownRounded,
   LockOutlined,
   NotificationsNoneRounded,
   PersonOutlineRounded,
@@ -41,44 +37,12 @@ import {
 } from "@mui/icons-material";
 
 import ProfilePanel from "./ProfilePanel";
-
-type NotificationItem = {
-  id: string;
-  category: string;
-  time: string;
-  title: string;
-  description?: string;
-};
-
-const NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "1",
-    category: "Account Activity",
-    time: "4:50 PM",
-    title: "You received 30.00 USD from Sok Sambo",
-  },
-  {
-    id: "2",
-    category: "Account Activity",
-    time: "4:50 PM",
-    title: "Your $50.00 purchase of payment is complete.",
-    description: "Your payment purchase is now available for $50.00.",
-  },
-  {
-    id: "3",
-    category: "Account Activity",
-    time: "4:50 PM",
-    title: "Your $50.00 purchase of payment is complete.",
-    description: "Your payment purchase is now available for $50.00.",
-  },
-  {
-    id: "4",
-    category: "Account Activity",
-    time: "4:50 PM",
-    title: "Your $50.00 purchase of payment is complete.",
-    description: "Your payment purchase is now available for $50.00.",
-  },
-];
+import {
+  NotificationPopover,
+  AllNotificationsDialog,
+  INITIAL_NOTIFICATIONS,
+  type NotificationItem,
+} from "@/features/notification";
 
 const ROUTE_TITLES: { prefix: string; title: string; subPrefix?: string }[] = [
   { prefix: "/dashboard", title: "Dashboard" },
@@ -119,8 +83,6 @@ export type PortalTopBarProps = {
 export default function PortalTopBar({
   collapsed,
   onToggleSidebar,
-  hideAmount,
-  onToggleHideAmount,
   title: customTitle,
 }: PortalTopBarProps) {
   const t = useTranslations("topbar");
@@ -148,6 +110,12 @@ export default function PortalTopBar({
   const user = useAppSelector((state) => state.auth.user);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notifAnchorEl, setNotifAnchorEl] = useState<null | HTMLElement>(null);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [viewAllOpen, setViewAllOpen] = useState(false);
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications]
+  );
   const [settingsAnchorEl, setSettingsAnchorEl] = useState<null | HTMLElement>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const closeSettingsTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -414,84 +382,50 @@ export default function PortalTopBar({
               },
             }}
           >
-            <Bell />
-            <Box
-              sx={{
-                position: "absolute",
-                top: -2,
-                right: -2,
-                minWidth: 18,
-                height: 18,
-                borderRadius: "50%",
-                bgcolor: "#E11D48",
-                color: "#FFFFFF",
-                fontSize: 10,
-                fontWeight: 700,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                px: 0.5,
-                border: "2px solid #FFFFFF",
-              }}
-            >
-              10
-            </Box>
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: -2,
+                  right: -2,
+                  minWidth: 18,
+                  height: 18,
+                  borderRadius: "50%",
+                  bgcolor: "#E11D48",
+                  color: "#FFFFFF",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  px: 0.5,
+                  border: "2px solid #FFFFFF",
+                }}
+              >
+                {unreadCount}
+              </Box>
+            )}
           </Box>
 
-          <Popover
+          <NotificationPopover
             open={Boolean(notifAnchorEl)}
             anchorEl={notifAnchorEl}
             onClose={() => setNotifAnchorEl(null)}
-            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-            transformOrigin={{ vertical: "top", horizontal: "right" }}
-            slotProps={{
-              paper: {
-                elevation: 0,
-                sx: {
-                  mt: 1,
-                  width: 360,
-                  maxHeight: 420,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 2,
-                  boxShadow: "0 6px 16px rgba(16,24,40,0.08)",
-                  overflow: "hidden",
-                },
-              },
+            notifications={notifications}
+            onMarkAllAsRead={() => {
+              setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
             }}
-          >
-            <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider" }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Notifications
-              </Typography>
-            </Box>
-            <Box sx={{ maxHeight: 340, overflowY: "auto" }}>
-              {NOTIFICATIONS.map((item) => (
-                <Box
-                  key={item.id}
-                  sx={{
-                    p: 2,
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
-                    "&:hover": { bgcolor: "action.hover" },
-                    cursor: "pointer",
-                  }}
-                >
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 600 }}>
-                      {item.category}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      {item.time}
-                    </Typography>
-                  </Stack>
-                  <Typography variant="body2" sx={{ fontWeight: 500, mt: 0.5 }}>
-                    {item.title}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
-          </Popover>
+            onItemClick={(item) => {
+              setNotifications((prev) =>
+                prev.map((n) => (n.id === item.id ? { ...n, read: true } : n))
+              );
+            }}
+            onViewAll={() => {
+              setNotifAnchorEl(null);
+              setViewAllOpen(true);
+            }}
+          />
 
           {/* Language Switcher */}
           <SwitchLanguageMenu />
@@ -685,7 +619,13 @@ export default function PortalTopBar({
                   </Box>
                   <ChevronRightRounded fontSize="small" sx={{ color: "text.secondary" }} />
                 </MenuItem>
-                <MenuItem sx={{ py: 1.5, gap: 1.25 }} onClick={closeUserMenu}>
+                <MenuItem
+                  sx={{ py: 1.5, gap: 1.25 }}
+                  onClick={() => {
+                    closeUserMenu();
+                    setViewAllOpen(true);
+                  }}
+                >
                   <ListItemIcon>
                     <NotificationsNoneRounded fontSize="small" />
                   </ListItemIcon>
@@ -701,6 +641,20 @@ export default function PortalTopBar({
       </Toolbar>
 
       <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+
+      <AllNotificationsDialog
+        open={viewAllOpen}
+        onClose={() => setViewAllOpen(false)}
+        notifications={notifications}
+        onMarkAllAsRead={() => {
+          setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+        }}
+        onItemClick={(item) => {
+          setNotifications((prev) =>
+            prev.map((n) => (n.id === item.id ? { ...n, read: true } : n))
+          );
+        }}
+      />
     </AppBar>
   );
 }

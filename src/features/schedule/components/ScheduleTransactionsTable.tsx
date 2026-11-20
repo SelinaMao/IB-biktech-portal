@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
@@ -12,28 +13,29 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
-  ArrowDown01,
+  AlertCircle,
+  ArrowUpDown,
   CirclePause,
   CirclePlay,
   Eye,
   MoreVertical,
   Pencil,
   Plus,
+  ShieldCheck,
   Trash2,
 } from "lucide-react";
 
-import { font, palette, radius } from "@/theme/palette";
+import { palette } from "@/theme/palette";
 import BaseButton from "@core/components/BaseButton";
-import BaseFilterByDay, {
-  type BaseFilterByDayValue,
-  isDateWithinFilter,
-} from "@core/components/BaseFilterByDay";
 import BaseSearchButton from "@core/components/BaseSearchButton";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import type { ScheduledTransaction } from "../schedule.types";
 
 export interface ScheduleTransactionsTableProps {
   schedules: ScheduledTransaction[];
+  isLoading?: boolean;
+  isError?: boolean;
+  onRefresh?: () => void;
   onAddSchedule?: () => void;
   onTogglePause?: (schedule: ScheduledTransaction) => void;
   onEditSchedule?: (schedule: ScheduledTransaction) => void;
@@ -46,39 +48,50 @@ type SortDirection = "asc" | "desc";
 
 const ROWS_PER_PAGE = 5;
 
-/** Proportional column width distribution across screen sizes */
-const COLUMN_WIDTHS = ["15%", "25%", "25%", "15%", "10%", "10%"] as const;
+const STATUS_STYLES: Record<string, { bg: string; fg: string }> = {
+  Active: { bg: "#065F46", fg: "#FFFFFF" },
+  Paused: { bg: "#D97706", fg: "#FFFFFF" },
+  "Awaiting Approval": { bg: "#2563EB", fg: "#FFFFFF" },
+  Processing: { bg: "#7C3AED", fg: "#FFFFFF" },
+  Completed: { bg: "#10B981", fg: "#FFFFFF" },
+  Failed: { bg: "#DC2626", fg: "#FFFFFF" },
+  Cancelled: { bg: "#64748B", fg: "#FFFFFF" },
+};
+
+/** Proportional column width distribution matching design */
+const COLUMN_WIDTHS = ["14%", "28%", "26%", "14%", "10%", "8%"] as const;
 
 /** Shared header cell styling */
 const HEAD_CELL_SX = {
   fontSize: 13,
   fontWeight: 500,
-  color: palette.slate[500],
-  py: 1.75,
+  color: "#64748B",
+  py: 1.5,
 } as const;
 
 /** Shared body cell styling */
 const BODY_CELL_SX = {
-  py: 2.25,
+  py: 2,
 } as const;
 
 export default function ScheduleTransactionsTable({
   schedules,
+  isLoading = false,
+  isError = false,
+  onRefresh,
   onAddSchedule,
   onTogglePause,
   onEditSchedule,
   onDeleteSchedule,
   onViewDetails,
 }: ScheduleTransactionsTableProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
-  const [dateFilter, setDateFilter] = useState<BaseFilterByDayValue | null>(null);
   const [currentPage, setPage] = useState(0);
-  const statusTab = "scheduled";
 
   // Sorting state
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [sortMenuAnchor, setSortMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Row action menu state
   const [actionMenuAnchor, setActionMenuAnchor] = useState<null | HTMLElement>(null);
@@ -101,10 +114,6 @@ export default function ScheduleTransactionsTable({
       );
     }
 
-    if (dateFilter) {
-      result = result.filter((item) => isDateWithinFilter(item.date, dateFilter));
-    }
-
     result.sort((a, b) => {
       let comparison = 0;
       if (sortField === "amount") {
@@ -112,7 +121,6 @@ export default function ScheduleTransactionsTable({
       } else if (sortField === "type") {
         comparison = a.transactionType.localeCompare(b.transactionType);
       } else {
-        // Date compare
         const dateA = new Date(`${a.date} ${a.time}`).getTime() || 0;
         const dateB = new Date(`${b.date} ${b.time}`).getTime() || 0;
         comparison = dateA - dateB;
@@ -121,7 +129,17 @@ export default function ScheduleTransactionsTable({
     });
 
     return result;
-  }, [schedules, search, dateFilter, sortField, sortDirection]);
+  }, [schedules, search, sortField, sortDirection]);
+
+  // Dynamic selection resolved against filteredRows to always use fresh state
+  const currentSelectedSchedule = useMemo(() => {
+    if (!selectedSchedule) return null;
+    return (
+      filteredRows.find(
+        (r) => r.id === selectedSchedule.id || r.refNo === selectedSchedule.refNo,
+      ) ?? selectedSchedule
+    );
+  }, [selectedSchedule, filteredRows]);
 
   const handleOpenActionMenu = (
     event: React.MouseEvent<HTMLElement>,
@@ -137,17 +155,40 @@ export default function ScheduleTransactionsTable({
     setSelectedSchedule(null);
   };
 
-  const handleSelectSort = (field: SortField, dir: SortDirection) => {
-    setSortField(field);
-    setSortDirection(dir);
-    setSortMenuAnchor(null);
+  const handleToggleDateSort = () => {
+    setSortField("date");
+    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
   };
 
-  // Type-Safe columns with consistent width distribution & flexible headers
+  // Columns strictly matching the photo layout
   const columns: BaseTableColumn<ScheduledTransaction>[] = [
     {
       key: "date",
-      header: "Date",
+      header: (
+        <Stack
+          direction="row"
+          spacing={0.5}
+          alignItems="center"
+          onClick={handleToggleDateSort}
+          sx={{
+            cursor: "pointer",
+            userSelect: "none",
+            display: "inline-flex",
+            "&:hover": { color: "#0F172A" },
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: 13,
+              fontWeight: 500,
+              color: "inherit",
+            }}
+          >
+            Date
+          </Typography>
+          <ArrowUpDown size={14} style={{ opacity: 0.7 }} />
+        </Stack>
+      ),
       width: COLUMN_WIDTHS[0],
       headSx: { ...HEAD_CELL_SX, pl: 0 },
       cellSx: { ...BODY_CELL_SX, pl: 0 },
@@ -156,7 +197,7 @@ export default function ScheduleTransactionsTable({
           <Typography
             sx={{
               fontSize: 13.5,
-              fontWeight: 500,
+              fontWeight: 600,
               color: "#0F172A",
               lineHeight: 1.3,
             }}
@@ -249,7 +290,7 @@ export default function ScheduleTransactionsTable({
         <Typography
           sx={{
             fontSize: 14,
-            fontWeight: font.weight.medium,
+            fontWeight: 600,
             color: "#0F172A",
             fontVariantNumeric: "tabular-nums",
           }}
@@ -270,26 +311,33 @@ export default function ScheduleTransactionsTable({
       width: COLUMN_WIDTHS[4],
       headSx: HEAD_CELL_SX,
       cellSx: BODY_CELL_SX,
-      render: (t) => (
-        <Box
-          component="span"
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            py: 0.8,
-            px: 3,
-            borderRadius: "8px",
-            bgcolor: t.status === "Active" ? "#056A4E" : "#94A3B8",
-            color: "#FFFFFF",
-            fontSize: font.size.xs,
-            fontWeight: font.weight.medium,
-            lineHeight: 1.4,
-          }}
-        >
-          {t.status}
-        </Box>
-      ),
+      render: (t) => {
+        const badgeStyle = STATUS_STYLES[t.status] || {
+          bg: "#94A3B8",
+          fg: "#FFFFFF",
+        };
+        return (
+          <Box
+            component="span"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              py: 0.5,
+              px: 2,
+              borderRadius: "6px",
+              bgcolor: badgeStyle.bg,
+              color: badgeStyle.fg,
+              fontSize: 12,
+              fontWeight: 500,
+              lineHeight: 1.4,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {t.status}
+          </Box>
+        );
+      },
     },
     {
       key: "action",
@@ -304,39 +352,57 @@ export default function ScheduleTransactionsTable({
           spacing={1}
           sx={{ alignItems: "center", justifyContent: "flex-end" }}
         >
-          <Tooltip title={t.status === "Active" ? "Pause schedule" : "Resume schedule"}>
-            <IconButton
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                onTogglePause?.(t);
-              }}
-              sx={{
-                color: palette.slate[700],
-                p: 0.5,
-                "&:hover": { bgcolor: palette.slate[100] },
-              }}
-              aria-label={t.status === "Active" ? "Pause schedule" : "Resume schedule"}
-            >
-              {t.status === "Active" ? (
-                <CirclePause size={18} strokeWidth={1} />
-              ) : (
+          {t.status === "Paused" ? (
+            <Tooltip title="Resume schedule">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePause?.(t);
+                }}
+                sx={{
+                  color: "#64748B",
+                  p: 0.5,
+                  transition: "all 0.15s ease",
+                  "&:hover": { bgcolor: palette.slate[100], color: "#065F46" },
+                }}
+                aria-label="Resume schedule"
+              >
                 <CirclePlay size={18} strokeWidth={1} />
-              )}
-            </IconButton>
-          </Tooltip>
+              </IconButton>
+            </Tooltip>
+          ) : (t.status === "Active" || t.status === "Awaiting Approval") ? (
+            <Tooltip title="Pause schedule">
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTogglePause?.(t);
+                }}
+                sx={{
+                  color: "#64748B",
+                  p: 0.5,
+                  transition: "all 0.15s ease",
+                  "&:hover": { bgcolor: palette.slate[100], color: "#D97706" },
+                }}
+                aria-label="Pause schedule"
+              >
+                <CirclePause size={18} strokeWidth={1} />
+              </IconButton>
+            </Tooltip>
+          ) : null}
 
           <IconButton
             size="small"
             onClick={(e) => handleOpenActionMenu(e, t)}
             sx={{
-              color: palette.slate[700],
+              color: "#64748B",
               p: 0.5,
-              "&:hover": { bgcolor: palette.slate[100] },
+              "&:hover": { bgcolor: palette.slate[100], color: "#0F172A" },
             }}
             aria-label="More actions"
           >
-            <MoreVertical size={18} strokeWidth={2} />
+            <MoreVertical size={18} strokeWidth={1.5} />
           </IconButton>
         </Stack>
       ),
@@ -349,16 +415,17 @@ export default function ScheduleTransactionsTable({
         bgcolor: "#FFFFFF",
         border: `1px solid ${palette.slate[200]}`,
         borderRadius: "16px",
-        p: { xs: 2.5, sm: "20px 24px" },
+        p: { xs: 2.5, sm: "24px 28px" },
         boxShadow: "none",
         width: "100%",
       }}
     >
-      {/* 1. Header Bar: Title on left, + Schedule button on right */}
+      {/* 1. Header Bar: Title on left, Search & + Schedule on right (Exact match with photo) */}
       <Stack
-        direction="row"
+        direction={{ xs: "column", sm: "row" }}
+        spacing={2}
         sx={{
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center" },
           justifyContent: "space-between",
           mb: 3,
         }}
@@ -374,107 +441,105 @@ export default function ScheduleTransactionsTable({
           Transactions
         </Typography>
 
-        <BaseButton
-          title="Schedule"
-          startIcon={<Plus size={18} />}
-          onClick={onAddSchedule}
-          sx={{
-            bgcolor: "#2764A5",
-            color: "#ffffff",
-            borderRadius: "10px",
-            px: 2.75,
-            py: 1,
-            fontSize: 14,
-            fontWeight: 500,
-            textTransform: "none",
-            "&:hover": {
-              bgcolor: "#1E5289",
-            },
-          }}
-        />
-      </Stack>
-
-      {/* 2. Filter Row: BaseSearchButton on left, BaseFilterByDay & Sort on right */}
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={2}
-        sx={{
-          marginTop: 6,
-          alignItems: { xs: "stretch", sm: "center" },
-          justifyContent: "space-between",
-          mb: 3,
-          borderTop: "1px solid",
-          borderTopColor: palette.secondary[100],
-          pt: 6,
-        }}
-      >
-        <BaseSearchButton
-          value={search}
-          onChange={(val) => {
-            setSearch(val);
-            setPage(0);
-          }}
-          placeholder="Search"
-          width={240}
-          sx={{
-            width: { xs: "100%", sm: 240 },
-          }}
-        />
-
-        <Stack
-          direction="row"
-          spacing={1.5}
-          sx={{
-            alignItems: "center",
-            alignSelf: { xs: "flex-end", sm: "center" },
-          }}
-        >
-         
-
-          <Button
-            variant="outlined"
-            onClick={(e) => setSortMenuAnchor(e.currentTarget)}
-            endIcon={<ArrowDown01 size={16} />}
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <BaseSearchButton
+            value={search}
+            onChange={(val) => {
+              setSearch(val);
+              setPage(0);
+            }}
+            placeholder="Search"
+            width={240}
             sx={{
+              width: { xs: "100%", sm: 220 },
+            }}
+          />
+          <BaseButton
+            title="Schedule"
+            startIcon={<Plus size={18} />}
+            onClick={onAddSchedule}
+            sx={{
+              bgcolor: "#1B5299",
+              color: "#ffffff",
               borderRadius: "8px",
-              borderColor: palette.slate[200],
-              color: palette.slate[700],
-              textTransform: "none",
-              fontSize: 14,
-              fontWeight: font.weight.regular,
-              px: 3,
+              px: 2.5,
               py: 1,
               height: 40,
-              bgcolor: "#FFFFFF",
+              fontSize: 14,
+              fontWeight: 500,
+              textTransform: "none",
+              whiteSpace: "nowrap",
               "&:hover": {
-                borderColor: palette.slate[300],
-                bgcolor: palette.slate[50],
+                bgcolor: "#15427C",
               },
             }}
-          >
-            Sort
-          </Button>
+          />
         </Stack>
       </Stack>
 
-      {/* 3. BaseTable using the requested configuration */}
+      {/* Error state alert */}
+      {isError && (
+        <Box
+          sx={{
+            mb: 2.5,
+            p: 2,
+            borderRadius: "10px",
+            bgcolor: "#FEF2F2",
+            border: "1px solid #FCA5A5",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 2,
+          }}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <AlertCircle size={18} color="#DC2626" />
+            <Typography sx={{ fontSize: 13.5, color: "#991B1B" }}>
+              Failed to load scheduled transfers from backend.
+            </Typography>
+          </Stack>
+          {onRefresh && (
+            <Button
+              size="small"
+              onClick={onRefresh}
+              sx={{
+                color: "#DC2626",
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: 13,
+                "&:hover": { bgcolor: "#FEE2E2" },
+              }}
+            >
+              Retry
+            </Button>
+          )}
+        </Box>
+      )}
+
+      {/* 2. BaseTable using the exact column configuration */}
       <BaseTable
         columns={columns}
         rows={filteredRows}
         getRowKey={(t) => t.id ?? ("ref" in t ? String(t.ref) : t.refNo)}
+        isLoading={isLoading}
+        onRowClick={onViewDetails}
         minWidth={640}
         rounded={false}
-        headerBgColor={palette.white}
+        headerBgColor="#FFFFFF"
         headerBorderColor={palette.slate[200]}
-        headerTextColor={palette.slate[500]}
+        headerTextColor="#64748B"
         headerBorderTop={false}
-        emptyTitle={`No ${statusTab.toLowerCase()} transactions`}
+        emptyTitle="No scheduled transactions"
+        emptyDescription={
+          isError
+            ? "Could not retrieve data from server."
+            : "There are currently no scheduled transfers."
+        }
         getRowSx={() => ({
           "&:hover": {
             bgcolor: palette.slate[50],
-            borderRadius: `${radius.md}px`,
           },
-          "& td": { borderBottom: `1px solid ${palette.slate[50]}` },
+          "& td": { borderBottom: `1px solid ${palette.slate[100]}` },
         })}
         pagination={{
           count: filteredRows.length,
@@ -483,57 +548,8 @@ export default function ScheduleTransactionsTable({
           onPageChange: setPage,
         }}
         paginationVariant="compact"
-        // BaseTable spaces the pager 40px off the table; this card wants 16px.
-        paginationSx={{ mt: -3 }}
+        paginationSx={{ mt: 2 }}
       />
-
-      {/* Sort Menu */}
-      <Menu
-        anchorEl={sortMenuAnchor}
-        open={Boolean(sortMenuAnchor)}
-        onClose={() => setSortMenuAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-        PaperProps={{
-          sx: {
-            borderRadius: "12px",
-            minWidth: 180,
-            boxShadow: "0px 8px 24px rgba(15, 23, 42, 0.08)",
-            border: `1px solid ${palette.slate[200]}`,
-          },
-        }}
-      >
-        <MenuItem
-          selected={sortField === "date" && sortDirection === "desc"}
-          onClick={() => handleSelectSort("date", "desc")}
-        >
-          Date: Newest first
-        </MenuItem>
-        <MenuItem
-          selected={sortField === "date" && sortDirection === "asc"}
-          onClick={() => handleSelectSort("date", "asc")}
-        >
-          Date: Oldest first
-        </MenuItem>
-        <MenuItem
-          selected={sortField === "amount" && sortDirection === "desc"}
-          onClick={() => handleSelectSort("amount", "desc")}
-        >
-          Amount: High to low
-        </MenuItem>
-        <MenuItem
-          selected={sortField === "amount" && sortDirection === "asc"}
-          onClick={() => handleSelectSort("amount", "asc")}
-        >
-          Amount: Low to high
-        </MenuItem>
-        <MenuItem
-          selected={sortField === "type" && sortDirection === "asc"}
-          onClick={() => handleSelectSort("type", "asc")}
-        >
-          Type: A to Z
-        </MenuItem>
-      </Menu>
 
       {/* Row Action Menu */}
       <Menu
@@ -545,7 +561,7 @@ export default function ScheduleTransactionsTable({
         PaperProps={{
           sx: {
             borderRadius: "12px",
-            minWidth: 160,
+            minWidth: 170,
             boxShadow: "0px 8px 24px rgba(15, 23, 42, 0.08)",
             border: `1px solid ${palette.slate[200]}`,
           },
@@ -553,7 +569,7 @@ export default function ScheduleTransactionsTable({
       >
         <MenuItem
           onClick={() => {
-            if (selectedSchedule) onViewDetails?.(selectedSchedule);
+            if (currentSelectedSchedule) onViewDetails?.(currentSelectedSchedule);
             handleCloseActionMenu();
           }}
         >
@@ -563,50 +579,81 @@ export default function ScheduleTransactionsTable({
           <ListItemText primary="View details" />
         </MenuItem>
 
-        <MenuItem
-          onClick={() => {
-            if (selectedSchedule) onEditSchedule?.(selectedSchedule);
-            handleCloseActionMenu();
-          }}
-        >
-          <ListItemIcon>
-            <Pencil size={16} />
-          </ListItemIcon>
-          <ListItemText primary="Edit schedule" />
-        </MenuItem>
+        {currentSelectedSchedule?.status === "Awaiting Approval" && (
+          <MenuItem
+            onClick={() => {
+              router.push("/approval");
+              handleCloseActionMenu();
+            }}
+          >
+            <ListItemIcon>
+              <ShieldCheck size={16} color="#2563EB" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Go to Approvals"
+              primaryTypographyProps={{ sx: { color: "#2563EB", fontWeight: 500 } }}
+            />
+          </MenuItem>
+        )}
 
-        <MenuItem
-          onClick={() => {
-            if (selectedSchedule) onTogglePause?.(selectedSchedule);
-            handleCloseActionMenu();
-          }}
-        >
-          <ListItemIcon>
-            {selectedSchedule?.status === "Active" ? (
-              <CirclePause size={16} />
-            ) : (
-              <CirclePlay size={16} />
-            )}
-          </ListItemIcon>
-          <ListItemText
-            primary={
-              selectedSchedule?.status === "Active" ? "Pause schedule" : "Resume schedule"
-            }
-          />
-        </MenuItem>
+        {currentSelectedSchedule?.status !== "Cancelled" &&
+          currentSelectedSchedule?.status !== "Completed" &&
+          currentSelectedSchedule?.status !== "Awaiting Approval" && (
+            <MenuItem
+              onClick={() => {
+                if (currentSelectedSchedule) onEditSchedule?.(currentSelectedSchedule);
+                handleCloseActionMenu();
+              }}
+            >
+              <ListItemIcon>
+                <Pencil size={16} />
+              </ListItemIcon>
+              <ListItemText primary="Edit schedule" />
+            </MenuItem>
+          )}
 
-        <MenuItem
-          onClick={() => {
-            if (selectedSchedule) onDeleteSchedule?.(selectedSchedule);
-            handleCloseActionMenu();
-          }}
-          sx={{ color: "error.main" }}
-        >
-          <ListItemIcon sx={{ color: "error.main" }}>
-            <Trash2 size={16} />
-          </ListItemIcon>
-          <ListItemText primary="Delete" />
-        </MenuItem>
+        {(currentSelectedSchedule?.status === "Active" ||
+          currentSelectedSchedule?.status === "Paused" ||
+          currentSelectedSchedule?.status === "Awaiting Approval") && (
+          <MenuItem
+            onClick={() => {
+              if (currentSelectedSchedule) onTogglePause?.(currentSelectedSchedule);
+              handleCloseActionMenu();
+            }}
+          >
+            <ListItemIcon>
+              {currentSelectedSchedule?.status === "Paused" ? (
+                <CirclePlay size={16} />
+              ) : (
+                <CirclePause size={16} />
+              )}
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                currentSelectedSchedule?.status === "Paused"
+                  ? "Resume schedule"
+                  : "Pause schedule"
+              }
+            />
+          </MenuItem>
+        )}
+
+        {(currentSelectedSchedule?.status === "Active" ||
+          currentSelectedSchedule?.status === "Paused" ||
+          currentSelectedSchedule?.status === "Awaiting Approval") && (
+          <MenuItem
+            onClick={() => {
+              if (currentSelectedSchedule) onDeleteSchedule?.(currentSelectedSchedule);
+              handleCloseActionMenu();
+            }}
+            sx={{ color: "error.main" }}
+          >
+            <ListItemIcon sx={{ color: "error.main" }}>
+              <Trash2 size={16} />
+            </ListItemIcon>
+            <ListItemText primary="Cancel schedule" />
+          </MenuItem>
+        )}
       </Menu>
     </Box>
   );

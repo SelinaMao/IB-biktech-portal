@@ -57,14 +57,20 @@ async function handler(
   const idempotencyKey = request.headers.get("idempotency-key") ?? undefined;
 
   try {
-    console.error("[BFF] Upstream proxy coming from request:");
-    return await coreFetch(pathString, {
+    const upstream = await coreFetch(pathString, {
       method: request.method,
       body,
       accessToken: token,
       acceptLanguage: locale,
       idempotencyKey,
     });
+
+    if (!upstream.ok) {
+      const cloned = upstream.clone();
+      const text = await cloned.text();
+      console.error(`[BFF] Upstream ${request.method} ${pathString} returned ${upstream.status}:`, text, "request:", JSON.stringify(body));
+    }
+    return upstream;
   } catch (error) {
     console.error("[BFF] Upstream proxy error:", error);
     return badUpstreamResponse();

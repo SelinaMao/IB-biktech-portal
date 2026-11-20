@@ -426,9 +426,9 @@ export default function BaseFilterDialog({
                 fontSize: font.size.sm,
                 fontWeight: selected || isToday ? 700 : 500,
                 bgcolor: selected
-                  ? palette.navy[800]
+                  ? palette.primary.main
                   : inRange
-                    ? palette.info[50]
+                    ? palette.primary.main
                     : "transparent",
                 color: selected
                   ? palette.white
@@ -438,12 +438,12 @@ export default function BaseFilterDialog({
                       ? palette.navy[800]
                       : inMonth
                         ? "text.primary"
-                        : palette.slate[300],
+                        : palette.slate[100],
                 "&:hover": {
                   bgcolor: isFuture
                     ? "transparent"
                     : selected
-                      ? palette.navy[800]
+                      ? palette.primary.main
                       : palette.slate[100],
                 },
               }}

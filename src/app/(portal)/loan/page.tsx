@@ -277,6 +277,8 @@ export default function LoanPage() {
                   key={selectedLoanAccount.id}
                   transactions={selectedLoanDetails.transactions}
                   accentColor={selectedLoanColor}
+                  borrowerName={borrower.name}
+                  borrowerAccountNumber={borrower.accountNumber}
                 />
               </Grid>
             </Grid>
@@ -295,6 +297,8 @@ export default function LoanPage() {
                   key="default-loan"
                   transactions={selectedLoanDetails.transactions}
                   accentColor="#5AC0A0"
+                  borrowerName={borrower.name}
+                  borrowerAccountNumber={borrower.accountNumber}
                 />
               </Grid>
             </Grid>

@@ -35,7 +35,10 @@ type Props = {
 };
 
 export default function UserLimitsPanel({ userId, userName, canUpdate = false, canReset = false }: Props) {
-  const { data, isLoading, isError, refetch } = useGetUserLimitsQuery(userId);
+  const { data, isLoading, isError, refetch } = useGetUserLimitsQuery(userId, {
+    pollingInterval: 30_000,
+    refetchOnMountOrArgChange: true,
+  });
   const [saveLimits, { isLoading: isSaving }] = useUpdateUserLimitsMutation();
   const [resetRow, { isLoading: isResetting }] = useResetUserLimitRowMutation();
   const [draft, setDraft] = useState<LimitDraft>({});
@@ -71,9 +74,8 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
 
     try {
       const response = await saveLimits({ userId, rows: payload }).unwrap();
-      const maybeAuth = response as { authenticator?: AuthenticatorRequest | null } | undefined;
-      setAuthenticator(maybeAuth?.authenticator ?? null);
-      setQrPayload(maybeAuth?.authenticator?.qrPayload ?? undefined);
+      setAuthenticator(response.authenticator ?? null);
+      setQrPayload(response.authenticator?.qrPayload ?? undefined);
       setConfirmOpen(true);
     } catch (error) {
       showToast("error", toToastError(error, "Couldn't save these limits"));
@@ -92,9 +94,9 @@ export default function UserLimitsPanel({ userId, userName, canUpdate = false, c
     setQrPayload(undefined);
     setDraft({});
     void refetch();
-    showToast("success", {
-      title: "Limits saved",
-      message: `${userName ?? "This user"} now transacts within the limits you set.`,
+    showToast("info", {
+      title: "Limit change submitted",
+      message: `Waiting for checker approval. The new limits for ${userName ?? "this user"} take effect after approval.`,
     });
   };
 

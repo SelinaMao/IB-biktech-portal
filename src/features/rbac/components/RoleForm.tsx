@@ -1,945 +1,361 @@
 "use client";
 
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { yupResolver } from "@hookform/resolvers/yup";
-import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
-import Card from "@mui/material/Card";
-import Stack from "@mui/material/Stack";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Typography from "@mui/material/Typography";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import * as yup from "yup";
 
 import { showToast } from "@core/components/AppToast";
-import BaseButton from "@core/components/BaseButton";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
-import { ControlledBaseInput } from "@core/form";
+import { ControlledBaseInput, ControlledBaseTextArea } from "@core/form";
 import { useTopBarBreadcrumb } from "@core/layout";
-import { palette } from "@/theme/palette";
+import type { AuthenticatorRequest } from "@/features/authenticator/authenticator.types";
+import { useRequestOrgChangeAuthenticatorMutation } from "@/features/user";
 import { toToastError } from "@/utils/api-error";
 
 import {
   useCreateRoleMutation,
   useUpdateRolePermissionsMutation,
 } from "../rbac.api";
-import {
-  DEFAULT_VALUES,
-  type ApprovalAuthority,
-  type Role,
-  type RoleWizardValues,
-} from "../rbac.types";
-import { roleFormSchema } from "../schema/rbac.schema";
+import type { Role } from "../rbac.types";
+import PermissionChecklist from "./PermissionChecklist";
 
-export type RoleCategory = "viewer" | "operator" | "authoriser";
-
-export type PermissionItem = {
-  id: string;
-  name: string;
-  permissions: {
-    viewer: string[];
-    operator: string[];
-    authoriser: string[];
-  };
-};
-
-export type ModuleGroup = {
-  module: string;
-  functions: PermissionItem[];
-};
-
-export const MODULE_GROUPS: ModuleGroup[] = [
-  {
-    module: "Dashboard",
-    functions: [
-      {
-        id: "dashboard-overview",
-        name: "Overview",
-        permissions: {
-          viewer: ["DASHBOARD:VIEW", "TRANSACTION:RECORD:VIEW"],
-          operator: ["DASHBOARD:CUSTOMIZE"],
-          authoriser: ["DASHBOARD:APPROVE"],
-        },
-      },
-    ],
-  },
-  {
-    module: "Account",
-    functions: [
-      {
-        id: "account-statements",
-        name: "Accounts & statements",
-        permissions: {
-          viewer: ["ACCOUNT:RECORD:VIEW", "STATEMENT:DOCUMENT:VIEW"],
-          operator: ["ACCOUNT:RECORD:EDIT"],
-          authoriser: ["ACCOUNT:RECORD:APPROVE"],
-        },
-      },
-    ],
-  },
-  {
-    module: "Loan",
-    functions: [
-      {
-        id: "loan-repayment",
-        name: "Loans & repayment schedule",
-        permissions: {
-          viewer: ["LOAN:RECORD:VIEW"],
-          operator: ["LOAN:RECORD:INITIATE"],
-          authoriser: ["LOAN:RECORD:APPROVE"],
-        },
-      },
-    ],
-  },
-  {
-    module: "Transfers",
-    functions: [
-      {
-        id: "transfer-own",
-        name: "Own account",
-        permissions: {
-          viewer: ["TRANSFER:OWN_ACCOUNT:VIEW"],
-          operator: ["TRANSFER:OWN_ACCOUNT:INITIATE"],
-          authoriser: ["TRANSFER:OWN_ACCOUNT:APPROVE"],
-        },
-      },
-      {
-        id: "transfer-within-bank",
-        name: "Within bank",
-        permissions: {
-          viewer: ["TRANSFER:OTHER_SME_ACCOUNT:VIEW"],
-          operator: ["TRANSFER:OTHER_SME_ACCOUNT:INITIATE"],
-          authoriser: ["TRANSFER:OTHER_SME_ACCOUNT:APPROVE"],
-        },
-      },
-      {
-        id: "transfer-other-bakong",
-        name: "Other banks & Bakong",
-        permissions: {
-          viewer: [
-            "TRANSFER:BAKONG_LOCAL_BANK:VIEW",
-            "TRANSFER:BAKONG_WALLET:VIEW",
-          ],
-          operator: [
-            "TRANSFER:BAKONG_LOCAL_BANK:INITIATE",
-            "TRANSFER:BAKONG_WALLET:INITIATE",
-          ],
-          authoriser: [
-            "TRANSFER:BAKONG_LOCAL_BANK:APPROVE",
-            "TRANSFER:BAKONG_WALLET:APPROVE",
-          ],
-        },
-      },
-    ],
-  },
-  {
-    module: "Payments",
-    functions: [
-      {
-        id: "payment-bill",
-        name: "Bill payment",
-        permissions: {
-          viewer: ["TRANSFER:BILL:VIEW"],
-          operator: ["TRANSFER:BILL:INITIATE"],
-          authoriser: ["TRANSFER:BILL:APPROVE"],
-        },
-      },
-      {
-        id: "payment-mobile-topup",
-        name: "Mobile top-up",
-        permissions: {
-          viewer: ["TRANSFER:TOPUP:VIEW"],
-          operator: [
-            "TRANSFER:TOPUP_PINLESS:INITIATE",
-            "TRANSFER:TOPUP_PINCODE:INITIATE",
-          ],
-          authoriser: ["TRANSFER:TOPUP:APPROVE"],
-        },
-      },
-      {
-        id: "payment-charity",
-        name: "Charity & donation",
-        permissions: {
-          viewer: ["TRANSFER:DONATION:VIEW"],
-          operator: ["TRANSFER:DONATION:INITIATE"],
-          authoriser: ["TRANSFER:DONATION:APPROVE"],
-        },
-      },
-    ],
-  },
-  {
-    module: "Schedule",
-    functions: [
-      {
-        id: "schedule-transfers",
-        name: "Scheduled transfers & payments",
-        permissions: {
-          viewer: ["SCHEDULE:RECORD:VIEW"],
-          operator: ["SCHEDULE:RECORD:INITIATE", "SCHEDULE:RECORD:EDIT"],
-          authoriser: ["SCHEDULE:RECORD:APPROVE"],
-        },
-      },
-    ],
-  },
-  {
-    module: "Payroll",
-    functions: [
-      {
-        id: "payroll-payroll",
-        name: "Payroll",
-        permissions: {
-          viewer: ["TRANSFER:PAYROLL:VIEW"],
-          operator: ["TRANSFER:PAYROLL:INITIATE", "TRANSFER:PAYROLL:CANCEL"],
-          authoriser: ["TRANSFER:PAYROLL:APPROVE"],
-        },
-      },
-    ],
-  },
-  {
-    module: "Other services",
-    functions: [
-      {
-        id: "other-cheque",
-        name: "Cheque services",
-        permissions: {
-          viewer: ["CHEQUE:RECORD:VIEW"],
-          operator: ["CHEQUE:RECORD:INITIATE"],
-          authoriser: ["CHEQUE:RECORD:APPROVE"],
-        },
-      },
-    ],
-  },
-  {
-    module: "Merchant",
-    functions: [
-      {
-        id: "merchant-payments-bills",
-        name: "Payments & consumer bills",
-        permissions: {
-          viewer: ["MERCHANT:PAYMENT:VIEW"],
-          operator: [
-            "MERCHANT:PAYMENT:INITIATE",
-            "MERCHANT:PAYMENT:EDIT",
-          ],
-          authoriser: ["MERCHANT:PAYMENT:APPROVE"],
-        },
-      },
-      {
-        id: "merchant-branches-users",
-        name: "Branches & users",
-        permissions: {
-          viewer: ["MERCHANT:PROFILE:VIEW"],
-          operator: [
-            "MERCHANT:PROFILE:CREATE",
-            "MERCHANT:PROFILE:EDIT",
-          ],
-          authoriser: ["MERCHANT:PROFILE:APPROVE"],
-        },
-      },
-    ],
-  },
-  {
-    module: "Administrator",
-    functions: [
-      {
-        id: "admin-roles-users",
-        name: "Roles & users",
-        permissions: {
-          viewer: ["ROLE:OWN_DEFINITION:VIEW", "USER:PROFILE:VIEW"],
-          operator: [
-            "ROLE:OWN_DEFINITION:CREATE",
-            "ROLE:OWN_DEFINITION:EDIT",
-            "USER:PROFILE:CREATE",
-            "USER:PROFILE:EDIT",
-          ],
-          authoriser: [
-            "ROLE:OWN_DEFINITION:APPROVE",
-            "USER:PROFILE:APPROVE",
-          ],
-        },
-      },
-    ],
-  },
-];
-
-const ROLE_FORM_ID = "role-page-form";
-
-/** Matches the Transfer flow's footer buttons — same shape everywhere, color varies by role. */
-const ACTION_BUTTON_SX = {
-  height: 52,
-  borderRadius: "999px",
-  fontSize: 16,
-  fontWeight: 600,
-  textTransform: "none" as const,
-  boxShadow: "none",
-};
-
-const ROLE_CATEGORIES: { key: RoleCategory; label: string }[] = [
-  { key: "viewer", label: "Viewer" },
-  { key: "operator", label: "Operator" },
-  { key: "authoriser", label: "Authoriser" },
-];
-
-const ROLE_INPUT_SX = {
-  mt: -1.5,
-  "& .MuiOutlinedInput-root": {
-    borderRadius: "8px",
-    bgcolor: palette.white,
-    fontSize: "14px",
-    "& .MuiOutlinedInput-notchedOutline": {
-      borderColor: palette.slate[300],
-    },
-    "&:hover .MuiOutlinedInput-notchedOutline": {
-      borderColor: palette.slate[400],
-    },
-    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-      borderColor: "#1B5299",
-    },
-  },
-  "& .MuiOutlinedInput-input": {
-    py: "10px",
-    px: "14px",
-    fontSize: "14px",
-    color: "#0F172A",
-    "&::placeholder": {
-      color: palette.slate[400],
-      opacity: 1,
-    },
-  },
-};
-
-function PermissionCheckbox({
-  checked,
-  disabled,
-  onChange,
-}: {
-  checked: boolean;
-  disabled?: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <Box
-      component="button"
-      type="button"
-      disabled={disabled}
-      onClick={onChange}
-      sx={{
-        width: 17,
-        height: 17,
-        borderRadius: "4px",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: disabled ? "default" : "pointer",
-        opacity: disabled ? 0.7 : 1,
-        border: checked ? "1.5px solid #2EA07B" : `1.5px solid ${palette.slate[300]}`,
-        bgcolor: checked ? "#2EA07B" : palette.white,
-        transition: "all 120ms ease",
-        p: 0,
-        "&:hover": {
-          borderColor: checked ? "#268A69" : disabled ? palette.slate[300] : palette.slate[400],
-          bgcolor: checked ? "#268A69" : disabled ? palette.white : palette.slate[50],
-        },
-      }}
-    >
-      {checked && (
-        <CheckRoundedIcon sx={{ fontSize: 12.5, color: "#ffffff", strokeWidth: 1.75 }} />
-      )}
-    </Box>
-  );
-}
-
-/** Shared permission matrix rendered in both Create/Edit and Review steps. */
-function PermissionMatrixTable({
-  isChecked,
-  onToggle,
-  readOnly = false,
-}: {
-  isChecked: (fn: PermissionItem, category: RoleCategory) => boolean;
-  onToggle?: (fn: PermissionItem, category: RoleCategory) => void;
-  readOnly?: boolean;
-}) {
-  return (
-    <TableContainer sx={{ mb: 3 }}>
-      <Table size="small" sx={{ borderCollapse: "separate", borderSpacing: 0 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell
-              sx={{
-                bgcolor: palette.white,
-                color: palette.slate[500],
-                fontSize: "12px",
-                fontWeight: 500,
-                py: 1.5,
-                px: 2,
-                borderBottom: `1px solid ${palette.slate[100]}`,
-                width: "60%",
-              }}
-            >
-              Module / function
-            </TableCell>
-            {ROLE_CATEGORIES.map((category) => (
-              <TableCell
-                key={category.key}
-                align="center"
-                sx={{
-                  bgcolor: palette.white,
-                  color: palette.slate[500],
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  py: 1.5,
-                  px: 1,
-                  borderBottom: `1px solid ${palette.slate[100]}`,
-                  width: "13.33%",
-                }}
-              >
-                {category.label}
-              </TableCell>
-            ))}
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {MODULE_GROUPS.map((group) => {
-            const visibleFunctions = readOnly
-              ? group.functions.filter((fn) =>
-                  ROLE_CATEGORIES.some((cat) => isChecked(fn, cat.key)),
-                )
-              : group.functions;
-
-            if (visibleFunctions.length === 0) return null;
-
-            return (
-              <Fragment key={`${readOnly ? "review" : "edit"}-${group.module}`}>
-                <TableRow>
-                  <TableCell
-                    colSpan={4}
-                    sx={{
-                      bgcolor: "#F4F6FA",
-                      fontWeight: 700,
-                      fontSize: "13.5px",
-                      color: "#0F172A",
-                      py: 1.25,
-                      px: 2,
-                      borderBottom: "none",
-                      borderRadius: "4px",
-                    }}
-                  >
-                    {group.module}
-                  </TableCell>
-                </TableRow>
-
-                {visibleFunctions.map((fn) => (
-                  <TableRow
-                    key={`${readOnly ? "review" : "edit"}-${fn.id}`}
-                    sx={{
-                      bgcolor: palette.white,
-                      ...(readOnly ? {} : { "&:hover": { bgcolor: palette.slate[50] } }),
-                    }}
-                  >
-                    <TableCell
-                      sx={{
-                        fontSize: "13.5px",
-                        color: "#1E293B",
-                        py: 1.5,
-                        pl: 4,
-                        pr: 2,
-                        borderBottom: "none",
-                      }}
-                    >
-                      {fn.name}
-                    </TableCell>
-                    {ROLE_CATEGORIES.map((category) => (
-                      <TableCell
-                        key={category.key}
-                        align="center"
-                        sx={{
-                          py: 1.5,
-                          px: 1,
-                          borderBottom: "none",
-                        }}
-                      >
-                        <PermissionCheckbox
-                          checked={isChecked(fn, category.key)}
-                          disabled={readOnly}
-                          onChange={() => onToggle?.(fn, category.key)}
-                        />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </Fragment>
-            );
-          })}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
-}
+export type RoleFormMode = "create" | "edit";
 
 export type RoleFormProps = {
+  mode?: RoleFormMode;
   role?: Role | null;
   onSuccess?: () => void;
   onCancel?: () => void;
 };
 
-export default function RoleForm({ role, onSuccess, onCancel }: RoleFormProps) {
-  const router = useRouter();
-  const isEdit = Boolean(role);
+type RoleFormValues = {
+  name: string;
+  description: string;
+  allowSelfApproval: boolean;
+};
 
-  const [step, setStep] = useState(0);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [permissionCodes, setPermissionCodes] = useState<string[]>([]);
-  const [permissionError, setPermissionError] = useState(false);
-  const [approvalAuthorities, setApprovalAuthorities] = useState<ApprovalAuthority[]>([]);
-
+export default function RoleForm({
+  mode,
+  role,
+  onSuccess,
+  onCancel,
+}: RoleFormProps) {
+  const isEdit = mode === "edit" || Boolean(role);
   const [createRole, { isLoading: isCreating }] = useCreateRoleMutation();
   const [updatePermissions, { isLoading: isUpdating }] = useUpdateRolePermissionsMutation();
+  const [requestOrgChangeAuth] = useRequestOrgChangeAuthenticatorMutation();
   const isSubmitting = isCreating || isUpdating;
 
-  const { control, handleSubmit, reset, getValues } = useForm<RoleWizardValues>({
-    resolver: yupResolver(roleFormSchema),
+  const [permissionCodes, setPermissionCodes] = useState<string[]>(role?.permissionCodes ?? []);
+  const [permissionError, setPermissionError] = useState(false);
+
+  // Dual-control approval modal states
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [changeId, setChangeId] = useState<string | null>(null);
+  const [authenticator, setAuthenticator] = useState<AuthenticatorRequest | null>(null);
+  const [qrPayload, setQrPayload] = useState<string | undefined>(undefined);
+  const [isAwaitingApproval, setIsAwaitingApproval] = useState(false);
+
+  const schema = useMemo(
+    () =>
+      yup.object({
+        name: yup
+          .string()
+          .trim()
+          .required("Role name is required")
+          .max(64, "Role name must be 64 characters or fewer"),
+        description: yup
+          .string()
+          .trim()
+          .max(255, "Description must be 255 characters or fewer")
+          .default(""),
+        allowSelfApproval: yup.boolean().default(false),
+      }),
+    [],
+  );
+
+  const { control, handleSubmit, reset } = useForm<RoleFormValues>({
+    resolver: yupResolver(schema),
     mode: "onSubmit",
-    defaultValues: DEFAULT_VALUES,
+    defaultValues: {
+      name: role?.name ?? "",
+      description: role?.description ?? "",
+      allowSelfApproval: role?.allowSelfApproval ?? false,
+    },
   });
 
   useEffect(() => {
     if (role) {
       reset({
         name: role.name,
-        description: role.description || "",
-        allowSelfApproval: role.allowSelfApproval ?? false,
+        description: role.description ?? "",
+        allowSelfApproval: role?.allowSelfApproval ?? false,
       });
       setPermissionCodes(role.permissionCodes ?? []);
-      setApprovalAuthorities(role.approvalAuthorities ?? []);
     } else {
-      reset(DEFAULT_VALUES);
+      reset({
+        name: "",
+        description: "",
+        allowSelfApproval: false,
+      });
       setPermissionCodes([]);
-      setApprovalAuthorities([]);
     }
     setPermissionError(false);
-    setStep(0);
   }, [role, reset]);
 
-  const selectedSet = useMemo(() => new Set(permissionCodes), [permissionCodes]);
+  useTopBarBreadcrumb({
+    prefix: "Administrator",
+    subPrefix: isEdit ? `Edit ${role?.name ?? "Role"}` : "Create New Role",
+    onBack: onCancel,
+  });
 
-  const isChecked = (fn: PermissionItem, category: RoleCategory): boolean => {
-    const codes = fn.permissions[category];
-    if (codes.length === 0) return false;
-    return codes.some((code) => selectedSet.has(code));
-  };
-
-  const toggleCategory = (fn: PermissionItem, category: RoleCategory, disabled?: boolean) => {
-    if (disabled) return;
-    const codes = fn.permissions[category];
-    const currentlyChecked = isChecked(fn, category);
-    let next: string[];
-    if (currentlyChecked) {
-      next = permissionCodes.filter((c) => !codes.includes(c));
-    } else {
-      next = Array.from(new Set([...permissionCodes, ...codes]));
-    }
+  const handlePermissionChange = (next: string[]) => {
     setPermissionCodes(next);
     if (next.length > 0) setPermissionError(false);
   };
 
-  const goToReview = () => {
+  const submit = handleSubmit(async (values) => {
     if (permissionCodes.length === 0) {
       setPermissionError(true);
       return;
     }
-    setStep(1);
-  };
 
-  const handleReviewNext = () => {
-    // Derive companions so backend permission ceilings are respected
-    const finalCodes = new Set(permissionCodes);
-    const hasApproval = permissionCodes.some((c) => c.endsWith(":APPROVE"));
-    const hasInitiate = permissionCodes.some(
-      (c) => c.endsWith(":INITIATE") || c.endsWith(":CREATE") || c.endsWith(":EDIT"),
-    );
-    if (hasInitiate) {
-      finalCodes.add("WORKFLOW:REQUEST:INITIATE");
-    }
-    if (hasApproval) {
-      finalCodes.add("WORKFLOW:REQUEST:VIEW");
-      finalCodes.add("WORKFLOW:TASK:VIEW");
-      finalCodes.add("WORKFLOW:TASK:APPROVE");
-    }
-    const finalCodeArray = Array.from(finalCodes);
+    try {
+      if (isEdit && role) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = (await updatePermissions({
+          id: role.id,
+          permissionCodes,
+          approvalAuthorities: role.approvalAuthorities ?? [],
+          allowSelfApproval: values.allowSelfApproval,
+        }).unwrap()) as any;
 
-    if (isEdit && role) {
-      updatePermissions({
-        id: role.id,
-        permissionCodes: finalCodeArray,
-        approvalAuthorities,
-        allowSelfApproval: getValues().allowSelfApproval,
-      })
-        .unwrap()
-        .then(() => {
-          setConfirmOpen(true);
-        })
-        .catch((error) => {
-          showToast("error", toToastError(error, "Couldn't update permissions"));
-        });
-      return;
-    }
-
-    const values = getValues();
-    createRole({
-      name: values.name.trim(),
-      description: values.description.trim(),
-      permissionCodes: finalCodeArray,
-      approvalAuthorities: [],
-      allowSelfApproval: values.allowSelfApproval,
-    })
-      .unwrap()
-      .then(() => {
+        if (res?.authenticator || res?.status === "AWAITING_AUTHORIZATION" || res?.changeId) {
+          const auth = res.authenticator ?? null;
+          setChangeId(res.changeId ?? null);
+          setAuthenticator(auth);
+          setQrPayload(auth?.qrPayload ?? undefined);
+        }
+        setIsAwaitingApproval(true);
         setConfirmOpen(true);
-      })
-      .catch((error) => {
-        showToast("error", toToastError(error, "Couldn't create role"));
-      });
-  };
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const res = (await createRole({
+          name: values.name.trim(),
+          description: values.description.trim(),
+          permissionCodes,
+          approvalAuthorities: [],
+          allowSelfApproval: values.allowSelfApproval,
+        }).unwrap()) as any;
 
-  const handleApprove = () => {
-    setConfirmOpen(false);
-    setStep(2);
-  };
-
-  const handleCancel = () => {
-    if (onCancel) {
-      onCancel();
-    } else {
-      router.push("/rbac");
+        if (res?.authenticator || res?.status === "AWAITING_AUTHORIZATION" || res?.changeId) {
+          const auth = res.authenticator ?? null;
+          setChangeId(res.changeId ?? null);
+          setAuthenticator(auth);
+          setQrPayload(auth?.qrPayload ?? undefined);
+        }
+        setIsAwaitingApproval(true);
+        setConfirmOpen(true);
+      }
+    } catch (error) {
+      showToast(
+        "error",
+        toToastError(error, isEdit ? "Couldn't update role access" : "Couldn't create role"),
+      );
     }
-  };
-
-  const handleDone = () => {
-    if (onSuccess) {
-      onSuccess();
-    } else {
-      router.push("/rbac");
-    }
-  };
-
-  useTopBarBreadcrumb({
-    prefix: "Role",
-    subPrefix: isEdit ? "Edit Role" : "Create Role",
-    onBack: handleCancel,
   });
+
+  const handleQrApprove = () => {
+    setConfirmOpen(false);
+    setAuthenticator(null);
+    setQrPayload(undefined);
+    setChangeId(null);
+    showToast("success", {
+      title: isEdit ? "Role access updated" : "Role created",
+      message: isAwaitingApproval
+        ? "Submitted for checker approval. It will take effect once approved."
+        : isEdit
+          ? `${role?.name} access policy updated.`
+          : "Role created successfully and ready to assign.",
+    });
+    onSuccess?.();
+  };
+
+  const handleQrClose = () => {
+    setConfirmOpen(false);
+  };
+
+  const handleRenew = async () => {
+    if (!changeId) return;
+    try {
+      const result = await requestOrgChangeAuth(changeId).unwrap();
+      setAuthenticator(result);
+      setQrPayload(result.qrPayload ?? undefined);
+      return result;
+    } catch {
+      // transient failure
+    }
+  };
 
   return (
     <>
-      <Card
-        sx={{
-          bgcolor: palette.white,
-          borderRadius: "16px",
-          border: `1px solid ${palette.slate[200]}`,
-          p: { xs: 2.5, sm: 3, md: 3.5 },
-          boxShadow: "none",
-        }}
-      >
-        {step === 0 && (
-          <Box component="form" id={ROLE_FORM_ID} onSubmit={handleSubmit(goToReview)} noValidate>
-            {/* Header */}
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 700,
-                fontSize: { xs: "18px", sm: "20px" },
-                color: "#0F172A",
-                lineHeight: 1.3,
-                mb: 0.5,
-              }}
+      <div className="flex flex-col gap-6 w-full">
+        {/* Breadcrumb & Page Heading matching demo */}
+        <div className="flex flex-col gap-1">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[#676766]">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="hover:text-[#363635] hover:underline transition-colors cursor-pointer bg-transparent border-0 p-0 text-sm text-[#676766]"
             >
-              {isEdit ? "Edit Role" : "Create Role"}
-            </Typography>
-            <Typography sx={{ fontSize: "13px", color: palette.slate[500], mb: 3 }}>
-              Give the role a clear name and pick what it can do.
-            </Typography>
+              Roles & Permissions
+            </button>
+            <span>&gt;</span>
+            <span className="text-[#363635] font-medium">
+              {isEdit ? `Edit ${role?.name ?? "Role"}` : "Create New Role"}
+            </span>
+          </nav>
+          <h1 className="mt-2 text-[28px] leading-9 font-semibold text-[#363635]">
+            {isEdit ? `Edit ${role?.name ?? "Role"}` : "Create New Role"}
+          </h1>
+        </div>
 
-            {/* Inputs: Role Name & Description Side-by-Side */}
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                gap: 2.5,
-                mb: 3,
-              }}
-            >
-              <ControlledBaseInput
-                name="name"
-                control={control}
-                label={
-                  <Box component="span" sx={{ fontSize: "13px", fontWeight: 600, color: "#0F172A" }}>
-                    Role name
-                  </Box>
-                }
-                placeholder="Merchant Supervisor"
-                disabled={isEdit}
-                sx={ROLE_INPUT_SX}
-              />
-              <ControlledBaseInput
-                name="description"
-                control={control}
-                label={
-                  <Box component="span" sx={{ fontSize: "13px", fontWeight: 600, color: "#0F172A" }}>
-                    Description{" "}
-                    <Box component="span" sx={{ color: palette.slate[400], fontWeight: 400 }}>
-                      (Optional)
-                    </Box>
-                  </Box>
-                }
-                placeholder="Manages merchant branches and consumer bills"
-                disabled={isEdit}
-                sx={ROLE_INPUT_SX}
-              />
-            </Box>
-
-            {/* Access Header */}
-            <Box sx={{ mb: 2 }}>
-              <Typography sx={{ fontWeight: 700, fontSize: "16px", color: "#0F172A", mb: 0.5 }}>
-                Access
-              </Typography>
-              <Typography sx={{ fontSize: "12.5px", color: palette.slate[500] }}>
-                Viewer sees data. Operator creates transactions and requests. Authoriser approves
-                them.
-              </Typography>
-            </Box>
-
-            {permissionError && (
-              <Alert severity="error" sx={{ mb: 2, borderRadius: "10px" }}>
-                Please select at least one permission in the table below.
-              </Alert>
-            )}
-
-            {/* Matrix Table */}
-            <PermissionMatrixTable isChecked={isChecked} onToggle={toggleCategory} />
-
-            {/* Bottom Actions */}
-            <Stack
-              direction="row"
-              spacing={1.5}
-              sx={{ justifyContent: "flex-end", alignItems: "center", pt: 1 }}
-            >
-              <BaseButton
-                title="Cancel"
-                variant="outlined"
-                onClick={handleCancel}
-                sx={{
-                  ...ACTION_BUTTON_SX,
-                  minWidth: 88,
-                  px: 2.5,
-                  borderColor: "transparent",
-                  color: "#0F172A",
-                  bgcolor: "#EEF2F6",
-                  "&:hover": {
-                    borderColor: "transparent",
-                    bgcolor: "#E2E8F0",
-                  },
-                }}
-              />
-              <BaseButton
-                title="Review"
-                variant="contained"
-                type="submit"
-                form={ROLE_FORM_ID}
-                sx={{
-                  ...ACTION_BUTTON_SX,
-                  minWidth: 92,
-                  px: 3,
-                  bgcolor: "#1B5299",
-                  color: "#FFFFFF",
-                  "&:hover": {
-                    bgcolor: "#15427C",
-                    boxShadow: "none",
-                  },
-                }}
-              />
-            </Stack>
-          </Box>
+        {role?.isSystem && (
+          <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/80 p-4 text-sm text-blue-900">
+            <strong>{role.name}</strong> is a predefined role. Saving a change here updates its access policy.
+          </div>
         )}
 
-        {/* Step 1: Review */}
-        {step === 1 && (
-          <Box>
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 2 }}>
-              <BaseButton
-                title="Back"
-                variant="text"
-                startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 18 }} />}
-                onClick={() => setStep(0)}
+        <form onSubmit={submit} noValidate className="w-full">
+          <section className="rounded-2xl border border-[#ededec] bg-white p-6 sm:p-8 shadow-none">
+            <h2 className="text-xl font-semibold text-[#363635]">Role Detail</h2>
+            <div className="mt-6 flex flex-col gap-6">
+              {isEdit ? (
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <p className="text-sm text-[#898987]">Role Name</p>
+                    <p className="mt-1 text-sm font-medium text-[#363635]">{role?.name || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-[#898987]">Role ID</p>
+                    <p className="mt-1 font-mono text-sm text-[#363635]">{role?.code || role?.id || "—"}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-sm text-[#898987]">Description</p>
+                    <p className="mt-1 text-sm text-[#363635]">{role?.description || "—"}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="sm:col-span-1">
+                    <ControlledBaseInput
+                      name="name"
+                      control={control}
+                      label="Role Name"
+                      isRequired
+                      placeholder="e.g. Approver"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <ControlledBaseTextArea
+                      name="description"
+                      control={control}
+                      label="Description"
+                      placeholder="Enter description"
+                      minRows={4}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Self-approval toggle */}
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[#ededec] bg-[#fbfbfb] p-4">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold text-[#363635]">Self-approval</span>
+                  <span className="text-xs text-[#676766]">
+                    Whether someone with this role may approve a request they raised themselves. Leave it off unless one person is the whole company.
+                  </span>
+                </div>
+                <Controller
+                  name="allowSelfApproval"
+                  control={control}
+                  render={({ field }) => (
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={Boolean(field.value)}
+                      disabled={isSubmitting}
+                      onClick={() => field.onChange(!field.value)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2f2b7a]/40 ${
+                        field.value ? "bg-[#2f2b7a]" : "bg-[#dfdfde]"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block size-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                          field.value ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  )}
+                />
+              </div>
+
+              <PermissionChecklist
+                roleId={role?.id}
+                value={permissionCodes}
+                onChange={handlePermissionChange}
+                channel="CORPORATE"
                 disabled={isSubmitting}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 600,
-                  fontSize: "14px",
-                  minWidth: 0,
-                  "&:hover": { bgcolor: "transparent", color: "#1B5299" },
-                }}
               />
-            </Stack>
+              {permissionError && (
+                <p className="text-sm text-red-500 mt-1">Tick at least one permission before saving this role.</p>
+              )}
+            </div>
 
-            <Typography
-              variant="h5"
-              sx={{
-                fontWeight: 700,
-                fontSize: { xs: "18px", sm: "20px" },
-                color: "#0F172A",
-                lineHeight: 1.3,
-                mb: 0.5,
-              }}
-            >
-              Review Role
-            </Typography>
-            <Typography sx={{ fontSize: "13px", color: palette.slate[500], mb: 3 }}>
-              Confirm role name, description, and granted access permissions before submitting.
-            </Typography>
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-[#ededec] pt-6">
+              <span className="text-sm text-[#676766]">
+                <span className="font-semibold text-[#363635]">{permissionCodes.length}</span> permissions granted
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  disabled={isSubmitting}
+                  className="inline-flex items-center justify-center min-w-24 h-12 px-6 rounded-xl border border-[#ededec] bg-white text-sm font-semibold text-[#363635] hover:bg-[#f7f7f7] transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center justify-center gap-2 min-w-24 h-12 px-6 rounded-xl bg-[#2f2b7a] text-sm font-semibold text-white hover:bg-[#2f2b7a]/90 transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {isSubmitting && <Loader2 className="size-4 animate-spin" aria-hidden />}
+                  Save
+                </button>
+              </div>
+            </div>
+          </section>
+        </form>
+      </div>
 
-            <Box
-              sx={{
-                p: 2.5,
-                borderRadius: "12px",
-                border: `1px solid ${palette.slate[200]}`,
-                bgcolor: palette.slate[50],
-                mb: 3.5,
-              }}
-            >
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                  gap: 2,
-                }}
-              >
-                <Box>
-                  <Typography variant="caption" sx={{ color: palette.slate[400], fontWeight: 500 }}>
-                    Role name
-                  </Typography>
-                  <Typography sx={{ fontWeight: 600, fontSize: "15px", color: "#0F172A", mt: 0.5 }}>
-                    {getValues().name}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: palette.slate[400], fontWeight: 500 }}>
-                    Description
-                  </Typography>
-                  <Typography sx={{ fontSize: "14px", color: "#334155", mt: 0.5 }}>
-                    {getValues().description || "-"}
-                  </Typography>
-                </Box>
-              </Box>
-            </Box>
-
-            {/* Read-only Matrix Preview */}
-            <Typography sx={{ fontWeight: 700, fontSize: "15px", color: "#0F172A", mb: 1.5 }}>
-              Assigned Access
-            </Typography>
-
-            <PermissionMatrixTable isChecked={isChecked} readOnly />
-
-            {/* Bottom Actions for Review */}
-            <Stack
-              direction="row"
-              spacing={1.5}
-              sx={{ justifyContent: "flex-end", alignItems: "center", pt: 1 }}
-            >
-              <BaseButton
-                title="Back"
-                variant="outlined"
-                onClick={() => setStep(0)}
-                disabled={isSubmitting}
-                sx={{
-                  ...ACTION_BUTTON_SX,
-                  minWidth: 88,
-                  px: 2.5,
-                  borderColor: "transparent",
-                  color: "#0F172A",
-                  bgcolor: "#EEF2F6",
-                  "&:hover": {
-                    borderColor: "transparent",
-                    bgcolor: "#E2E8F0",
-                  },
-                }}
-              />
-              <BaseButton
-                title={isEdit ? "Update Role" : "Create Role"}
-                variant="contained"
-                onClick={handleReviewNext}
-                isLoading={isSubmitting}
-                sx={{
-                  ...ACTION_BUTTON_SX,
-                  minWidth: 120,
-                  px: 3,
-                  bgcolor: "#1B5299",
-                  color: "#FFFFFF",
-                  "&:hover": {
-                    bgcolor: "#15427C",
-                    boxShadow: "none",
-                  },
-                }}
-              />
-            </Stack>
-          </Box>
-        )}
-
-        {/* Step 2: Success State */}
-        {step === 2 && (
-          <Stack
-            spacing={2}
-            sx={{
-              alignItems: "center",
-              textAlign: "center",
-              py: 6,
-              maxWidth: 480,
-              mx: "auto",
-            }}
-          >
-            <Image src="/assets/icons/Ico.svg" alt="Success" width={56} height={56} />
-            <Typography sx={{ fontWeight: 600, fontSize: "14px", color: palette.slate[500] }}>
-              Submitted
-            </Typography>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: "#0F172A" }}>
-              {isEdit ? "Role access updated successfully" : "Role created successfully"}
-            </Typography>
-            <Typography variant="body2" sx={{ color: palette.slate[400], mb: 2 }}>
-              {isEdit
-                ? "Screen permissions and approval actions have been updated together."
-                : "Assign this role to a user to grant all of its access."}
-            </Typography>
-            <BaseButton
-              title="Done"
-              variant="contained"
-              onClick={handleDone}
-              sx={{
-                minWidth: 140,
-                height: 40,
-                borderRadius: "10px",
-                bgcolor: "#1B5299",
-                color: "#FFFFFF",
-                fontWeight: 600,
-                fontSize: "14px",
-                textTransform: "none",
-                boxShadow: "none",
-                "&:hover": {
-                  bgcolor: "#15427C",
-                  boxShadow: "none",
-                },
-              }}
-            />
-          </Stack>
-        )}
-      </Card>
-
-      <QrConfirmationDialog open={confirmOpen} onApprove={handleApprove} />
+      <QrConfirmationDialog
+        open={confirmOpen}
+        authenticator={authenticator}
+        qrPayload={qrPayload}
+        requestId={authenticator?.requestId || (changeId ?? undefined)}
+        onClose={handleQrClose}
+        onApprove={handleQrApprove}
+        onAuthorized={handleQrApprove}
+        onConsumed={handleQrApprove}
+        onRenew={handleRenew}
+        title="Confirm on Mobile"
+        subtitle="Scan this QR code with your Biktech Mobile App to submit for checker approval."
+      />
     </>
   );
 }

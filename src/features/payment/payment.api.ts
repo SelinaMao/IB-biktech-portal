@@ -3,6 +3,8 @@ import { baseApi } from "@/store/baseApi";
 import { transformResponse, type TransformResponse } from "@/utils/transform-response";
 import type { TransferResult } from "@/features/transfer";
 import type {
+  BillInquiryRequest,
+  BillPaymentRequest,
   PhoneInquiryRequest,
   PhoneInquiryResult,
   PhoneTopUpTransferRequest,
@@ -14,6 +16,32 @@ const idemHeader = (key: string) => ({ "Idempotency-Key": key });
 
 export const paymentApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
+    /** Validates the biller/customer pair before the user submits a payment. */
+    inquireBill: build.mutation<unknown, BillInquiryRequest>({
+      query: (body) => ({
+        url: bank(adminApi.PAYMENT.BILL_INQUIRY),
+        method: "POST",
+        body,
+      }),
+      transformResponse,
+    }),
+
+    /** Submits a bill payment request; workflow rules determine its checker approval chain. */
+    submitBillPayment: build.mutation<TransferResult, Idempotent<BillPaymentRequest>>({
+      query: ({ body, idempotencyKey }) => ({
+        url: bank(adminApi.PAYMENT.BILL_UTILITY),
+        method: "POST",
+        body,
+        headers: idemHeader(idempotencyKey),
+      }),
+      transformResponse,
+      invalidatesTags: [
+        "Account",
+        { type: "WorkflowInstance", id: "LIST" },
+        { type: "WorkflowInstance", id: "SUMMARY" },
+      ],
+    }),
+
     /**
      * Submit PIN-less phone top-up.
      * Backed by `POST /api/v1/payment/bills/phone-topup/pinless`.
@@ -127,6 +155,8 @@ export const paymentApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useInquireBillMutation,
+  useSubmitBillPaymentMutation,
   useSubmitPhoneTopUpMutation,
   useSubmitPhoneTopUpPincodeMutation,
   useInquirePhoneMutation,

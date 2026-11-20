@@ -14,6 +14,7 @@ import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
 import { BASE_FILTER_TYPE_LABELS, type BaseFilterValue } from "@core/components/BaseFilter";
 import { TransactionFilterDialog } from "@/features/account";
 import type { LoanTransaction, TxnStatus } from "../loan.types";
+import LoanTransactionDetailDialog from "./LoanTransactionDetailDialog";
 
 const ROWS_PER_PAGE = 5;
 
@@ -320,6 +321,9 @@ export interface LoanTransactionsCardProps {
   showStatusToggle?: boolean;
   accentColor?: string;
   title?: string;
+  borrowerName?: string;
+  borrowerAccountNumber?: string;
+  onSelectTransaction?: (transaction: LoanTransaction) => void;
 }
 
 export default function LoanTransactionsCard({
@@ -327,8 +331,12 @@ export default function LoanTransactionsCard({
   showStatusToggle = false,
   accentColor = "#5AC0A0",
   title = "Repayment Schedule",
+  borrowerName,
+  borrowerAccountNumber,
+  onSelectTransaction,
 }: LoanTransactionsCardProps) {
   const dataSource = transactions ?? LOAN_TRANSACTIONS;
+  const [selectedTransaction, setSelectedTransaction] = useState<LoanTransaction | null>(null);
   const [status, setStatus] = useState<TxnStatus>(() =>
     dataSource.some((t) => t.status === "due") ? "due" : "upcoming",
   );
@@ -666,6 +674,10 @@ export default function LoanTransactionsCard({
         columns={columns}
         rows={filtered}
         getRowKey={(t) => t.ref || String(t.no)}
+        onRowClick={(row) => {
+          setSelectedTransaction(row);
+          onSelectTransaction?.(row);
+        }}
         minWidth={720}
         rounded={false}
         headerBgColor={palette.white}
@@ -676,7 +688,7 @@ export default function LoanTransactionsCard({
         getRowSx={(row) => {
           const isDue = (row.status || "").toLowerCase() === "due";
           return {
-            cursor: "default",
+            cursor: "pointer",
             bgcolor: isDue ? "#FFF8EE" : "transparent",
             "&:hover": {
               bgcolor: isDue ? "#FFF0DD" : palette.slate[50],
@@ -696,6 +708,15 @@ export default function LoanTransactionsCard({
             : undefined
         }
         paginationVariant="compact"
+      />
+
+      {/* Repayment Detail Dialog */}
+      <LoanTransactionDetailDialog
+        open={Boolean(selectedTransaction)}
+        onClose={() => setSelectedTransaction(null)}
+        transaction={selectedTransaction}
+        borrowerName={borrowerName}
+        borrowerAccountNumber={borrowerAccountNumber}
       />
 
       {/* Filter Dialog */}

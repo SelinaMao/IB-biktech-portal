@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
@@ -12,6 +11,7 @@ import Typography from "@mui/material/Typography";
 
 import { palette, radius } from "@/theme/palette";
 import BaseDialog from "@core/components/BaseDialog";
+import { BILL_PROVIDERS } from "../payment.data";
 import type { PaymentTemplate, PaymentTemplateType } from "../payment.types";
 
 export interface CreateTemplateDialogProps {
@@ -28,23 +28,30 @@ export default function CreateTemplateDialog({
   const [name, setName] = useState("");
   const [type, setType] = useState<PaymentTemplateType>("Bill payment");
   const [providerName, setProviderName] = useState("");
+  const [providerId, setProviderId] = useState("");
   const [correspondentId, setCorrespondentId] = useState("");
 
   const handleSubmit = () => {
-    if (!name.trim() || !providerName.trim() || !correspondentId.trim()) return;
+    const billProvider = BILL_PROVIDERS.find((item) => item.providerId === providerId);
+    if (
+      !name.trim() ||
+      (type === "Bill payment" ? !billProvider : !providerName.trim()) ||
+      !correspondentId.trim()
+    ) return;
 
-    // Generate initials (e.g., "Electricity Authority" -> "EA")
-    const words = providerName.trim().split(/\s+/);
+    const resolvedProviderName = billProvider?.name ?? providerName.trim();
+    const words = resolvedProviderName.split(/\s+/);
     const initials =
       words.length >= 2
         ? `${words[0][0]}${words[1][0]}`.toUpperCase()
-        : providerName.substring(0, 2).toUpperCase();
+        : resolvedProviderName.substring(0, 2).toUpperCase();
 
     onCreate({
       name: name.trim(),
       type,
-      providerName: providerName.trim(),
-      providerInitials: initials,
+      providerName: resolvedProviderName,
+      providerId: billProvider?.providerId,
+      providerInitials: billProvider?.initials ?? initials,
       correspondentId: correspondentId.trim(),
     });
 
@@ -55,11 +62,16 @@ export default function CreateTemplateDialog({
     setName("");
     setType("Bill payment");
     setProviderName("");
+    setProviderId("");
     setCorrespondentId("");
     onClose();
   };
 
-  const isValid = Boolean(name.trim() && providerName.trim() && correspondentId.trim());
+  const isValid = Boolean(
+    name.trim() &&
+    (type === "Bill payment" ? providerId : providerName.trim()) &&
+    correspondentId.trim(),
+  );
 
   return (
     <BaseDialog
@@ -99,7 +111,11 @@ export default function CreateTemplateDialog({
           <FormControl fullWidth size="small">
             <Select
               value={type}
-              onChange={(e) => setType(e.target.value as PaymentTemplateType)}
+              onChange={(e) => {
+                const nextType = e.target.value as PaymentTemplateType;
+                setType(nextType);
+                setProviderId("");
+              }}
               sx={{ borderRadius: `${radius.md}px` }}
             >
               <MenuItem value="Bill payment">Bill payment</MenuItem>
@@ -113,18 +129,36 @@ export default function CreateTemplateDialog({
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: palette.slate[700], mb: 0.75 }}>
             Service provider
           </Typography>
-          <TextField
-            fullWidth
-            size="small"
-            placeholder="e.g. Electricity Authority or FibreNet Internet"
-            value={providerName}
-            onChange={(e) => setProviderName(e.target.value)}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: `${radius.md}px`,
-              },
-            }}
-          />
+          {type === "Bill payment" ? (
+            <FormControl fullWidth size="small">
+              <Select
+                displayEmpty
+                value={providerId}
+                onChange={(e) => setProviderId(e.target.value)}
+                sx={{ borderRadius: `${radius.md}px` }}
+              >
+                <MenuItem value="" disabled>Select a bill provider</MenuItem>
+                {BILL_PROVIDERS.filter((item) => item.paymentSupported).map((item) => (
+                  <MenuItem key={item.providerId} value={item.providerId}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="e.g. Mobile network or organisation"
+              value={providerName}
+              onChange={(e) => setProviderName(e.target.value)}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: `${radius.md}px`,
+                },
+              }}
+            />
+          )}
         </Box>
 
         <Box>

@@ -13,10 +13,12 @@ import ControlledBaseAmountCurrencyField from "@core/form/ControlledBaseAmountCu
 import ControlledBaseInput from "@core/form/ControlledBaseInput";
 import ControlledBaseTextArea from "@core/form/ControlledBaseTextArea";
 import { useGetAccountDetailMutation } from "@/features/account";
+import { useSubmitOtherSmeAccountTransferMutation } from "../transfer.api";
 import { palette } from "@/theme/palette";
 import {
   accountOptionLabel,
   amountPreviewValue,
+  buildTransferSchedule,
   buildTransferSummaryRows,
   currencyLabel,
   CURRENCY_OPTIONS,
@@ -119,6 +121,28 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
   ];
 
   const summaryRows = buildTransferSummaryRows(amount, currency);
+  const [submitOtherSmeTransfer] = useSubmitOtherSmeAccountTransferMutation();
+
+  const submit = (idempotencyKey?: string) =>
+    submitOtherSmeTransfer({
+      body: {
+        fromAccountNumber: fromAccount?.number ?? "",
+        toAccountNumber: values.toAccountNumber.replace(/\s+/g, ""),
+        amount: Number(amount) || 0,
+        currency,
+        remark: values.remark.trim() || undefined,
+        isSaveTemplate: values.saveTemplate || undefined,
+        templateName: values.templateName?.trim() || undefined,
+        schedule: values.scheduleTransfer
+          ? buildTransferSchedule({
+              scheduleTransfer: values.scheduleTransfer,
+              frequency: values.frequency,
+              scheduleDate: values.scheduleDate,
+            })
+          : undefined,
+      },
+      idempotencyKey: idempotencyKey || crypto.randomUUID(),
+    }).unwrap();
 
   return (
     <PreviewTransfer
@@ -143,8 +167,8 @@ export default function OtherSmeBank({ open, onClose }: OtherSmeBankProps) {
         amount &&
           fromAccount &&
           values.toAccountNumber
-
       )}
+      submit={submit}
       previewFields={previewFields}
       summaryRows={summaryRows}
       successMessage={`${amount} ${currencyLabel(currency)} sent to ${toAccountName ?? values.toAccountNumber}.`}

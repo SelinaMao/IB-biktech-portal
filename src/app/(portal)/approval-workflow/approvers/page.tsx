@@ -18,9 +18,11 @@ import BaseButton from "@core/components/BaseButton";
 import BaseDialog from "@core/components/BaseDialog";
 import BaseIconButton from "@core/components/BaseIconButton";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
+import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
 import { BaseInput } from "@core/form";
 import { useDebounce } from "@core/hooks/use-debounce";
 import { showToast } from "@core/components/AppToast";
+import type { AuthenticatorRequest } from "@/features/authenticator";
 import { font, palette } from "@/theme/palette";
 import { CLIENT_PERMISSIONS, useCan } from "@/features/auth";
 import { useListUsersQuery } from "@/features/user";
@@ -30,7 +32,9 @@ import {
   useDeleteApproverGroupMutation,
   useListApproverGroupsQuery,
   useListEligibleApproversQuery,
+  useRequestApproverGroupChangeAuthenticatorMutation,
   type ApproverGroup,
+  type ApproverGroupChangeResponse,
   type EligibleApprover,
 } from "@/features/workflow";
 import { toToastError } from "@/utils/api-error";
@@ -56,6 +60,13 @@ export default function ApprovalApproversPage() {
   const [editingGroup, setEditingGroup] = useState<ApproverGroup | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ApproverGroup | null>(null);
   const [deleteGroup, deleteState] = useDeleteApproverGroupMutation();
+  const [requestChangeAuth] = useRequestApproverGroupChangeAuthenticatorMutation();
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteChangeId, setDeleteChangeId] = useState<string | null>(null);
+  const [deleteAuthenticator, setDeleteAuthenticator] = useState<AuthenticatorRequest | null>(null);
+  const [deleteQrPayload, setDeleteQrPayload] = useState<string | undefined>(undefined);
+  const [isFetchingDeleteAuth, setIsFetchingDeleteAuth] = useState(false);
 
   // No function means the whole pool: everyone whose role grants Approve on anything.
   const approvers = useListEligibleApproversQuery({});
@@ -117,7 +128,38 @@ export default function ApprovalApproversPage() {
   const confirmDeleteGroup = async () => {
     if (!deleteTarget) return;
     try {
-      await deleteGroup(deleteTarget.id).unwrap();
+      const res = (await deleteGroup(deleteTarget.id).unwrap()) as
+        | void
+        | ApproverGroupChangeResponse;
+
+      const changeRes = res as ApproverGroupChangeResponse;
+      const isAwaiting =
+        changeRes?.status === "AWAITING_AUTHORIZATION" ||
+        Boolean(changeRes?.authenticator) ||
+        Boolean(changeRes?.changeId);
+
+      if (isAwaiting) {
+        const cid = changeRes?.changeId ?? null;
+        let auth = changeRes?.authenticator ?? null;
+        setDeleteChangeId(cid);
+
+        if (!auth && cid) {
+          setIsFetchingDeleteAuth(true);
+          try {
+            auth = await requestChangeAuth(cid).unwrap();
+          } catch (err) {
+            console.warn("Could not fetch change authenticator:", err);
+          } finally {
+            setIsFetchingDeleteAuth(false);
+          }
+        }
+
+        setDeleteAuthenticator(auth);
+        setDeleteQrPayload(auth?.qrPayload ?? undefined);
+        setDeleteConfirmOpen(true);
+        return;
+      }
+
       showToast("success", {
         title: "Group removed",
         message: "Any rule that named it can no longer resolve approvers — check your rules.",
@@ -125,6 +167,34 @@ export default function ApprovalApproversPage() {
       setDeleteTarget(null);
     } catch (error) {
       showToast("error", toToastError(error, "Couldn't remove the group"));
+    }
+  };
+
+  const handleDeleteQrClose = () => {
+    setDeleteConfirmOpen(false);
+  };
+
+  const handleDeleteQrApprove = () => {
+    setDeleteConfirmOpen(false);
+    setDeleteAuthenticator(null);
+    setDeleteQrPayload(undefined);
+    setDeleteChangeId(null);
+    setDeleteTarget(null);
+    showToast("info", {
+      title: "Group deletion submitted",
+      message: "Waiting for checker approval. It will be removed once approved.",
+    });
+  };
+
+  const handleDeleteRenew = async () => {
+    if (!deleteChangeId) return;
+    try {
+      const result = await requestChangeAuth(deleteChangeId).unwrap();
+      setDeleteAuthenticator(result);
+      setDeleteQrPayload(result.qrPayload ?? undefined);
+      return result;
+    } catch (error) {
+      console.error("Failed to renew authenticator QR for delete:", error);
     }
   };
 
@@ -721,12 +791,12 @@ export default function ApprovalApproversPage() {
 
       {deleteTarget && (
         <BaseDialog
-          open
+          open={!deleteConfirmOpen}
           title="Remove this group?"
           subtitle={deleteTarget.name}
           confirmTitle="Remove"
           confirmColor="error"
-          isLoading={deleteState.isLoading}
+          isLoading={deleteState.isLoading || isFetchingDeleteAuth}
           onConfirm={confirmDeleteGroup}
           onClose={() => setDeleteTarget(null)}
         >
@@ -736,6 +806,26 @@ export default function ApprovalApproversPage() {
           </Typography>
         </BaseDialog>
       )}
+
+      <QrConfirmationDialog
+        open={deleteConfirmOpen}
+        authenticator={deleteAuthenticator}
+        qrPayload={deleteQrPayload || (deleteAuthenticator?.qrPayload ?? undefined)}
+        value={
+          deleteQrPayload ||
+          (deleteAuthenticator?.qrPayload ??
+            (deleteChangeId ? `approver-group-change:${deleteChangeId}` : undefined))
+        }
+        requestId={deleteAuthenticator?.requestId || (deleteChangeId ?? undefined)}
+        isLoading={isFetchingDeleteAuth}
+        onClose={handleDeleteQrClose}
+        onApprove={handleDeleteQrApprove}
+        onAuthorized={handleDeleteQrApprove}
+        onConsumed={handleDeleteQrApprove}
+        onRenew={handleDeleteRenew}
+        title="Confirm on Mobile"
+        subtitle="Scan this QR code with your Biktech Mobile App to submit for checker approval."
+      />
     </>
   );
 }

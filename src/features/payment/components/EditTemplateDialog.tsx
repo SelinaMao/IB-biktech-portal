@@ -11,6 +11,7 @@ import Typography from "@mui/material/Typography";
 
 import { palette, radius } from "@/theme/palette";
 import BaseDialog from "@core/components/BaseDialog";
+import { BILL_PROVIDERS } from "../payment.data";
 import type { PaymentTemplate, PaymentTemplateType } from "../payment.types";
 
 export interface EditTemplateDialogProps {
@@ -29,6 +30,7 @@ export default function EditTemplateDialog({
   const [name, setName] = useState("");
   const [type, setType] = useState<PaymentTemplateType>("Bill payment");
   const [providerName, setProviderName] = useState("");
+  const [providerId, setProviderId] = useState("");
   const [correspondentId, setCorrespondentId] = useState("");
 
   useEffect(() => {
@@ -36,32 +38,51 @@ export default function EditTemplateDialog({
       setName(template.name);
       setType(template.type);
       setProviderName(template.providerName);
+      setProviderId(
+        template.providerId ??
+          BILL_PROVIDERS.find(
+            (item) => item.name.toLowerCase() === template.providerName.trim().toLowerCase(),
+          )?.providerId ??
+          "",
+      );
       setCorrespondentId(template.correspondentId);
     }
   }, [template]);
 
   const handleSubmit = () => {
-    if (!template || !name.trim() || !providerName.trim() || !correspondentId.trim()) return;
+    const billProvider = BILL_PROVIDERS.find((item) => item.providerId === providerId);
+    if (
+      !template ||
+      !name.trim() ||
+      (type === "Bill payment" ? !billProvider : !providerName.trim()) ||
+      !correspondentId.trim()
+    ) return;
 
-    const words = providerName.trim().split(/\s+/);
+    const resolvedProviderName = billProvider?.name ?? providerName.trim();
+    const words = resolvedProviderName.split(/\s+/);
     const initials =
       words.length >= 2
         ? `${words[0][0]}${words[1][0]}`.toUpperCase()
-        : providerName.substring(0, 2).toUpperCase();
+        : resolvedProviderName.substring(0, 2).toUpperCase();
 
     onUpdate({
       ...template,
       name: name.trim(),
       type,
-      providerName: providerName.trim(),
-      providerInitials: initials,
+      providerName: resolvedProviderName,
+      providerId: billProvider?.providerId,
+      providerInitials: billProvider?.initials ?? initials,
       correspondentId: correspondentId.trim(),
     });
 
     onClose();
   };
 
-  const isValid = Boolean(name.trim() && providerName.trim() && correspondentId.trim());
+  const isValid = Boolean(
+    name.trim() &&
+    (type === "Bill payment" ? providerId : providerName.trim()) &&
+    correspondentId.trim(),
+  );
 
   return (
     <BaseDialog
@@ -100,7 +121,11 @@ export default function EditTemplateDialog({
           <FormControl fullWidth size="small">
             <Select
               value={type}
-              onChange={(e) => setType(e.target.value as PaymentTemplateType)}
+              onChange={(e) => {
+                const nextType = e.target.value as PaymentTemplateType;
+                setType(nextType);
+                setProviderId("");
+              }}
               sx={{ borderRadius: `${radius.md}px` }}
             >
               <MenuItem value="Bill payment">Bill payment</MenuItem>
@@ -114,17 +139,35 @@ export default function EditTemplateDialog({
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: palette.slate[700], mb: 0.75 }}>
             Service provider
           </Typography>
-          <TextField
-            fullWidth
-            size="small"
-            value={providerName}
-            onChange={(e) => setProviderName(e.target.value)}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: `${radius.md}px`,
-              },
-            }}
-          />
+          {type === "Bill payment" ? (
+            <FormControl fullWidth size="small">
+              <Select
+                displayEmpty
+                value={providerId}
+                onChange={(e) => setProviderId(e.target.value)}
+                sx={{ borderRadius: `${radius.md}px` }}
+              >
+                <MenuItem value="" disabled>Select a bill provider</MenuItem>
+                {BILL_PROVIDERS.filter((item) => item.paymentSupported).map((item) => (
+                  <MenuItem key={item.providerId} value={item.providerId}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            <TextField
+              fullWidth
+              size="small"
+              value={providerName}
+              onChange={(e) => setProviderName(e.target.value)}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: `${radius.md}px`,
+                },
+              }}
+            />
+          )}
         </Box>
 
         <Box>

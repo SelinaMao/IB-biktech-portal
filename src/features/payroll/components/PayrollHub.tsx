@@ -2,11 +2,10 @@
 
 import React, { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 
 import { showToast } from "@core/components/AppToast";
-import { font, palette } from "@/theme/palette";
+import { font } from "@/theme/palette";
 import {
   INITIAL_HISTORY_PAYROLLS,
   INITIAL_PENDING_PAYROLLS,
@@ -14,9 +13,8 @@ import {
 import type { PayrollItem } from "../payroll.types";
 import PayrollDetailDialog from "./PayrollDetailDialog";
 import PayrollEmptyState from "./PayrollEmptyState";
-import PayrollHistoryDrawer from "./PayrollHistoryDrawer";
+import PayrollHistoryDialog from "./PayrollHistoryDialog";
 import PayrollTable from "./PayrollTable";
-import UploadPayrollDialog from "./UploadPayrollDialog";
 import UploadPayrollWizard from "./UploadPayrollWizard";
 
 const R = 12; // flare radius for folder-style tab
@@ -88,15 +86,11 @@ export default function PayrollHub() {
   // View state: "list" or "upload"
   const [viewMode, setViewMode] = useState<"list" | "upload">("list");
 
-  // Toggle for testing Empty State
-  const [forceEmptyState, setForceEmptyState] = useState(false);
-
   // Modal / Drawer states
   const [selectedPendingItem, setSelectedPendingItem] = useState<PayrollItem | null>(null);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<PayrollItem | null>(null);
 
-  const isEmpty =
-    forceEmptyState || (pendingList.length === 0 && historyList.length === 0);
+  const isEmpty = pendingList.length === 0 && historyList.length === 0;
 
   // Filter current active list by search query
   const currentList = activeTab === "pending" ? pendingList : historyList;
@@ -120,7 +114,6 @@ export default function PayrollHub() {
     setPendingList((prev) => [newPayroll, ...prev]);
     setViewMode("list");
     setActiveTab("pending");
-    setForceEmptyState(false);
     showToast("success", {
       title: "Payroll Submitted",
       message: `Payroll batch ${newPayroll.referenceNo} submitted successfully.`,
@@ -173,36 +166,6 @@ export default function PayrollHub() {
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* View Switcher Bar for easy demo */}
-      <Stack
-        direction="row"
-        sx={{
-          justifyContent: "flex-end",
-          alignItems: "center",
-          mb: 1.5,
-          gap: 1.5,
-        }}
-      >
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => setForceEmptyState((prev) => !prev)}
-          sx={{
-            fontSize: 12,
-            height: 28,
-            px: 1.5,
-            borderRadius: "6px",
-            textTransform: "none",
-            color: "#64748B",
-            borderColor: palette.slate[200],
-            bgcolor: "#FFFFFF",
-            "&:hover": { bgcolor: "#F8FAFC", borderColor: palette.slate[300] },
-          }}
-        >
-          {isEmpty ? "Switch to List View" : "Preview Empty State"}
-        </Button>
-      </Stack>
-
       {isEmpty ? (
         <PayrollEmptyState onMakePayroll={() => setViewMode("upload")} />
       ) : (
@@ -263,8 +226,8 @@ export default function PayrollHub() {
         </>
       )}
 
-      {/* History Detail Drawer (Image 1) */}
-      <PayrollHistoryDrawer
+      {/* History Detail Dialog (Centered Modal matching design) */}
+      <PayrollHistoryDialog
         open={Boolean(selectedHistoryItem)}
         onClose={() => setSelectedHistoryItem(null)}
         item={selectedHistoryItem}

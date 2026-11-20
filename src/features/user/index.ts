@@ -7,7 +7,8 @@ export {
   useUpdateUserMutation,
   useActivateUserMutation,
   useDeactivateUserMutation,
-  useUnlockUserMutation
+  useUnlockUserMutation,
+  useRequestOrgChangeAuthenticatorMutation,
 } from "./user.api";
 export { default as UsersTable } from "./components/UsersTable";
 export { default as UserFormDialog } from "./components/UserFormDialog";

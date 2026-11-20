@@ -10,19 +10,23 @@ export type BaseStepProps = {
   steps: string[];
   /** 0-based index of the current step. */
   activeStep: number;
+  /** Optional click handler to navigate between steps */
+  onStepClick?: (stepIndex: number) => void;
 };
 
 /** Row of progress-bar segments with labels — the New -> Review -> Transfer style stepper. */
-export default function BaseStep({ steps, activeStep }: BaseStepProps) {
+export default function BaseStep({ steps, activeStep, onStepClick }: BaseStepProps) {
   return (
     <Stack direction="row" spacing={1} sx={{ width: "100%" }}>
       {steps.map((label, i) => (
         <Stack
           key={label}
           spacing={1.5}
+          onClick={onStepClick ? () => onStepClick(i) : undefined}
           sx={{
             flex: 1,
             minWidth: 0,
+            cursor: onStepClick ? "pointer" : "default",
             alignItems:
               i === 0 ? "flex-start" : i === steps.length - 1 ? "flex-end" : "center",
           }}

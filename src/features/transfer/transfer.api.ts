@@ -12,6 +12,7 @@ import type {
   CalculateTransferResult,
   ExternalAccountInquiryRequest,
   ExternalAccountInquiryResult,
+  InternationalTransferRequest,
   OtherSmeAccountTransferRequest,
   OwnAccountTransferRequest,
   SmeAccountInquiryResult,
@@ -67,6 +68,7 @@ export const transferApi = baseApi.injectEndpoints({
         headers: idemHeader(idempotencyKey),
       }),
       transformResponse,
+      invalidatesTags: ["Schedule", "Account"],
     }),
 
     /** Same as own-account, to another BiKTECH BANK customer's account. */
@@ -78,6 +80,7 @@ export const transferApi = baseApi.injectEndpoints({
         headers: idemHeader(idempotencyKey),
       }),
       transformResponse,
+      invalidatesTags: ["Schedule", "Account", "TransferTemplate"],
     }),
 
     /** To an account at another local bank, through Bakong. */
@@ -89,6 +92,7 @@ export const transferApi = baseApi.injectEndpoints({
         headers: idemHeader(idempotencyKey),
       }),
       transformResponse,
+      invalidatesTags: ["Schedule", "Account", "TransferTemplate"],
     }),
 
     /** To a Bakong wallet, by Bakong ID or phone number. */
@@ -100,6 +104,21 @@ export const transferApi = baseApi.injectEndpoints({
         headers: idemHeader(idempotencyKey),
       }),
       transformResponse,
+      invalidatesTags: ["Schedule", "Account", "TransferTemplate"],
+    }),
+
+    submitInternationalTransfer: build.mutation<
+      TransferResult,
+      Idempotent<InternationalTransferRequest>
+    >({
+      query: ({ body, idempotencyKey }) => ({
+        url: bank(adminApi.TRANSFER.INTERNATIONAL),
+        method: "POST",
+        body,
+        headers: idemHeader(idempotencyKey),
+      }),
+      transformResponse,
+      invalidatesTags: ["Account"],
     }),
 
     /** Bakong member banks, for the local bank picker. */
@@ -190,6 +209,7 @@ export const transferApi = baseApi.injectEndpoints({
         headers: idemHeader(idempotencyKey),
       }),
       transformResponse,
+      invalidatesTags: ["Schedule", "Account"],
     }),
 
     requestBulkTransferAuthenticator: build.mutation<BulkTransferResult, Idempotent<string>>({
@@ -215,6 +235,7 @@ export const {
   useSubmitOtherSmeAccountTransferMutation,
   useSubmitBakongLocalBankTransferMutation,
   useSubmitBakongWalletTransferMutation,
+  useSubmitInternationalTransferMutation,
   useListBakongBanksQuery,
   useInquireExternalAccountMutation,
   useInquireSmeAccountMutation,

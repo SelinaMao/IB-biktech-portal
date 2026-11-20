@@ -13,10 +13,12 @@ import BaseInput from "@core/form/BaseInput";
 import BaseSelect from "@core/form/BaseSelect";
 import BaseTextArea from "@core/form/BaseTextArea";
 import { scheduleFrequencies } from "../transfer.data";
+import { useSubmitOwnAccountTransferMutation } from "../transfer.api";
 import {
   accountOptionLabel,
   accountSelectOptions,
   amountPreviewValue,
+  buildTransferSchedule,
   buildTransferSummaryRows,
   currencyLabel,
   CURRENCY_OPTIONS,
@@ -76,6 +78,24 @@ export default function ScheduleTransfer({ open, onClose }: ScheduleTransferProp
   ];
 
   const summaryRows = buildTransferSummaryRows(values.amount, values.currency);
+  const [submitTransfer] = useSubmitOwnAccountTransferMutation();
+
+  const submit = (idempotencyKey?: string) =>
+    submitTransfer({
+      body: {
+        fromAccountNumber: fromAccount?.number ?? "",
+        toAccountNumber: toAccount?.number ?? "",
+        amount: Number(values.amount),
+        currency: values.currency,
+        remark: values.remark.trim() || undefined,
+        schedule: buildTransferSchedule({
+          scheduleTransfer: true,
+          frequency: values.frequency,
+          scheduleDate: values.scheduleDate,
+        }),
+      },
+      idempotencyKey: idempotencyKey || crypto.randomUUID(),
+    }).unwrap();
 
   return (
     <PreviewTransfer
@@ -94,6 +114,7 @@ export default function ScheduleTransfer({ open, onClose }: ScheduleTransferProp
         />
       }
       canSubmit={Boolean(values.amount && values.scheduleDate && fromAccountId && toAccountId)}
+      submit={submit}
       previewFields={previewFields}
       summaryRows={summaryRows}
       successMessage={`${values.amount} ${currencyLabel(values.currency)} scheduled to ${toAccount?.name ?? "the selected account"} starting ${values.scheduleDate}.`}

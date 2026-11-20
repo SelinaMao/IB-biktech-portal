@@ -88,6 +88,7 @@ export default function RolesPage() {
   if ((canCreate && createOpen) || (canEdit && Boolean(editTarget))) {
     return (
       <RoleForm
+        key={editTarget?.id ?? "new-role"}
         role={editTarget}
         onCancel={closeWizard}
         onSuccess={closeWizard}

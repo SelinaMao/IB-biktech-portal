@@ -65,24 +65,36 @@ export default function BaseMultiSelect({
         },
       }}
     >
-      {options.map((option) => (
-        <MenuItem key={option.value} value={option.value} disabled={option.disabled}>
-          <Checkbox checked={value.includes(option.value)} size="small" sx={{ mr: 1 }} />
-          <Box component="span">
-            <Box component="span" sx={{ display: "block" }}>
-              {option.label}
-            </Box>
-            {option.description ? (
-              <Box
-                component="span"
-                sx={{ display: "block", fontSize: "0.75rem", color: palette.text.secondary }}
-              >
-                {option.description}
-              </Box>
-            ) : null}
-          </Box>
+      {options.length === 0 ? (
+        <MenuItem disabled>
+          <Typography sx={{ color: palette.text.secondary, fontSize: "0.875rem" }}>
+            No accounts available
+          </Typography>
         </MenuItem>
-      ))}
+      ) : (
+        options.map((option) => (
+          <MenuItem key={option.value} value={option.value} disabled={option.disabled}>
+            <Checkbox
+              checked={value.some((v) => String(v) === String(option.value))}
+              size="small"
+              sx={{ mr: 1 }}
+            />
+            <Box component="span">
+              <Box component="span" sx={{ display: "block" }}>
+                {option.label}
+              </Box>
+              {option.description ? (
+                <Box
+                  component="span"
+                  sx={{ display: "block", fontSize: "0.75rem", color: palette.text.secondary }}
+                >
+                  {option.description}
+                </Box>
+              ) : null}
+            </Box>
+          </MenuItem>
+        ))
+      )}
     </BaseInput>
   );
 }

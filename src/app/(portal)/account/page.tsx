@@ -516,6 +516,18 @@ export default function AccountPage() {
         transaction={selectedTransaction}
         onDownload={handleDownloadTransactionDetail}
         isDownloading={isDownloadingTransaction}
+        onAddSchedule={(txn) => {
+          showToast("info", {
+            title: "Add schedule",
+            message: `Scheduled recurring transfer to ${txn.toAccountName || "recipient"}.`,
+          });
+        }}
+        onSaveTemplate={(txn) => {
+          showToast("success", {
+            title: "Template Saved",
+            message: `Saved transfer to ${txn.toAccountName || "recipient"} as template.`,
+          });
+        }}
       />
 
       <NewAccountDialog open={newAccountOpen} onClose={() => setNewAccountOpen(false)} />

@@ -2,12 +2,11 @@
 
 import React from "react";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Landmark, Plus, Smartphone, UserRound, Users, Wallet } from "lucide-react";
 
-import { palette } from "@/theme/palette";
+import BaseButton from "@core/components/BaseButton";
 
 export interface PayrollEmptyStateProps {
   onMakePayroll: () => void;
@@ -165,7 +164,8 @@ export default function PayrollEmptyState({ onMakePayroll }: PayrollEmptyStatePr
         </Box>
 
         {/* Action Button */}
-        <Button
+        <BaseButton
+          title="Make Payroll"
           variant="contained"
           onClick={onMakePayroll}
           startIcon={<Plus size={18} />}
@@ -174,6 +174,7 @@ export default function PayrollEmptyState({ onMakePayroll }: PayrollEmptyStatePr
             px: 3.5,
             borderRadius: "10px",
             bgcolor: "#1B5299",
+            backgroundColor: "#1B5299",
             color: "#FFFFFF",
             fontSize: 14,
             fontWeight: 600,
@@ -181,12 +182,11 @@ export default function PayrollEmptyState({ onMakePayroll }: PayrollEmptyStatePr
             boxShadow: "none",
             "&:hover": {
               bgcolor: "#15427C",
+              backgroundColor: "#15427C",
               boxShadow: "none",
             },
           }}
-        >
-          Make Payroll
-        </Button>
+        />
       </Box>
     </Box>
   );

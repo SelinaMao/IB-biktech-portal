@@ -3,7 +3,6 @@
 import React, { useMemo } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import InputBase from "@mui/material/InputBase";
 import Stack from "@mui/material/Stack";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -12,8 +11,10 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
-import { ChevronLeft, ChevronRight, MoreHorizontal, Search, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, MoreHorizontal, Upload } from "lucide-react";
 
+import BaseButton from "@core/components/BaseButton";
+import BaseSearchButton from "@core/components/BaseSearchButton";
 import { palette } from "@/theme/palette";
 import type { PayrollItem } from "../payroll.types";
 import PayrollStatusChip from "./PayrollStatusChip";
@@ -102,66 +103,42 @@ export default function PayrollTable({
           }}
         >
           {/* Search Box */}
-          <Box
+          <BaseSearchButton
+            placeholder="Search"
+            value={search}
+            onChange={onSearchChange}
+            width={230}
+            focusBorderColor="#1B5299"
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              px: 1.75,
-              height: 40,
               width: { xs: "100%", sm: 230 },
-              borderRadius: "10px",
-              border: `1px solid ${palette.slate[200]}`,
-              bgcolor: "#FFFFFF",
-              transition: "border-color 0.15s ease, box-shadow 0.15s ease",
-              "&:focus-within": {
-                borderColor: "#1B5299",
-                boxShadow: "0 0 0 1px #1B5299",
-              },
             }}
-          >
-            <Search size={17} color="#64748B" style={{ flexShrink: 0 }} />
-            <InputBase
-              placeholder="Search"
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              sx={{
-                fontSize: 14,
-                color: "#0F172A",
-                width: "100%",
-                "& input": { p: 0 },
-                "& input::placeholder": {
-                  color: "#94A3B8",
-                  opacity: 1,
-                },
-              }}
-            />
-          </Box>
+          />
 
           {/* Upload payroll Button */}
-          <Button
+          <BaseButton
+            title="Upload payroll"
             variant="contained"
             onClick={onUploadClick}
             startIcon={<Upload size={17} />}
             sx={{
               height: 40,
-              px: 2.25,
+              px: 4.25,
               borderRadius: "10px",
               bgcolor: "#1B5299",
+              backgroundColor: "#1B5299",
               color: "#FFFFFF",
               fontSize: 14,
-              fontWeight: 500,
+              fontWeight: 400,
               textTransform: "none",
               boxShadow: "none",
               whiteSpace: "nowrap",
               "&:hover": {
                 bgcolor: "#15427C",
+                backgroundColor: "#15427C",
                 boxShadow: "none",
               },
             }}
-          >
-            Upload payroll
-          </Button>
+          />
         </Stack>
       </Stack>
 

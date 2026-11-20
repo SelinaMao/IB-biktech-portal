@@ -30,11 +30,15 @@ async function handler(request: Request) {
     }
   }
 
-  return coreFetch(`workflow/orgs/${encodeURIComponent(orgId)}/rules`, {
+  const res = await coreFetch(`workflow/orgs/${encodeURIComponent(orgId)}/rules`, {
     method: request.method,
     body,
     accessToken: token,
   });
+  const cloned = res.clone();
+  const text = await cloned.text();
+  console.log(`[workflow/rules] status=${res.status} body=${text.slice(0, 1000)}`);
+  return res;
 }
 
 export { handler as GET, handler as POST };

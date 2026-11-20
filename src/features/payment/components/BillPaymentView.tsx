@@ -13,7 +13,7 @@ import { ChevronRight, Search } from "lucide-react";
 
 import { palette } from "@/theme/palette";
 import BaseCard from "@core/components/BaseCard";
-import { BILL_CATEGORIES, INITIAL_BILL_PROVIDERS } from "../payment.data";
+import { BILL_CATEGORIES, BILL_PROVIDERS } from "../payment.data";
 import type { BillCategory, BillProvider } from "../payment.types";
 
 export interface BillPaymentViewProps {
@@ -27,7 +27,7 @@ export default function BillPaymentView({
   const [search, setSearch] = useState("");
 
   const filteredProviders = useMemo(() => {
-    return INITIAL_BILL_PROVIDERS.filter((provider) => {
+    return BILL_PROVIDERS.filter((provider) => {
       const matchesCategory =
         selectedCategory === "All" ||
         provider.category.toLowerCase() === selectedCategory.toLowerCase();
@@ -155,7 +155,7 @@ export default function BillPaymentView({
           </Grid>
         ) : (
           filteredProviders.map((provider) => (
-            <Grid key={provider.id} size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid key={provider.providerId} size={{ xs: 12, sm: 6, md: 4 }}>
               <BaseCard
                 component="button"
                 type="button"
