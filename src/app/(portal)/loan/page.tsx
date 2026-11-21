@@ -1,329 +1,338 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Box, Grid } from "@mui/material";
+import dayjs from "dayjs";
+import { Alert, Box, CircularProgress, Grid, Stack, Typography } from "@mui/material";
+
 import { resolveBaseDownloadRange, type BaseDownloadValue } from "@core/components/BaseDownloadPanel";
 import { DEFAULT_PIE_COLORS } from "@core/components/PieChart";
 import { showToast } from "@core/components/AppToast";
-import { useAppSelector } from "@/store/hooks";
 import { downloadBlob } from "@/utils/download-file";
+import { useAppSelector } from "@/store/hooks";
 import {
   downloadTransactionStatement,
-  type TransactionDownloadFileType,
-  selectAccountDetailResponse,
   selectAccountsResponse,
   useGetAccountDetailMutation,
   useListAccountsMutation,
   type CoreAccountEntry,
+  type IAccountDetailResponses,
 } from "@/features/account";
 import {
-  LoanDetailsPanel,
   LoanDetailCard,
-  LoansSidebar,
+  LoanDetailsPanel,
   LoanSummaryPanel,
-  getLoanIndicatorColor,
-  loanDetailsById,
-  loanAccounts as mockLoanAccounts,
-  loanSummary as mockLoanSummary,
-  type LoanAccountListItem,
   LoanTransactionsCard,
+  LoansSidebar,
+  getLoanIndicatorColor,
+  type LoanAccountListItem,
+  type LoanScheduleDetails,
+  type LoanTransaction,
 } from "@/features/loan";
 
 const STATEMENT_DOWNLOAD_FORMATS: Record<
   BaseDownloadValue["format"],
-  { fileType: TransactionDownloadFileType; extension: string }
+  { fileType: "PDF" | "CSV" | "EXCEL"; extension: string }
 > = {
   pdf: { fileType: "PDF", extension: "pdf" },
   csv: { fileType: "CSV", extension: "csv" },
   excel: { fileType: "EXCEL", extension: "xlsx" },
 };
 
-// No live loan-detail/repayment API yet — the overview + transactions panels
-// keep reading this mock entry regardless of which live loan account is
-// selected in the sidebar (mirrors `account/page.tsx`'s DEFAULT_ACCOUNT_ID
-// fallback for fields with no API yet).
-const DEFAULT_LOAN_DETAILS_KEY = "term-loan";
-
-/** Maps a live `accounts` row (filtered to `accountType === "CL"`) to the
- *  shape `LoansSidebar` consumes. */
 const mapLoanAccount = (entry: CoreAccountEntry): LoanAccountListItem => ({
   id: entry.accountNumber,
   name: entry.accountName,
   number: entry.accountNumber,
   type: entry.accountClassDescription || entry.accountType,
-  balance: entry.availableBalance,
+  balance: Number(entry.availableBalance) || 0,
   currency: entry.ccy,
 });
 
+function currencyAmount(amount: number | undefined, currency: string) {
+  return `${currency} ${Number(amount ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function displayDate(value?: string | null) {
+  if (!value) return "—";
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed.format("DD MMM YYYY") : value;
+}
+
+function mapInstallments(
+  accountNumber: string,
+  detail: IAccountDetailResponses,
+  currency: string,
+): LoanTransaction[] {
+  let balance = Number(detail.ledgerBalance ?? detail.currentBalance ?? 0);
+  return (detail.instalments ?? []).map((installment) => {
+    const principal = Number(installment.principal) || 0;
+    const interest = Number(installment.interest) || 0;
+    const total = Number(installment.totalInstalment) || principal + interest;
+    balance = Math.max(0, balance - principal);
+    const date = installment.dueDate ?? "";
+    const parsedDate = dayjs(date);
+    const status = parsedDate.isValid() && parsedDate.isBefore(dayjs(), "day")
+      ? "overdue"
+      : parsedDate.isValid() && parsedDate.isSame(dayjs(), "day")
+        ? "due"
+        : "upcoming";
+    const installmentNumber = installment.instNo ?? "";
+    return {
+      no: installmentNumber,
+      title: `Installment ${installmentNumber}`,
+      ref: `${accountNumber}-${installmentNumber}`,
+      date,
+      dueDate: displayDate(date),
+      principal: currencyAmount(principal, currency),
+      interest: currencyAmount(interest, currency),
+      total: currencyAmount(total, currency),
+      amount: currencyAmount(total, currency),
+      balance: currencyAmount(balance, currency),
+      direction: "out",
+      status,
+    };
+  });
+}
+
+function mapSchedule(
+  account: LoanAccountListItem,
+  detail: IAccountDetailResponses,
+  settlementAccountName?: string,
+): LoanScheduleDetails {
+  const installments = detail.instalments ?? [];
+  const outstanding = Number(detail.ledgerBalance ?? detail.currentBalance ?? account.balance) || 0;
+  const tenor = Number(detail.tenorOriginal) || 0;
+  const remaining = Number(detail.totalInstalmentRemain ?? detail.tenorRemaining) || installments.length;
+  const overdueCount = installments.filter((item) => dayjs(item.dueDate).isBefore(dayjs(), "day")).length;
+  const frequency = detail.installmentFrequency?.replaceAll("_", " ") || "—";
+  const tenorLabel = tenor && detail.tenorUnit
+    ? `${tenor} ${detail.tenorUnit === "M" ? "months" : detail.tenorUnit}`
+    : undefined;
+
+  return {
+    approvedLimit: Number(detail.loanAmount ?? account.balance) || 0,
+    outstandingPrincipal: outstanding,
+    interestRatePct: Number(detail.interestRate) || 0,
+    nextInstallmentAmount: Number(detail.installmentAmount) || 0,
+    nextInstallmentDate: displayDate(detail.nextPaymentDate),
+    disbursementDate: displayDate(detail.disbursementDate),
+    maturityDate: displayDate(detail.maturityDate),
+    repaymentMethod: frequency,
+    repaymentFrequency: frequency,
+    remainingInstallments: remaining,
+    totalInstallments: tenor || remaining,
+    overdueCount,
+    currency: account.currency,
+    accountType: account.type,
+    tenorLabel,
+    settlementAccountName,
+    settlementAccountNumber: detail.accountSettlementNumber || undefined,
+  };
+}
+
 export default function LoanPage() {
-  // `listAccounts` is a mutation with no fetch-on-mount of its own (same
-  // pattern as `account/page.tsx`) — trigger it manually and read the
-  // response back from the slice via `selectAccountsResponse`.
-  const [listAccounts] = useListAccountsMutation();
-  useEffect(() => {
-    listAccounts({ type: "CL" });
-  }, [listAccounts]);
+  const [listAccounts, { isLoading: accountsLoading }] = useListAccountsMutation();
+  const [getAccountDetail] = useGetAccountDetailMutation();
   const accountsResponse = useAppSelector(selectAccountsResponse);
-
-  const liveLoanAccounts = useMemo(() => {
-    const accounts = accountsResponse?.accounts ?? [];
-    if (accounts.length === 0) return [];
-    const clAccounts = accounts.filter(
-      (a) => a.accountType === "CL" || a.type === "CL",
-    );
-    if (clAccounts.length > 0) {
-      return clAccounts.map(mapLoanAccount);
-    }
-    const hasOtherTypes = accounts.some(
-      (a) => a.accountType === "CA" || a.accountType === "TD",
-    );
-    if (hasOtherTypes) {
-      return [];
-    }
-    return accounts.map(mapLoanAccount);
-  }, [accountsResponse]);
-
-  const loanAccounts = useMemo(() => {
-    return liveLoanAccounts.length > 0 ? liveLoanAccounts : mockLoanAccounts;
-  }, [liveLoanAccounts]);
-
-  const outstandingByCcy = useMemo(() => {
-    const totals = loanAccounts.reduce(
-      (acc, loan) => {
-        const currency = loan.currency?.toUpperCase();
-        const balance = Number(loan.balance) || 0;
-        if (currency === "KHR") acc.khr += balance;
-        if (currency === "USD") acc.usd += balance;
-        return acc;
-      },
-      { khr: 0, usd: 0 },
-    );
-    if (totals.khr === 0 && totals.usd === 0 && mockLoanSummary) {
-      return {
-        khr: mockLoanSummary.outstandingKhr,
-        usd: mockLoanSummary.outstandingUsd,
-      };
-    }
-    return totals;
-  }, [loanAccounts]);
-
-  // Starts with no loan pre-selected so on initial page load only LoansSidebar is visible
-  const [selectedLoanId, setSelectedLoanId] = useState<string | undefined>();
+  const [loanDetails, setLoanDetails] = useState<Record<string, IAccountDetailResponses>>({});
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [selectedLoanId, setSelectedLoanId] = useState<string>();
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  const selectedLoanAccount = useMemo(() => {
-    if (!selectedLoanId) return undefined;
-    return loanAccounts.find(
-      (l) => l.id === selectedLoanId || l.number === selectedLoanId,
-    );
-  }, [loanAccounts, selectedLoanId]);
-
-  const selectedIndex = useMemo(() => {
-    if (!selectedLoanAccount) return 0;
-    const idx = loanAccounts.findIndex(
-      (l) => l.id === selectedLoanAccount.id || l.number === selectedLoanAccount.number,
-    );
-    return idx >= 0 ? idx : 0;
-  }, [loanAccounts, selectedLoanAccount]);
-
-  const selectedLoanColor = useMemo(() => {
-    if (!selectedLoanAccount) return DEFAULT_PIE_COLORS[0];
-    return getLoanIndicatorColor(selectedLoanAccount, selectedIndex);
-  }, [selectedLoanAccount, selectedIndex]);
-
-  const selectedLoanDetails = useMemo(() => {
-    if (selectedLoanId && loanDetailsById[selectedLoanId]) {
-      return loanDetailsById[selectedLoanId];
-    }
-    if (selectedLoanAccount) {
-      const byNumber = Object.values(loanDetailsById).find(
-        (d) => d.borrower?.accountNumber === selectedLoanAccount.number,
-      );
-      if (byNumber) return byNumber;
-
-      const isOverdraft =
-        selectedLoanAccount.type?.toLowerCase().includes("overdraft") ||
-        selectedLoanAccount.name?.toLowerCase().includes("overdraft") ||
-        selectedLoanAccount.id === "overdraft";
-      if (isOverdraft && loanDetailsById["overdraft"]) {
-        return loanDetailsById["overdraft"];
-      }
-    }
-    return loanDetailsById[DEFAULT_LOAN_DETAILS_KEY] ?? Object.values(loanDetailsById)[0];
-  }, [selectedLoanId, selectedLoanAccount]);
-
-  // Same pattern as `account/page.tsx`: `getAccountDetail` is a mutation with
-  // no fetch-on-mount of its own — trigger it manually whenever the selected
-  // loan changes and read the response back from the slice.
-  const [getAccountDetail] = useGetAccountDetailMutation();
   useEffect(() => {
-    if (selectedLoanAccount?.number) {
-      getAccountDetail({ accountNumber: selectedLoanAccount.number, type: "CL" });
+    listAccounts({ type: "CL" })
+      .unwrap()
+      .catch(() => showToast("error", { title: "Loans unavailable", message: "Could not load loan accounts from CBS." }));
+  }, [listAccounts]);
+
+  const liveLoanAccounts = useMemo(() => {
+    const rows = accountsResponse?.accounts ?? [];
+    return rows
+      .filter((account) => account.accountType === "CL" || account.type === "CL")
+      .map(mapLoanAccount);
+  }, [accountsResponse]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!liveLoanAccounts.length) {
+      setLoanDetails({});
+      setDetailsLoading(false);
+      return;
     }
-  }, [selectedLoanAccount?.number, getAccountDetail]);
+    setDetailsLoading(true);
+    void Promise.all(liveLoanAccounts.map(async (account) => {
+      try {
+        const detail = await getAccountDetail({ accountNumber: account.number, type: "CL" }).unwrap();
+        return [account.number, detail] as const;
+      } catch {
+        return null;
+      }
+    })).then((results) => {
+      if (cancelled) return;
+      const loaded = Object.fromEntries(results.filter((item): item is NonNullable<typeof item> => item !== null));
+      setLoanDetails(loaded);
+      setDetailsLoading(false);
+      if (Object.keys(loaded).length !== liveLoanAccounts.length) {
+        showToast("error", { title: "Loan details unavailable", message: "Some CBS loan details could not be loaded." });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [liveLoanAccounts, getAccountDetail]);
 
-  const accountDetailResponse = useAppSelector(selectAccountDetailResponse);
-  const detailReady = Boolean(
-    accountDetailResponse &&
-    (accountDetailResponse.accountNumber === selectedLoanAccount?.number ||
-      accountDetailResponse.accountNumber === selectedLoanId),
-  );
-  const accountInfoDetail = useMemo(
-    () => (detailReady ? accountDetailResponse! : undefined),
-    [detailReady, accountDetailResponse],
-  );
-
-  const borrower = useMemo(
-    () => ({
-      ...selectedLoanDetails.borrower,
-      name:
-        accountInfoDetail?.accountName ||
-        selectedLoanAccount?.name ||
-        selectedLoanDetails.borrower.name,
-      accountNumber:
-        accountInfoDetail?.accountNumber ||
-        selectedLoanAccount?.number ||
-        selectedLoanDetails.borrower.accountNumber,
-    }),
-    [accountInfoDetail, selectedLoanAccount, selectedLoanDetails],
-  );
-
-  const schedule = useMemo(() => {
+  const loanAccounts = useMemo(() => liveLoanAccounts.map((account) => {
+    const detail = loanDetails[account.number];
     return {
-      ...selectedLoanDetails.schedule,
-      outstandingPrincipal:
-        selectedLoanAccount?.balance ?? selectedLoanDetails.schedule.outstandingPrincipal,
-      currency:
-        selectedLoanAccount?.currency ?? selectedLoanDetails.schedule.currency,
-      accountType:
-        selectedLoanAccount?.type ?? selectedLoanDetails.schedule.accountType,
-      settlementAccountName: borrower.name,
-      settlementAccountNumber: borrower.accountNumber,
+      ...account,
+      balance: Number(detail?.ledgerBalance ?? detail?.currentBalance ?? account.balance) || 0,
     };
-  }, [selectedLoanDetails, selectedLoanAccount, borrower]);
+  }), [liveLoanAccounts, loanDetails]);
+
+  const outstandingByCcy = useMemo(() => loanAccounts.reduce(
+    (totals, account) => {
+      const currency = account.currency.toUpperCase();
+      if (currency === "KHR") totals.khr += account.balance;
+      if (currency === "USD") totals.usd += account.balance;
+      return totals;
+    },
+    { khr: 0, usd: 0 },
+  ), [loanAccounts]);
+
+  const selectedLoanAccount = loanAccounts.find((account) => account.id === selectedLoanId || account.number === selectedLoanId);
+  const selectedIndex = selectedLoanAccount
+    ? loanAccounts.findIndex((account) => account.id === selectedLoanAccount.id)
+    : 0;
+  const selectedLoanColor = selectedLoanAccount
+    ? getLoanIndicatorColor(selectedLoanAccount, selectedIndex)
+    : DEFAULT_PIE_COLORS[0];
+  const accountInfoDetail = selectedLoanAccount ? loanDetails[selectedLoanAccount.number] : undefined;
+  const settlementAccountName = accountInfoDetail?.accountSettlementNumber
+    ? accountsResponse?.accounts.find((account) => account.accountNumber === accountInfoDetail.accountSettlementNumber)?.accountName
+    : undefined;
+  const schedule = selectedLoanAccount && accountInfoDetail
+    ? mapSchedule(selectedLoanAccount, accountInfoDetail, settlementAccountName)
+    : undefined;
+  const borrowerStatus = accountInfoDetail?.status?.toUpperCase() === "CLOSED"
+    ? "closed"
+    : schedule?.overdueCount
+      ? "overdue"
+      : "active";
+  const borrower = selectedLoanAccount && accountInfoDetail ? {
+    name: accountInfoDetail.fullName || accountInfoDetail.accountName || selectedLoanAccount.name,
+    accountNumber: accountInfoDetail.accountNumber || selectedLoanAccount.number,
+    status: borrowerStatus as "active" | "overdue" | "closed",
+  } : undefined;
+  const repayments = selectedLoanAccount && accountInfoDetail
+    ? mapInstallments(selectedLoanAccount.number, accountInfoDetail, selectedLoanAccount.currency)
+    : [];
 
   const handleExportStatements = async (value: BaseDownloadValue) => {
     if (!selectedLoanAccount?.number) return;
     try {
-      const formatCfg = STATEMENT_DOWNLOAD_FORMATS[value.format];
+      const format = STATEMENT_DOWNLOAD_FORMATS[value.format];
       const range = resolveBaseDownloadRange(value.range);
       const blob = await downloadTransactionStatement({
         accountNumber: selectedLoanAccount.number,
         type: "CL",
-        fileType: formatCfg.fileType,
+        fileType: format.fileType,
         startedDate: range?.start.toISOString(),
         endedDate: range?.end.toISOString(),
       });
-      downloadBlob(blob, `loan-statement-${selectedLoanAccount.number}.${formatCfg.extension}`);
-      showToast("success", {
-        title: "Download complete",
-        message: `Statement saved as .${formatCfg.extension}`,
-      });
+      downloadBlob(blob, `loan-statement-${selectedLoanAccount.number}.${format.extension}`);
+      showToast("success", { title: "Download complete", message: `Statement saved as .${format.extension}` });
     } catch {
-      showToast("error", {
-        title: "Download failed",
-        message: "Could not export loan statement. Please try again.",
-      });
+      showToast("error", { title: "Download failed", message: "Could not export loan statement. Please try again." });
     }
+  };
+
+  const downloadSchedule = (rows: LoanTransaction[], fileName: string) => {
+    const header = ["Installment", "Due Date", "Principal", "Interest", "Total", "Remaining Balance"];
+    const values = rows.map((row) => [row.no ?? "", row.dueDate ?? row.date, row.principal, row.interest, row.total, row.balance]);
+    const csvValue = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+    const csv = [header, ...values].map((row) => row.map(csvValue).join(",")).join("\r\n");
+    downloadBlob(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }), fileName);
   };
 
   return (
     <Box sx={{ width: "100%" }}>
-      <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, lg: 3 }}>
-          <LoansSidebar
-            outstandingKhr={outstandingByCcy.khr}
-            outstandingUsd={outstandingByCcy.usd}
-            loans={loanAccounts}
-            selectedId={selectedLoanAccount?.id}
-            onSelect={(id) => setSelectedLoanId(id)}
-            onSelectSummary={() => setSelectedLoanId(undefined)}
-          />
+      {accountsLoading && loanAccounts.length === 0 ? (
+        <Stack alignItems="center" spacing={1.5} sx={{ py: 8 }}>
+          <CircularProgress size={28} />
+          <Typography color="text.secondary">Loading loan accounts from CBS…</Typography>
+        </Stack>
+      ) : loanAccounts.length === 0 ? (
+        <Alert severity="info">No loan accounts were returned by CBS.</Alert>
+      ) : (
+        <Grid container spacing={2.5}>
+          <Grid size={{ xs: 12, lg: 3 }}>
+            <LoansSidebar
+              outstandingKhr={outstandingByCcy.khr}
+              outstandingUsd={outstandingByCcy.usd}
+              loans={loanAccounts}
+              selectedId={selectedLoanAccount?.id}
+              onSelect={setSelectedLoanId}
+              onSelectSummary={() => setSelectedLoanId(undefined)}
+            />
+          </Grid>
+
+          <Grid size={{ xs: 12, lg: 9 }}>
+            {selectedLoanAccount ? schedule && borrower ? (
+              <Grid container spacing={2.5}>
+                <Grid size={12}>
+                  <LoanDetailCard
+                    key={selectedLoanAccount.id}
+                    loanName={selectedLoanAccount.name}
+                    accountNumber={selectedLoanAccount.number}
+                    loanType={selectedLoanAccount.type}
+                    outstandingAmount={selectedLoanAccount.balance}
+                    currency={selectedLoanAccount.currency}
+                    accentColor={selectedLoanColor}
+                    schedule={schedule}
+                    borrower={borrower}
+                    onOpenDetails={() => setDetailsOpen(true)}
+                    onOpenAccountInfo={() => setDetailsOpen(true)}
+                    onExportStatements={handleExportStatements}
+                    onPayNow={() => showToast("info", { title: "Loan Repayment", message: "Repayment is not available from this screen yet." })}
+                  />
+                </Grid>
+                <Grid size={12}>
+                  <LoanTransactionsCard
+                    key={selectedLoanAccount.id}
+                    transactions={repayments}
+                    accentColor={selectedLoanColor}
+                    borrowerName={borrower.name}
+                    borrowerAccountNumber={borrower.accountNumber}
+                  />
+                </Grid>
+              </Grid>
+            ) : (
+              <Stack alignItems="center" spacing={1.5} sx={{ py: 8 }}>
+                <CircularProgress size={28} />
+                <Typography color="text.secondary">Loading CBS loan details…</Typography>
+              </Stack>
+            ) : (
+              <Grid container spacing={2.5}>
+                <Grid size={12}>
+                  <LoanSummaryPanel loans={loanAccounts} totalKHR={outstandingByCcy.khr} totalUSD={outstandingByCcy.usd} />
+                </Grid>
+                <Grid size={12}>
+                  <LoanTransactionsCard transactions={[]} accentColor="#5AC0A0" />
+                </Grid>
+              </Grid>
+            )}
+          </Grid>
         </Grid>
+      )}
 
-        <Grid size={{ xs: 12, lg: 9 }}>
-          {selectedLoanAccount ? (
-            <Grid container spacing={2.5}>
-              <Grid size={12}>
-                <LoanDetailCard
-                  key={selectedLoanAccount.id}
-                  loanName={selectedLoanAccount.name}
-                  accountNumber={selectedLoanAccount.number}
-                  loanType={selectedLoanAccount.type || schedule.accountType}
-                  outstandingAmount={selectedLoanAccount.balance}
-                  currency={selectedLoanAccount.currency || schedule.currency}
-                  accentColor={selectedLoanColor}
-                  loanReference={
-                    selectedLoanAccount.id === "overdraft"
-                      ? "OD-2026-00014"
-                      : "LN-2026-00087"
-                  }
-                  borrower={borrower}
-                  schedule={schedule}
-                  onOpenDetails={() => setDetailsOpen(true)}
-                  onOpenAccountInfo={() => setDetailsOpen(true)}
-                  onExportStatements={handleExportStatements}
-                  onPayNow={() => {
-                    showToast("info", {
-                      title: "Loan Repayment",
-                      message: "Proceeding to repayment...",
-                    });
-                  }}
-                />
-              </Grid>
-
-              <Grid size={12}>
-                <LoanTransactionsCard
-                  key={selectedLoanAccount.id}
-                  transactions={selectedLoanDetails.transactions}
-                  accentColor={selectedLoanColor}
-                  borrowerName={borrower.name}
-                  borrowerAccountNumber={borrower.accountNumber}
-                />
-              </Grid>
-            </Grid>
-          ) : (
-            <Grid container spacing={2.5}>
-              <Grid size={12}>
-                <LoanSummaryPanel
-                  loans={loanAccounts}
-                  totalKHR={outstandingByCcy.khr}
-                  totalUSD={outstandingByCcy.usd}
-                />
-              </Grid>
-
-              <Grid size={12}>
-                <LoanTransactionsCard
-                  key="default-loan"
-                  transactions={selectedLoanDetails.transactions}
-                  accentColor="#5AC0A0"
-                  borrowerName={borrower.name}
-                  borrowerAccountNumber={borrower.accountNumber}
-                />
-              </Grid>
-            </Grid>
-          )}
-        </Grid>
-      </Grid>
-
-      <LoanDetailsPanel
-        open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-        borrower={borrower}
-        schedule={schedule}
-        onDownloadSchedule={() => {
-          showToast("info", {
-            title: "Download Schedule",
-            message: "Downloading loan schedule...",
-          });
-        }}
-        onDownloadRemainingInstallments={() => {
-          showToast("info", {
-            title: "Download Installments",
-            message: "Downloading remaining installments...",
-          });
-        }}
-      />
+      {selectedLoanAccount && borrower && schedule && (
+        <LoanDetailsPanel
+          open={detailsOpen}
+          onClose={() => setDetailsOpen(false)}
+          borrower={borrower}
+          schedule={schedule}
+          onDownloadSchedule={() => downloadSchedule(repayments, `loan-schedule-${selectedLoanAccount.number}.csv`)}
+          onDownloadRemainingInstallments={() => downloadSchedule(repayments, `loan-remaining-installments-${selectedLoanAccount.number}.csv`)}
+        />
+      )}
+      {detailsLoading && loanAccounts.length > 0 && <Typography variant="caption" color="text.secondary">Refreshing loan details from CBS…</Typography>}
     </Box>
   );
 }

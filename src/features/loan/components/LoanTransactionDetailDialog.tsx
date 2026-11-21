@@ -14,7 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 import type { TransitionProps } from "@mui/material/transitions";
-import { Calendar, CheckCircle2, Download, FileText, X } from "lucide-react";
+import { CheckCircle2, Download, X } from "lucide-react";
 
 import { font, palette, radius } from "@/theme/palette";
 import { formatAccountNumber } from "@/utils/format-account-number";
@@ -107,10 +107,10 @@ function SectionSubhead({ title }: { title: string }) {
 }
 
 function formatLoanTxnDateTime(dateStr?: string) {
-  if (!dateStr) return "19 Oct 2026, 08:15 AM";
+  if (!dateStr) return "—";
   const parsed = dayjs(dateStr);
   if (parsed.isValid()) {
-    return parsed.format("D MMM YYYY, 08:15 AM");
+    return parsed.format("D MMM YYYY");
   }
   return dateStr;
 }
@@ -122,8 +122,6 @@ export interface LoanTransactionDetailDialogProps {
   borrowerName?: string;
   borrowerAccountNumber?: string;
   onDownload?: (transaction: LoanTransaction) => void;
-  onAddSchedule?: (transaction: LoanTransaction) => void;
-  onSaveTemplate?: (transaction: LoanTransaction) => void;
 }
 
 /**
@@ -137,20 +135,18 @@ export default function LoanTransactionDetailDialog({
   borrowerName,
   borrowerAccountNumber,
   onDownload,
-  onAddSchedule,
-  onSaveTemplate,
 }: LoanTransactionDetailDialogProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
   if (!transaction) return null;
 
-  const rawAccNumber = borrowerAccountNumber || "0012 3456 7890";
+  const rawAccNumber = borrowerAccountNumber || "";
   const formattedAccountNumber = formatAccountNumber(rawAccNumber) || rawAccNumber;
-  const accountDisplayName = borrowerName || "Operating account";
+  const accountDisplayName = borrowerName || "—";
 
   // Amount formatting with negative sign for debit repayment
-  const rawTotal = transaction.total || transaction.amount || "KHR 8,240,000";
-  const displayAmount = rawTotal.startsWith("-")
+  const rawTotal = transaction.total || transaction.amount || "—";
+  const displayAmount = rawTotal === "—" ? "—" : rawTotal.startsWith("-")
     ? rawTotal
     : rawTotal.startsWith("+")
       ? rawTotal.replace(/^\+/, "-")
@@ -161,13 +157,11 @@ export default function LoanTransactionDetailDialog({
   // Date and Time
   const formattedDateTime = formatLoanTxnDateTime(transaction.date || transaction.dueDate);
 
-  // Field values with realistic fallbacks matching design
-  const transactionId = transaction.ref || "TXN-88213409";
-  const referenceNo = transaction.ref || "FT2610190008";
-  const toAccountName = "Loan Account";
-  const toAccountNo = "001 234 567";
-  const toBank = "Canadia Bank";
-  const remarks = transaction.title || "October office rent";
+  // The core supplies the scheduled installment values; missing optional fields stay empty.
+  const transactionId = transaction.ref || String(transaction.no ?? "—");
+  const referenceNo = transaction.ref || "—";
+  const toAccountName = "Loan account";
+  const remarks = transaction.title || "—";
 
   const handleDownloadPdf = async () => {
     if (onDownload) {
@@ -178,7 +172,7 @@ export default function LoanTransactionDetailDialog({
     try {
       const csv = [
         "Transaction ID,Reference,Date,Description,Amount,Status,Borrower,Borrower Account",
-        `"${transactionId}","${referenceNo}","${formattedDateTime}","${remarks}","${rawTotal}","${transaction.status || "Completed"}","${accountDisplayName}","${formattedAccountNumber}"`,
+        `"${transactionId}","${referenceNo}","${formattedDateTime}","${remarks}","${rawTotal}","${transaction.status || "—"}","${accountDisplayName}","${formattedAccountNumber}"`,
       ].join("\n");
       downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `loan-transaction-${transactionId}.csv`);
       showToast("success", {
@@ -193,28 +187,6 @@ export default function LoanTransactionDetailDialog({
     } finally {
       setIsDownloading(false);
     }
-  };
-
-  const handleAddSchedule = () => {
-    if (onAddSchedule) {
-      onAddSchedule(transaction);
-      return;
-    }
-    showToast("info", {
-      title: "Add schedule",
-      message: `Schedule created for ${toAccountName}.`,
-    });
-  };
-
-  const handleSaveTemplate = () => {
-    if (onSaveTemplate) {
-      onSaveTemplate(transaction);
-      return;
-    }
-    showToast("success", {
-      title: "Save as template",
-      message: `Template saved for ${toAccountName}.`,
-    });
   };
 
   return (
@@ -390,8 +362,6 @@ export default function LoanTransactionDetailDialog({
 
           <SectionSubhead title="To" />
           <DetailRow label="Account Name" value={toAccountName} />
-          <DetailRow label="Account No" value={toAccountNo} />
-          <DetailRow label="Bank" value={toBank} dottedDivider />
 
           <DetailRow
             label="Debit amount"
@@ -431,56 +401,9 @@ export default function LoanTransactionDetailDialog({
               },
             }}
           >
-            Download (PDF)
+            Download (CSV)
           </Button>
 
-          <Button
-            fullWidth
-            variant="outlined"
-            startIcon={<Calendar size={16} />}
-            onClick={handleAddSchedule}
-            sx={{
-              height: 42,
-              borderRadius: "10px",
-              borderColor: "#E2E8F0",
-              color: "#0F172A",
-              bgcolor: "#FFFFFF",
-              textTransform: "none",
-              fontSize: 13.5,
-              fontWeight: 600,
-              boxShadow: "none",
-              "&:hover": {
-                borderColor: "#CBD5E1",
-                bgcolor: "#F8FAFC",
-              },
-            }}
-          >
-            Add schedule
-          </Button>
-
-          <Button
-            fullWidth
-            variant="outlined"
-            startIcon={<FileText size={16} />}
-            onClick={handleSaveTemplate}
-            sx={{
-              height: 42,
-              borderRadius: "10px",
-              borderColor: "#E2E8F0",
-              color: "#0F172A",
-              bgcolor: "#FFFFFF",
-              textTransform: "none",
-              fontSize: 13.5,
-              fontWeight: 600,
-              boxShadow: "none",
-              "&:hover": {
-                borderColor: "#CBD5E1",
-                bgcolor: "#F8FAFC",
-              },
-            }}
-          >
-            Save as template
-          </Button>
         </Stack>
       </DialogContent>
     </Dialog>

@@ -100,6 +100,8 @@ export type PreviewTransferProps = {
      * authorizes it by QR; without it the mocked QR step is shown.
      */
     submit?: (idempotencyKey?: string) => Promise<TransferResult>;
+    /** Service specific authenticator renewal for bulk or payroll submissions. */
+    renewAuthenticator?: (referenceId: string, idempotencyKey: string) => Promise<import("@/features/authenticator").AuthenticatorRequest>;
     breadcrumbPrefix?: string;
     breadcrumbSubPrefix?: string;
     successTitle?: string;
@@ -153,6 +155,7 @@ export default function PreviewTransfer({
     onReset,
     onReview,
     submit,
+    renewAuthenticator,
     breadcrumbPrefix,
     breadcrumbSubPrefix,
     successTitle,
@@ -184,6 +187,7 @@ export default function PreviewTransfer({
 
     const authorization = useTransferAuthorization({
         submit,
+        renewAuthenticator,
         onCompleted: (completed) => {
             setResult(completed);
             setStep(2);

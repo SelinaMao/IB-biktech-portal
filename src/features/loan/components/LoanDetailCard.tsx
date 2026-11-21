@@ -75,7 +75,7 @@ export default function LoanDetailCard({
   const cardAccentColor = accentColor || "#5CAFE4";
 
   // Resolve data from props and borrower/schedule
-  const name = loanName || borrower?.name || "Car Loan";
+  const name = loanName || borrower?.name || "Loan account";
   const rawAccNumber = accountNumber || borrower?.accountNumber || "";
   const formattedAccNumber =
     formatAccountNumber(rawAccNumber) || rawAccNumber || "-";

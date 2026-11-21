@@ -36,9 +36,11 @@ function transferAnalytics(transfer: TransferResult) {
  */
 export function useTransferAuthorization({
   submit,
+  renewAuthenticator,
   onCompleted,
 }: {
   submit?: (idempotencyKey: string) => Promise<TransferResult>;
+  renewAuthenticator?: (referenceId: string, idempotencyKey: string) => Promise<AuthenticatorRequest>;
   /** The phone authorized it and the transfer went through to this. */
   onCompleted: (result: TransferResult) => void;
 }) {
@@ -105,6 +107,7 @@ export function useTransferAuthorization({
   const renew = async (): Promise<AuthenticatorRequest> => {
     if (!pending) throw new Error("No transfer is waiting for authorization");
     // Each renew is its own money-movement POST per ADR-004 path pattern; mint a dedicated key.
+    if (renewAuthenticator) return renewAuthenticator(pending.referenceId, crypto.randomUUID());
     const renewed = await requestNewAuthenticator({
       body: pending.referenceId,
       idempotencyKey: crypto.randomUUID(),

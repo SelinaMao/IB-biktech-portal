@@ -1,15 +1,12 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 
 import { showToast } from "@core/components/AppToast";
 import { font } from "@/theme/palette";
-import {
-  INITIAL_HISTORY_PAYROLLS,
-  INITIAL_PENDING_PAYROLLS,
-} from "../payroll.data";
 import type { PayrollItem } from "../payroll.types";
 import PayrollDetailDialog from "./PayrollDetailDialog";
 import PayrollEmptyState from "./PayrollEmptyState";
@@ -76,9 +73,10 @@ const tabSx = (active: boolean) => ({
 });
 
 export default function PayrollHub() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
-  const [pendingList, setPendingList] = useState<PayrollItem[]>(INITIAL_PENDING_PAYROLLS);
-  const [historyList, setHistoryList] = useState<PayrollItem[]>(INITIAL_HISTORY_PAYROLLS);
+  const [pendingList, setPendingList] = useState<PayrollItem[]>([]);
+  const [historyList] = useState<PayrollItem[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [rowsPerPage] = useState(5);
@@ -116,7 +114,7 @@ export default function PayrollHub() {
     setActiveTab("pending");
     showToast("success", {
       title: "Payroll Submitted",
-      message: `Payroll batch ${newPayroll.referenceNo} submitted successfully.`,
+      message: `Payroll batch ${newPayroll.referenceNo} is waiting for checker approval.`,
     });
   };
 
@@ -129,29 +127,19 @@ export default function PayrollHub() {
   };
 
   const handleApprovePayroll = (item: PayrollItem) => {
-    setPendingList((prev) => prev.filter((p) => p.id !== item.id));
-    const approvedItem: PayrollItem = {
-      ...item,
-      status: "Completed",
-    };
-    setHistoryList((prev) => [approvedItem, ...prev]);
-    showToast("success", {
-      title: "Payroll Approved",
-      message: `Payroll ${item.referenceNo} has been approved.`,
+    showToast("info", {
+      title: "Open approval workflow",
+      message: `Payroll ${item.referenceNo} stays pending until a checker approves it in the workflow.`,
     });
+    router.push("/approval-workflow");
   };
 
   const handleRejectPayroll = (item: PayrollItem) => {
-    setPendingList((prev) => prev.filter((p) => p.id !== item.id));
-    const rejectedItem: PayrollItem = {
-      ...item,
-      status: "Rejected",
-    };
-    setHistoryList((prev) => [rejectedItem, ...prev]);
     showToast("info", {
-      title: "Payroll Rejected",
-      message: `Payroll ${item.referenceNo} has been rejected.`,
+      title: "Open approval workflow",
+      message: `Payroll ${item.referenceNo} stays pending until a checker records a decision in the workflow.`,
     });
+    router.push("/approval-workflow");
   };
 
   // If currently in upload wizard view (Images 2, 3, 4)
