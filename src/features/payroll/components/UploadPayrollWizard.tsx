@@ -498,7 +498,7 @@ export default function UploadPayrollWizard({
                   </Typography>
 
                   <Typography sx={{ fontSize: 12.5, color: "#64748B" }}>
-                    Excel or CSV in the payroll template format
+                    Excel or CSV using the shared transfer columns. Receiver Name must contain the employee name.
                   </Typography>
                 </Box>
 
@@ -623,7 +623,7 @@ export default function UploadPayrollWizard({
                 Payroll template
               </Typography>
               <Typography sx={{ fontSize: 13, color: "#64748B", mb: 2.5 }}>
-                Use our template so every record is read correctly.
+                Uses the same columns as Bulk Transfer; enter the employee name in Receiver Name.
               </Typography>
 
               {/* Download buttons */}

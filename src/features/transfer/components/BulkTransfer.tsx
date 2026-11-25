@@ -163,7 +163,7 @@ export default function BulkTransfer({ open, onClose }: BulkTransferProps) {
           value={file ? [file] : []}
           onChange={(files) => setFile(files[0] ?? null)}
           accept=".csv,.xlsx,.xls"
-          helperText="CSV or Excel using the bulk transfer template"
+          helperText="Use Transfer Type, To Account / Bakong ID, Bank Code, Receiver Name, Amount, Currency, and Remark. International transfers are not supported in bulk files."
         />
         <Stack spacing={1.25}>
           <Stack direction="row" spacing={1.5}>

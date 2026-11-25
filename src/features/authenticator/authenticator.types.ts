@@ -9,14 +9,6 @@ export interface AuthenticatorRequest {
 /** auth-service `AuthenticatorStatus`; the phone authorizes it by scanning (web) or with the PIN (mobile). */
 export type AuthenticatorState = "PENDING" | "AUTHORIZED" | "CONSUMED" | "CANCELLED" | "EXPIRED";
 
-/** `GET auth/authenticator/{id}` response `data`. */
-export interface AuthenticatorStatus {
-  requestId: string;
-  status: AuthenticatorState;
-  expiresAt: string;
-  authorizedAt?: string | null;
-  consumedAt?: string | null;
-}
 export interface AuthenticatorResult {
   outcome: "SUCCEEDED" | "FAILED" | "UNKNOWN";
   /** The owning service's own status, e.g. a transfer's `COMPLETED` or `AWAITING_APPROVAL`. */
@@ -33,5 +25,6 @@ export interface AuthenticatorStatus {
   scannedAt?: string | null;
   authorizedAt?: string | null;
   consumedAt?: string | null;
+  summary?: unknown;
   result?: AuthenticatorResult | null;
 }

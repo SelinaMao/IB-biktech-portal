@@ -61,15 +61,20 @@ export function useTransferAuthorization({
     try {
       const submitted = await submit(key);
       trackEvent(AnalyticsEvent.TRANSFER_SUBMITTED, transferAnalytics(submitted));
-      setPending(submitted);
       if (submitted.authenticator) {
+        setPending(submitted);
         setQrOpen(true);
       } else {
-        // If the core completed it outright without requiring an authenticator challenge
+        if (submitted.status === "AWAITING_AUTHORIZATION") {
+          throw new Error("The transfer is waiting for phone authorization, but no QR request was returned.");
+        }
+        if (["REFUSED", "INDETERMINATE", "CANCELLED"].includes(submitted.status)) {
+          throw new Error(submitted.failureReason || `The transfer was not completed (${submitted.status}).`);
+        }
+        // The service returned a status directly, so no phone challenge is outstanding.
         onCompleted(submitted);
+        idem.reset();
       }
-      // Terminal success — a fresh form submission starts a fresh key.
-      idem.reset();
       return true;
     } catch (error) {
       // Keep the key: the user may click Confirm again (retry) and the server
@@ -83,27 +88,19 @@ export function useTransferAuthorization({
     }
   };
 
-  // The server carried it out once the phone authorized it; a refusal stays in the QR dialog
-  // const done = (result: AuthenticatorResult) => {
-  //   if (!pending) return;
-  //   setQrOpen(false);
-  //   setPending(null);
-  //   const completed = { ...pending, status: (result.status as TransferStatus | null | undefined) ?? pending.status };
-  //   trackEvent(AnalyticsEvent.TRANSFER_COMPLETED, { ...transferAnalytics(completed), status: completed.status });
-  //   onCompleted(completed);
-  // };
+  // The auth service records the owning payment service's result after it performs the transfer.
   const done = (result?: AuthenticatorResult) => {
     if (!pending) return;
+    if (result?.outcome !== "SUCCEEDED" || !result.status || result.status === "AWAITING_AUTHORIZATION") {
+      throw new Error(result?.message || "The payment service has not confirmed this transfer.");
+    }
     setQrOpen(false);
     setPending(null);
-    const completed = { ...pending, status: (result?.status as TransferStatus | null | undefined) ?? pending.status };
+    const completed = { ...pending, status: result.status as TransferStatus };
     trackEvent(AnalyticsEvent.TRANSFER_COMPLETED, { ...transferAnalytics(completed), status: completed.status });
     onCompleted(completed);
+    idem.reset();
   };
-  const authorize = async (_authenticatorRequestId?: string) => {
-    done({ outcome: "SUCCEEDED", status: "COMPLETED" });
-  };
-
   const renew = async (): Promise<AuthenticatorRequest> => {
     if (!pending) throw new Error("No transfer is waiting for authorization");
     // Each renew is its own money-movement POST per ADR-004 path pattern; mint a dedicated key.
@@ -127,5 +124,5 @@ export function useTransferAuthorization({
     idem.reset();
   };
 
-  return { pending, qrOpen, submitting, start, done, authorize, renew, closeQr, discard };
+  return { pending, qrOpen, submitting, start, done, renew, closeQr, discard };
 }

@@ -138,7 +138,7 @@ export default function International({ open, onClose }: InternationalProps) {
       previewFields={previewFields}
       summaryRows={summaryRows}
       submit={submit}
-      successMessage={`${values.amount} ${currencyLabel(values.currency)} sent to ${values.beneficiaryName || "the beneficiary"} in ${values.beneficiaryCountry}.`}
+      successMessage={`The payment service confirmed ${values.amount} ${currencyLabel(values.currency)} to ${values.beneficiaryName || "the beneficiary"} in ${values.beneficiaryCountry}.`}
       onReset={() => {
         setValues(INITIAL_VALUES);
         reset({ fromAccountId: accounts[0]?.id ?? "" });
