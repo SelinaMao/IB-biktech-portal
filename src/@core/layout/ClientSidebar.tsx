@@ -119,6 +119,15 @@ const NAV_ITEMS = [
     permissions: Object.values(CLIENT_PERMISSIONS.PAYMENT),
   },
   {
+    key: "Schedule",
+    href: "/schedule",
+    Icon: CalendarSync,
+    // Not in CLIENT_PERMISSIONS — confirmed codes are payment.payment.{create,approve},
+    // no payment.view code exists yet; not substituting since create/approve is a
+    // different scope than view.
+    permissions: Object.values(CLIENT_PERMISSIONS.PAYMENT),
+  },
+  {
     key: "Payroll",
     href: "/payroll",
     Icon: UsersRound,
@@ -129,30 +138,19 @@ const NAV_ITEMS = [
     ],
   },
   {
-    key: "Schedule",
-    href: "/schedule",
-    Icon: CalendarSync,
-    // Not in CLIENT_PERMISSIONS — confirmed codes are payment.payment.{create,approve},
-    // no payment.view code exists yet; not substituting since create/approve is a
-    // different scope than view.
-    permissions: Object.values(CLIENT_PERMISSIONS.PAYMENT),
+    key: "Other Services",
+    href: "/client-dashboard",
+    Icon: SquareMenu,
+    // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
+    permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
   },
-
-  // {
-  //   key: "Other Services",
-  //   href: "/client-dashboard",
-  //   Icon: SquareMenu,
-  //   // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
-  //   permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
-  // },
-  // {
-  //   key: "Merchant",
-  //   href: "/client-dashboard",
-  //   Icon: Store,
-  //   // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
-  //   permissions: Object.values(CLIENT_PERMISSIONS.MERCHANT),
-  // },
-
+  {
+    key: "Merchant",
+    href: "/client-dashboard",
+    Icon: Store,
+    // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
+    permissions: Object.values(CLIENT_PERMISSIONS.MERCHANT),
+  },
   {
     key: "Administrator",
     href: "/client-dashboard",
@@ -368,7 +366,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
       sx={{
         width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH,
         flexShrink: 0,
-        bgcolor: "#FFFFFF",
+        bgcolor: "#EDF0F4",
         display: "flex",
         flexDirection: "column",
         position: "sticky",
@@ -377,7 +375,6 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         maxHeight: `calc(100vh - ${TOPBAR_HEIGHT}px)`,
         transition: `width ${DURATION} ${EASE}`,
         overflow: "hidden",
-        borderRight: `1px solid ${palette.slate[200]}`,
         zIndex: 10,
       }}
     >
@@ -692,8 +689,8 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
               borderRadius: "10px",
               bgcolor: "#FFFFFF",
               cursor: "pointer",
-              // same padding in both states; centers the 12px dot in the collapsed rail
-              pl: `${ITEM_PX + (ICON_SIZE - 12) / 2 - 1.5}px`,
+              // collapsed: centers the 12px dot in the collapsed rail; expanded: tighter gap
+              pl: collapsed ? `${ITEM_PX + (ICON_SIZE - 12) / 2 - 1.5}px` : `${LIST_PX}px`,
               pr: `${ITEM_PX}px`,
               transition: "background-color 0.15s ease, border-color 0.15s ease",
               "&:hover": {
@@ -715,10 +712,13 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
             <Typography
               sx={{
                 ml: 1.25,
-                fontSize: "14px",
+                flex: collapsed ? "0 0 auto" : "1 1 auto",
+                minWidth: 0,
+                fontSize: font.size.sm,
                 fontWeight: font.weight.medium,
                 color: palette.slate[700],
                 whiteSpace: "nowrap",
+                textOverflow: "ellipsis",
                 overflow: "hidden",
                 opacity: collapsed ? 0 : 1,
                 maxWidth: collapsed ? 0 : 160,
@@ -737,7 +737,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
                 borderColor: isLinked ? "#7FE3B5" : palette.slate[300],
                 borderRadius: "5px",
                 color: isLinked ? "#065F46" : palette.slate[500],
-                fontSize: "12px",
+                fontSize: font.size.xs,
                 fontWeight: font.weight.bold,
                 letterSpacing: "0.5px",
                 lineHeight: 1.2,

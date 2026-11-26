@@ -155,7 +155,7 @@ export default function PortalTopBar({
       position="sticky"
       elevation={0}
       sx={{
-        bgcolor: "#FFFFFF",
+        bgcolor: "#E2E8F0",
         color: "text.primary",
         borderBottom: `1px solid ${palette.slate[200]}`,
         zIndex: (theme) => theme.zIndex.appBar,
@@ -191,7 +191,6 @@ export default function PortalTopBar({
             justifyContent: "space-between",
             height: `${TOPBAR_HEIGHT}px`,
             px: collapsed ? 1 : { xs: 2, sm: 1 },
-            borderRight: { xs: "none", sm: `1px solid ${palette.slate[200]}` },
             flexShrink: 0,
             transition: "width 200ms ease, min-width 200ms ease, max-width 200ms ease, padding 200ms ease",
           }}
@@ -281,6 +280,21 @@ export default function PortalTopBar({
             </Box>
           </IconButton>
         </Box>
+
+        <Divider
+          orientation="vertical"
+          flexItem
+          sx={{
+            display: { xs: "none", sm: "block" },
+            alignSelf: "center",
+            width: "1.5px",
+            height: 55,
+            my: 0,
+            bgcolor: "#D1D5DB",
+            borderColor: "#D1D5DB",
+            border: "none",
+          }}
+        />
 
         {/* Page / Section Title or Breadcrumbs */}
         {breadcrumb ? (

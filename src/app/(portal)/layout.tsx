@@ -6,11 +6,12 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { toggleHideAmount } from "@/store/global/global.slice";
 
 import { ClientSidebar, PortalTopBar, TopBarProvider } from "@core/layout";
-import { palette } from "@/theme/palette";
+import { palette, radius } from "@/theme/palette";
 import { SessionProvider } from "@/features/auth";
 import { useGetMetaQuery } from "@/features/meta";
-import { SIDEBAR_COLLAPSED_KEY } from "@/theme/layout";
+import { SIDEBAR_COLLAPSED_KEY, TOPBAR_HEIGHT } from "@/theme/layout";
 import React from "react";
+import BaseCard from "@/@core/components/BaseCard";
 
 /**
  * Chrome for authenticated portal screens:
@@ -40,7 +41,7 @@ export default function PortalLayout({
   return (
     <SessionProvider>
       <TopBarProvider>
-        <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", bgcolor: palette.slate[100] }}>
+        <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh", backgroundColor: "#EDF0F4" }}>
           {/* Full-width TopBar */}
           <PortalTopBar
             collapsed={collapsed}
@@ -48,25 +49,41 @@ export default function PortalLayout({
             hideAmount={hideAmount}
             onToggleHideAmount={handleToggleHideAmount}
           />
-        
-        {/* Content area: Sidebar on left, main content on right */}
-        <Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
-          <ClientSidebar collapsed={collapsed} />
 
-          <Box
-            component="main"
-            sx={{
-              flex: 1,
-              minWidth: 0,
-              p: { xs: 2.5, sm: 3, md: 4 },
-              backgroundColor: palette.slate[100],
-            }}
-          >
-            {children}
+          {/* Content area: Sidebar on left, main content on right */}
+          <Box sx={{ display: "flex", flex: 1, minHeight: 0 }}>
+            <ClientSidebar collapsed={collapsed} />
+
+            {/* <Box
+              component="main"
+              sx={{
+                flex: 1,
+                minWidth: 0,
+
+                m: { xs: 1.5, sm: 2 },
+                p: { xs: 2.5, sm: 3, md: 6 },
+              }}
+            > */}
+            <BaseCard
+              sx={{
+                bgcolor: "#F5F7FA",
+                borderTopLeftRadius: `${radius.xl}px`,
+                borderTopRightRadius: 0,
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                p: { xs: 2.5, sm: 3, md: 6 },
+                border: "none",
+                boxShadow: "none",
+                width: "100%",
+                minHeight: "100vh",
+              }}
+            >
+              {children}
+            </BaseCard>
+            {/* </Box> */}
           </Box>
         </Box>
-      </Box>
-    </TopBarProvider>
-  </SessionProvider>
+      </TopBarProvider>
+    </SessionProvider>
   );
 }
