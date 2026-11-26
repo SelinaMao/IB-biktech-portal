@@ -17,8 +17,9 @@ import { palette, radius } from "@/theme/palette";
 import BaseDialog from "@core/components/BaseDialog";
 import { showToast } from "@core/components/AppToast";
 import { useTransferAccounts } from "@/features/transfer/use-transfer-accounts";
+import { useTransferAuthorization } from "@/features/transfer/use-transfer-authorization";
+import { AuthenticatorDialog } from "@/features/authenticator";
 import { CLIENT_PERMISSIONS, useCan } from "@/features/auth";
-import { useIdempotencyKey } from "@/features/transfer/use-idempotency-key";
 import { toToastError } from "@/utils/api-error";
 import { BILL_PROVIDERS } from "../payment.data";
 import { useInquireBillMutation, useSubmitBillPaymentMutation } from "../payment.api";
@@ -62,10 +63,8 @@ export default function PayBillDialog({
   } | null>(null);
   const [inquireBill, { isLoading: isInquiring }] = useInquireBillMutation();
   const [submitBillPayment, { isLoading: isSubmitting }] = useSubmitBillPaymentMutation();
-  const { ensure: ensureIdempotencyKey, reset: resetIdempotencyKey } = useIdempotencyKey();
 
   useEffect(() => {
-    resetIdempotencyKey();
     if (template) {
       setConsumerId(template.correspondentId.replace(/^(Consumer ID|Mobile no\.|Organisation ID)\s*/, ""));
     } else if (provider) {
@@ -75,7 +74,7 @@ export default function PayBillDialog({
     setNote("");
     setSaveAsTemplate(false);
     setTemplateName(template?.name ?? provider?.name ?? "Bill payment");
-  }, [template, provider, open, resetIdempotencyKey]);
+  }, [template, provider, open]);
 
   const targetTitle = template ? template.name : provider?.name ?? "Payment";
   const targetInitials = template ? template.providerInitials : provider?.initials ?? "BP";
@@ -91,6 +90,34 @@ export default function PayBillDialog({
   const targetSubtitle = template
     ? `${template.type} · ${billProvider?.name ?? template.providerName}`
     : provider?.category ?? "Bill Payment";
+  const authorization = useTransferAuthorization({
+    submit: (idempotencyKey) => submitBillPayment({
+      body: {
+        fromAccountNumber: selectedAccount?.number ?? "",
+        providerId: billProvider?.providerId ?? "",
+        amount: Number(amount),
+        currency: selectedAccount?.currency ?? "",
+        remark: note.trim() || undefined,
+        isSaveTemplate: saveAsTemplate,
+        templateName: saveAsTemplate ? templateName.trim() || targetTitle : undefined,
+      },
+      idempotencyKey,
+    }).unwrap(),
+    onCompleted: (result) => {
+      if (result.status === "AWAITING_APPROVAL") {
+        showToast("success", {
+          title: "Bill payment submitted for approval",
+          message: `A checker must approve this request before payment is processed. Reference: ${result.referenceId}`,
+        });
+      } else {
+        showToast("success", {
+          title: "Bill payment authorized",
+          message: `The payment service returned ${result.status}. Reference: ${result.referenceId}`,
+        });
+      }
+      handleClose();
+    },
+  });
   const billKey = billProvider && consumerId.trim()
     ? `${billProvider.providerId}:${consumerId.trim()}`
     : "";
@@ -123,8 +150,8 @@ export default function PayBillDialog({
   };
 
   const handleClose = () => {
+    authorization.discard();
     setVerifiedBillKey("");
-    resetIdempotencyKey();
     onClose();
   };
 
@@ -134,37 +161,7 @@ export default function PayBillDialog({
       return;
     }
 
-    try {
-      const result = await submitBillPayment({
-        body: {
-          fromAccountNumber: selectedAccount.number,
-          providerId: billProvider.providerId,
-          amount: parsedAmount,
-          currency: selectedAccount.currency,
-          remark: note.trim() || undefined,
-          isSaveTemplate: saveAsTemplate,
-          templateName: saveAsTemplate ? templateName.trim() || targetTitle : undefined,
-        },
-        idempotencyKey: ensureIdempotencyKey(),
-      }).unwrap();
-      resetIdempotencyKey();
-
-      if (result.status !== "AWAITING_APPROVAL") {
-        showToast("warning", {
-          title: "Bill payment status needs review",
-          message: `The server returned ${result.status}. No payment-completed confirmation was shown. Reference: ${result.referenceId}`,
-        });
-        return;
-      }
-
-      showToast("success", {
-        title: "Bill payment submitted for approval",
-        message: `A checker must approve this request before payment is processed. Reference: ${result.referenceId}`,
-      });
-      handleClose();
-    } catch (error) {
-      showToast("error", toToastError(error, "Bill payment was not submitted"));
-    }
+    await authorization.start();
   };
 
   const isValid = Boolean(
@@ -179,19 +176,20 @@ export default function PayBillDialog({
   );
 
   return (
-    <BaseDialog
-      open={open}
-      onClose={handleClose}
-      title="Make payment"
-      subtitle="Submit this bill payment for checker approval"
-      confirmTitle="Submit for approval"
-      onConfirm={handleSubmit}
-      confirmDisabled={!isValid}
-      isLoading={isSubmitting}
-      cancelTitle="Cancel"
-      maxWidth="sm"
-    >
-      <Stack spacing={2.5} sx={{ mt: 1 }}>
+    <>
+      <BaseDialog
+        open={open}
+        onClose={handleClose}
+        title="Make payment"
+        subtitle="Authorize this bill payment on your phone. Checker approval may follow."
+        confirmTitle={authorization.pending ? "Show authorization QR" : "Continue to authorization"}
+        onConfirm={handleSubmit}
+        confirmDisabled={!isValid || isSubmitting || authorization.submitting}
+        isLoading={isSubmitting || authorization.submitting}
+        cancelTitle="Cancel"
+        maxWidth="sm"
+      >
+        <Stack spacing={2.5} sx={{ mt: 1 }}>
         {!canInitiateBill && (
           <Alert severity="warning">
             You do not have permission to initiate bill payments.
@@ -275,7 +273,7 @@ export default function PayBillDialog({
             <Select
               value={activeAccountId}
               onChange={(e) => {
-                resetIdempotencyKey();
+                authorization.discard();
                 setSelectedAccountId(e.target.value);
               }}
               disabled={loadingAccounts || accounts.length === 0}
@@ -306,7 +304,7 @@ export default function PayBillDialog({
             placeholder="Enter consumer or account number"
             value={consumerId}
             onChange={(e) => {
-              resetIdempotencyKey();
+              authorization.discard();
               setVerifiedBillKey("");
               setInquiryError(null);
               setConsumerId(e.target.value);
@@ -343,7 +341,7 @@ export default function PayBillDialog({
             type="number"
             value={amount}
             onChange={(e) => {
-              resetIdempotencyKey();
+              authorization.discard();
               setAmount(e.target.value);
             }}
             sx={{
@@ -365,7 +363,7 @@ export default function PayBillDialog({
             placeholder="e.g. Monthly bill settlement"
             value={note}
             onChange={(e) => {
-              resetIdempotencyKey();
+              authorization.discard();
               setNote(e.target.value);
             }}
             sx={{
@@ -392,7 +390,18 @@ export default function PayBillDialog({
             />
           )}
         </Box>
-      </Stack>
-    </BaseDialog>
+        </Stack>
+      </BaseDialog>
+      <AuthenticatorDialog
+        key={authorization.pending?.referenceId ?? "none"}
+        open={authorization.qrOpen}
+        authenticator={authorization.pending?.authenticator ?? null}
+        subject="bill payment"
+        waitForConsumption
+        onConsumed={(_requestId, result) => authorization.done(result)}
+        onRenew={authorization.renew}
+        onClose={authorization.closeQr}
+      />
+    </>
   );
 }
