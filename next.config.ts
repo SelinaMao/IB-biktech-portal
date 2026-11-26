@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // Emit the minimal server and traced runtime dependencies used by Docker.
   output: "standalone",
   // allowedDevOrigins: ["*.ngrok-free.dev"],
-  allowedDevOrigins: ["192.168.100.84"],
+  allowedDevOrigins: ["192.168.100.84", '*.ngrok-free.dev'],
   turbopack: {
     // A yarn.lock also exists at D:\ (outside the repo), which makes Turbopack
     // misdetect the workspace root — pin it to this project explicitly.

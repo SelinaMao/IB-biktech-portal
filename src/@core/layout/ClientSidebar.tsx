@@ -137,20 +137,20 @@ const NAV_ITEMS = [
       ...Object.values(CLIENT_PERMISSIONS.ACCOUNT),
     ],
   },
-  {
-    key: "Other Services",
-    href: "/client-dashboard",
-    Icon: SquareMenu,
-    // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
-    permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
-  },
-  {
-    key: "Merchant",
-    href: "/client-dashboard",
-    Icon: Store,
-    // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
-    permissions: Object.values(CLIENT_PERMISSIONS.MERCHANT),
-  },
+  // {
+  //   key: "Other Services",
+  //   href: "/client-dashboard",
+  //   Icon: SquareMenu,
+  //   // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
+  //   permissions: Object.values(CLIENT_PERMISSIONS.PAYROLL),
+  // },
+  // {
+  //   key: "Merchant",
+  //   href: "/client-dashboard",
+  //   Icon: Store,
+  //   // Not in CLIENT_PERMISSIONS — no confirmed backend code for this module yet.
+  //   permissions: Object.values(CLIENT_PERMISSIONS.MERCHANT),
+  // },
   {
     key: "Administrator",
     href: "/client-dashboard",
