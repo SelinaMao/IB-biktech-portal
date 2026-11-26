@@ -65,6 +65,7 @@ export default function LocalBank({ open, onClose }: LocalBankProps) {
     key: string;
     result: ExternalAccountInquiryResult;
   } | null>(null);
+  const [inquiryRequestedFor, setInquiryRequestedFor] = React.useState<string | null>(null);
   const { control, watch, setValue, reset } = useForm({
     defaultValues: { fromAccountId: "" },
   });
@@ -75,7 +76,13 @@ export default function LocalBank({ open, onClose }: LocalBankProps) {
   const set = <K extends keyof typeof INITIAL_VALUES>(
     key: K,
     value: (typeof INITIAL_VALUES)[K],
-  ) => setValues((prev) => ({ ...prev, [key]: value }));
+  ) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+    if (key === "beneficiaryAccountNumber" || key === "beneficiaryBankCode") {
+      setInquiry(null);
+      setInquiryRequestedFor(null);
+    }
+  };
 
   React.useEffect(() => {
     if (!watchedFromId && accounts[0]?.id) {
@@ -105,44 +112,47 @@ export default function LocalBank({ open, onClose }: LocalBankProps) {
 
   React.useEffect(() => {
     let active = true;
-    setInquiry(null);
-    if (!open || !values.beneficiaryBankCode || normalizedAccountNumber.length < 6) {
+    if (
+      !open ||
+      !values.beneficiaryBankCode ||
+      normalizedAccountNumber.length < 6 ||
+      inquiryRequestedFor !== inquiryKey
+    ) {
       return () => {
         active = false;
       };
     }
 
-    const timer = window.setTimeout(() => {
-      void inquireExternalAccount({
-        accountNumber: normalizedAccountNumber,
-        transferPlatform: "BANK",
-        transferPlatformCode: values.beneficiaryBankCode,
-        boundType: "LOCAL",
+    void inquireExternalAccount({
+      accountNumber: normalizedAccountNumber,
+      transferPlatform: "BANK",
+      transferPlatformCode: values.beneficiaryBankCode,
+      boundType: "LOCAL",
+    })
+      .unwrap()
+      .then((result) => {
+        if (!active) return;
+        setInquiry({ key: inquiryKey, result });
+        if (CURRENCY_OPTIONS.some((option) => option.value === result.currency)) {
+          setValues((prev) => ({ ...prev, currency: result.currency }));
+        }
       })
-        .unwrap()
-        .then((result) => {
-          if (!active) return;
-          setInquiry({ key: inquiryKey, result });
-          if (CURRENCY_OPTIONS.some((option) => option.value === result.currency)) {
-            setValues((prev) => ({ ...prev, currency: result.currency }));
-          }
-        })
-        .catch((error: unknown) => {
-          if (active) {
-            showToast("error", toToastError(error, "Could not verify beneficiary account"));
-          }
-        });
-    }, 300);
+      .catch((error: unknown) => {
+        if (active) {
+          setInquiryRequestedFor(null);
+          showToast("error", toToastError(error, "Could not verify beneficiary account"));
+        }
+      });
 
     return () => {
       active = false;
-      window.clearTimeout(timer);
     };
   }, [
     open,
     values.beneficiaryBankCode,
     normalizedAccountNumber,
     inquiryKey,
+    inquiryRequestedFor,
     inquireExternalAccount,
   ]);
 
@@ -276,6 +286,7 @@ export default function LocalBank({ open, onClose }: LocalBankProps) {
         setValues(INITIAL_VALUES);
         reset({ fromAccountId: accounts[0]?.id ?? "" });
         setInquiry(null);
+        setInquiryRequestedFor(null);
         quote.reset();
       }}
     >
@@ -298,6 +309,7 @@ export default function LocalBank({ open, onClose }: LocalBankProps) {
           label="Beneficiary Account Number"
           value={values.beneficiaryAccountNumber}
           onChange={(e) => set("beneficiaryAccountNumber", e.target.value)}
+          onBlur={() => setInquiryRequestedFor(inquiryKey)}
           placeholder="e.g. 000123456789"
         />
         <BaseInput

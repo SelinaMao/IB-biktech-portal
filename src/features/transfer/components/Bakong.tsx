@@ -53,11 +53,18 @@ export default function Bakong({ open, onClose }: BakongProps) {
     key: string;
     result: ExternalAccountInquiryResult;
   } | null>(null);
+  const [inquiryRequestedFor, setInquiryRequestedFor] = React.useState<string | null>(null);
 
   const set = <K extends keyof typeof INITIAL_VALUES>(
     key: K,
     value: (typeof INITIAL_VALUES)[K],
-  ) => setValues((prev) => ({ ...prev, [key]: value }));
+  ) => {
+    setValues((prev) => ({ ...prev, [key]: value }));
+    if (key === "bakongId") {
+      setInquiry(null);
+      setInquiryRequestedFor(null);
+    }
+  };
 
   const fromAccountId = values.fromAccountId || accounts[0]?.id || "";
   const fromAccount = findAccount(accounts, fromAccountId);
@@ -70,39 +77,37 @@ export default function Bakong({ open, onClose }: BakongProps) {
 
   React.useEffect(() => {
     let active = true;
-    if (!open || normalizedBakongId.length < 6) {
+    if (!open || normalizedBakongId.length < 6 || inquiryRequestedFor !== inquiryKey) {
       return () => {
         active = false;
       };
     }
 
-    const timer = window.setTimeout(() => {
-      void inquireExternalAccount({
-        accountNumber: normalizedBakongId,
-        transferPlatform: "BAKONG",
-        transferPlatformCode: "BAKONG",
-        boundType: "LOCAL",
+    void inquireExternalAccount({
+      accountNumber: normalizedBakongId,
+      transferPlatform: "BAKONG",
+      transferPlatformCode: "BAKONG",
+      boundType: "LOCAL",
+    })
+      .unwrap()
+      .then((result) => {
+        if (!active) return;
+        setInquiry({ key: inquiryKey, result });
+        if (CURRENCY_OPTIONS.some((option) => option.value === result.currency)) {
+          setValues((prev) => ({ ...prev, currency: result.currency }));
+        }
       })
-        .unwrap()
-        .then((result) => {
-          if (!active) return;
-          setInquiry({ key: inquiryKey, result });
-          if (CURRENCY_OPTIONS.some((option) => option.value === result.currency)) {
-            setValues((prev) => ({ ...prev, currency: result.currency }));
-          }
-        })
-        .catch((error: unknown) => {
-          if (active) {
-            showToast("error", toToastError(error, "Could not verify Bakong account"));
-          }
-        });
-    }, 300);
+      .catch((error: unknown) => {
+        if (active) {
+          setInquiryRequestedFor(null);
+          showToast("error", toToastError(error, "Could not verify Bakong account"));
+        }
+      });
 
     return () => {
       active = false;
-      window.clearTimeout(timer);
     };
-  }, [open, normalizedBakongId, inquiryKey, inquireExternalAccount]);
+  }, [open, normalizedBakongId, inquiryKey, inquiryRequestedFor, inquireExternalAccount]);
 
   const priceTransfer = () => {
     if (!fromAccount || !recipient || !amountIsValid) return;
@@ -199,6 +204,7 @@ export default function Bakong({ open, onClose }: BakongProps) {
       onReset={() => {
         setValues(INITIAL_VALUES);
         setInquiry(null);
+        setInquiryRequestedFor(null);
         quote.reset();
       }}
     >
@@ -213,6 +219,7 @@ export default function Bakong({ open, onClose }: BakongProps) {
           label="Bakong ID / Phone Number"
           value={values.bakongId}
           onChange={(e) => set("bakongId", e.target.value)}
+          onBlur={() => setInquiryRequestedFor(inquiryKey)}
           placeholder="e.g. 012 345 678"
         />
         <BaseInput
