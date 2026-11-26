@@ -17,7 +17,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ActivateAppPromptDialog, MobileBindingDialog, useCurrentDeviceBindingQuery } from "@/features/bind";
-import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH, TOPBAR_HEIGHT } from "@/theme/layout";
+import { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_TOP_PADDING, SIDEBAR_WIDTH, TOPBAR_HEIGHT } from "@/theme/layout";
 import { font, palette, radius } from "@/theme/palette";
 import { ArrowLeftRight, BanknoteArrowDown, CalendarSync, ChevronDown, ChevronUp, Circle, CircleDollarSign, CreditCard, Form, HandCoins, LayoutDashboard, LayoutGrid, ListCollapse, ReceiptText, Shield, SquareCheckBig, SquareMenu, Store, UserShield, UsersRound } from "lucide-react";
 import { CLIENT_PERMISSIONS, useAuth, useMeQuery } from "@/features/auth";
@@ -376,6 +376,7 @@ export default function ClientSidebar({ collapsed }: ClientSidebarProps) {
         transition: `width ${DURATION} ${EASE}`,
         overflow: "hidden",
         zIndex: 10,
+        paddingTop: `${SIDEBAR_TOP_PADDING}px`,
       }}
     >
       {/* Navigation */}

@@ -13,6 +13,7 @@ export type BaseCardProps<
 const baseStyles: SxProps<Theme> = {
   p: `${padding.xxl}px`,
   gap: 2,
+  border: "none",
   // py: 6
 };
 

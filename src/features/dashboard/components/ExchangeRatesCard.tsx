@@ -197,7 +197,7 @@ export default function ExchangeRatesCard({
       sx={{
         p: `${padding.xxl}px`,
         borderRadius: `${radius.xl}px`,
-        border: `1px solid ${palette.slate[200]}`,
+        // border: `1px solid ${palette.slate[200]}`,
         bgcolor: "#FFFFFF",
       }}
     >
@@ -236,7 +236,7 @@ export default function ExchangeRatesCard({
             alignItems: "center",
             justifyContent: "center",
             color: palette.slate[900],
-            backgroundColor:palette.slate[100],
+            backgroundColor: palette.slate[100],
             cursor: "pointer",
             transition: "all 0.15s ease",
             "&:hover": {
@@ -501,7 +501,7 @@ export default function ExchangeRatesCard({
                   color: palette.slate[400],
                 }}
               >
-               
+
                 <GripHorizontal size={18} />
               </Box>
             </Box>

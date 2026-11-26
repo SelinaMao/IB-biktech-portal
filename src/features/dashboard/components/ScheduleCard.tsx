@@ -135,7 +135,7 @@ export default function ScheduleCard({
       sx={{
         p: `${padding.xxl}px`,
         borderRadius: `${radius.xl}px`,
-        border: `1px solid ${palette.slate[200]}`,
+        // border: `1px solid ${palette.slate[200]}`,
         bgcolor: palette.white,
         display: "flex",
         flexDirection: "column",
