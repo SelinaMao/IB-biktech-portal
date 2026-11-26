@@ -30,13 +30,6 @@ export interface MobileTopUpViewProps {
   onBackToPayments?: () => void;
   cardWidth?: number | string;
   initialTemplate?: PaymentTemplate | null;
-  onSaveTemplate?: (templateData: {
-    name: string;
-    type: "Mobile top-up";
-    providerName: string;
-    providerInitials: string;
-    correspondentId: string;
-  }) => void;
 }
 
 const QUICK_AMOUNTS_USD = [1, 2, 5, 10, 20, 50] as const;
@@ -77,7 +70,6 @@ export default function MobileTopUpView({
   open = true,
   onClose,
   onBackToPayments,
-  onSaveTemplate,
   initialTemplate,
   cardWidth = 576,
 }: MobileTopUpViewProps) {
@@ -183,18 +175,6 @@ export default function MobileTopUpView({
     setTemplateName("Sales team top-up");
     setSetSchedule(false);
     setScheduleFreq("Monthly");
-  };
-
-  const handleReviewStep = () => {
-    if (saveAsTemplate && onSaveTemplate) {
-      onSaveTemplate({
-        name: templateName.trim() || `${network.name} Top-up`,
-        type: "Mobile top-up",
-        providerName: network.tag,
-        providerInitials: network.name.slice(0, 2).toUpperCase(),
-        correspondentId: `Mobile no. ${mobileNumber.trim()}`,
-      });
-    }
   };
 
   const submit = async (idempotencyKey?: string): Promise<TransferResult> => {
@@ -308,7 +288,6 @@ export default function MobileTopUpView({
       step0ActionPosition="inside"
       step0ButtonTitle="Review"
       onBackToMain={handleClose}
-      onReview={handleReviewStep}
       onReset={handleReset}
       submit={submit}
     >

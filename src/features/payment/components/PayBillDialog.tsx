@@ -5,9 +5,11 @@ import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
 import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
+import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
@@ -49,6 +51,8 @@ export default function PayBillDialog({
   const [consumerId, setConsumerId] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
   const [verifiedBillKey, setVerifiedBillKey] = useState("");
   const [inquiryError, setInquiryError] = useState<{
     billKey: string;
@@ -69,6 +73,8 @@ export default function PayBillDialog({
     }
     setAmount("");
     setNote("");
+    setSaveAsTemplate(false);
+    setTemplateName(template?.name ?? provider?.name ?? "Bill payment");
   }, [template, provider, open, resetIdempotencyKey]);
 
   const targetTitle = template ? template.name : provider?.name ?? "Payment";
@@ -100,8 +106,7 @@ export default function PayBillDialog({
 
     try {
       await inquireBill({
-        providerId: billProvider.providerId,
-        customerNumber: consumerId.trim(),
+        consumerId: consumerId.trim(),
       }).unwrap();
       setVerifiedBillKey(billKey);
       setInquiryError(null);
@@ -134,10 +139,11 @@ export default function PayBillDialog({
         body: {
           fromAccountNumber: selectedAccount.number,
           providerId: billProvider.providerId,
-          customerNumber: consumerId.trim(),
           amount: parsedAmount,
           currency: selectedAccount.currency,
           remark: note.trim() || undefined,
+          isSaveTemplate: saveAsTemplate,
+          templateName: saveAsTemplate ? templateName.trim() || targetTitle : undefined,
         },
         idempotencyKey: ensureIdempotencyKey(),
       }).unwrap();
@@ -166,6 +172,7 @@ export default function PayBillDialog({
     billProvider?.paymentSupported &&
       selectedAccount &&
       consumerId.trim() &&
+      billInquired &&
       amount.trim() &&
       Number.isFinite(Number(amount)) &&
       Number(amount) > 0,
@@ -367,6 +374,23 @@ export default function PayBillDialog({
               },
             }}
           />
+        </Box>
+        <Box>
+          <FormControlLabel
+            control={<Switch checked={saveAsTemplate} onChange={(event) => setSaveAsTemplate(event.target.checked)} />}
+            label="Save receiving account as a template"
+          />
+          {saveAsTemplate && (
+            <TextField
+              fullWidth
+              size="small"
+              label="Template name"
+              value={templateName}
+              onChange={(event) => setTemplateName(event.target.value)}
+              inputProps={{ maxLength: 50 }}
+              sx={{ mt: 1, "& .MuiOutlinedInput-root": { borderRadius: `${radius.md}px` } }}
+            />
+          )}
         </Box>
       </Stack>
     </BaseDialog>

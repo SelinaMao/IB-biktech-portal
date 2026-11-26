@@ -9,10 +9,9 @@ import InputBase from "@mui/material/InputBase";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { ChevronsUpDown, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronsUpDown, Pencil, Search, Trash2 } from "lucide-react";
 
-import { font, palette, radius } from "@/theme/palette";
-import BaseButton from "@core/components/BaseButton";
+import { palette, radius } from "@/theme/palette";
 import BaseFilterButton from "@core/components/BaseFilterButton";
 import { resolveBaseFilterRange, type BaseFilterValue } from "@core/components/BaseFilter";
 import BaseTable, { type BaseTableColumn } from "@core/components/BaseTable";
@@ -23,10 +22,9 @@ const DEFAULT_DATE_FILTER: BaseFilterValue = { type: "all", from: null, to: null
 
 export interface PaymentTemplatesTableProps {
   templates: PaymentTemplate[];
-  onAddTemplate?: () => void;
+  loading?: boolean;
   onEditTemplate?: (template: PaymentTemplate) => void;
   onDeleteTemplate?: (template: PaymentTemplate) => void;
-  onSelectTemplate?: (template: PaymentTemplate) => void;
 }
 
 const ROWS_PER_PAGE = 10;
@@ -54,10 +52,9 @@ const BODY_CELL_SX = {
 
 export default function PaymentTemplatesTable({
   templates,
-  onAddTemplate,
+  loading = false,
   onEditTemplate,
   onDeleteTemplate,
-  onSelectTemplate,
 }: PaymentTemplatesTableProps) {
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState<BaseFilterValue>(DEFAULT_DATE_FILTER);
@@ -96,7 +93,7 @@ export default function PaymentTemplatesTable({
       key: "name",
       header: (
         <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-          <span>Template name</span>
+          <span>Receiver name</span>
           <ChevronsUpDown size={14} color={palette.slate[400]} />
         </Stack>
       ),
@@ -132,7 +129,7 @@ export default function PaymentTemplatesTable({
       key: "provider",
       header: (
         <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-          <span>Service provider</span>
+          <span>Receiving account</span>
           <ChevronsUpDown size={14} color={palette.slate[400]} />
         </Stack>
       ),
@@ -167,7 +164,7 @@ export default function PaymentTemplatesTable({
     },
     {
       key: "correspondentId",
-      header: "Correspondent ID",
+      header: "Account number",
       width: COLUMN_WIDTHS[3],
       headSx: HEAD_CELL_SX,
       cellSx: {
@@ -192,7 +189,10 @@ export default function PaymentTemplatesTable({
         fontSize: 14,
         color: palette.slate[700],
       },
-      render: (t) => t.createdAt,
+      render: (t) => {
+        const created = dayjs(t.createdAt);
+        return created.isValid() ? created.format("DD MMM YYYY") : t.createdAt;
+      },
     },
     {
       key: "actions",
@@ -280,7 +280,7 @@ export default function PaymentTemplatesTable({
               lineHeight: 1.25,
             }}
           >
-            Payment templates
+            Saved receiving accounts
           </Typography>
           <Typography
             sx={{
@@ -289,7 +289,7 @@ export default function PaymentTemplatesTable({
               mt: 0.5,
             }}
           >
-            Click a template to pay with its saved details.
+            Saved receiving accounts from the payment service. Bill and mobile details must be entered in their payment forms.
           </Typography>
         </Box>
 
@@ -345,25 +345,6 @@ export default function PaymentTemplatesTable({
             onClick={() => setFilterDialogOpen((prev) => !prev)}
           />
 
-          <BaseButton
-            title="Template"
-            startIcon={<Plus size={18} />}
-            onClick={onAddTemplate}
-            sx={{
-              bgcolor: "#2764A5",
-              color: "#ffffff",
-              borderRadius: "10px",
-              px: 3.5,
-              py: 1.5,
-              fontSize: 14,
-              fontWeight: font.weight.regular,
-              textTransform: "none",
-              whiteSpace: "nowrap",
-              "&:hover": {
-                bgcolor: "#1E5289",
-              },
-            }}
-          />
         </Stack>
       </Stack>
 
@@ -388,10 +369,10 @@ export default function PaymentTemplatesTable({
         headerBorderColor={palette.slate[200]}
         headerTextColor={palette.slate[500]}
         headerBorderTop={false}
-        emptyTitle="No payment templates found."
-        onRowClick={onSelectTemplate}
+        isLoading={loading}
+        emptyTitle="No saved receiving accounts found."
         getRowSx={() => ({
-          cursor: "pointer",
+          cursor: "default",
           transition: "background-color 0.15s ease",
           "&:hover": {
             bgcolor: palette.slate[50],

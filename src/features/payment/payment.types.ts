@@ -10,12 +10,10 @@ export interface PaymentActionCardItem {
   iconName: "receipt" | "smartphone" | "charity";
 }
 
-export type PaymentTemplateType = "Bill payment" | "Mobile top-up" | "Charity & donation";
-
 export interface PaymentTemplate {
   id: string;
   name: string;
-  type: PaymentTemplateType;
+  type: string;
   providerName: string;
   providerId?: string;
   providerInitials: string;
@@ -38,10 +36,11 @@ export interface BillProvider {
 export interface BillPaymentRequest {
   fromAccountNumber: string;
   providerId: string;
-  customerNumber: string;
   amount: number;
   currency: string;
   remark?: string;
+  isSaveTemplate?: boolean;
+  templateName?: string;
   schedule?: TransferSchedule;
 }
 
@@ -76,6 +75,5 @@ export interface PhoneInquiryResult {
 }
 
 export interface BillInquiryRequest {
-  providerId: string;
-  customerNumber: string;
+  consumerId: string;
 }

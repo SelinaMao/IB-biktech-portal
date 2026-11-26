@@ -37,6 +37,7 @@ export const paymentApi = baseApi.injectEndpoints({
       transformResponse,
       invalidatesTags: [
         "Account",
+        "TransferTemplate",
         { type: "WorkflowInstance", id: "LIST" },
         { type: "WorkflowInstance", id: "SUMMARY" },
       ],
@@ -54,6 +55,7 @@ export const paymentApi = baseApi.injectEndpoints({
         body,
         headers: idemHeader(idempotencyKey),
       }),
+      invalidatesTags: ["Account", "TransferTemplate", "Schedule"],
       transformResponse: (
         response: TransformResponse<
           TransferResult & { qrConfirm?: string; qrPayload?: string; requestId?: string }
@@ -102,6 +104,7 @@ export const paymentApi = baseApi.injectEndpoints({
         body,
         headers: idemHeader(idempotencyKey),
       }),
+      invalidatesTags: ["Account", "TransferTemplate", "Schedule"],
       transformResponse: (
         response: TransformResponse<
           TransferResult & { qrConfirm?: string; qrPayload?: string; requestId?: string }

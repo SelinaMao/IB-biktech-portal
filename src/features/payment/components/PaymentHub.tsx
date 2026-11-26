@@ -1,20 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 
 import { showToast } from "@core/components/AppToast";
 import { useTopBarBreadcrumb } from "@core/layout";
+import { toToastError } from "@/utils/api-error";
+import {
+  useDeleteTransferTemplateMutation,
+  useListTransferTemplatesQuery,
+  useRenameTransferTemplateMutation,
+} from "@/features/transfer/transfer.api";
 import { PAYMENT_ACTION_CARDS } from "../payment.data";
-import type {
-  BillProvider,
-  PaymentActionSlug,
-  PaymentTemplate,
-} from "../payment.types";
+import type { BillProvider, PaymentActionSlug, PaymentTemplate } from "../payment.types";
 import BillPaymentView from "./BillPaymentView";
-import CreateTemplateDialog from "./CreateTemplateDialog";
 import DeleteTemplateDialog from "./DeleteTemplateDialog";
 import EditTemplateDialog from "./EditTemplateDialog";
 import MobileTopUpView from "./MobileTopUpView";
@@ -29,135 +31,90 @@ export interface PaymentHubProps {
 export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
   const router = useRouter();
   const [currentView, setCurrentView] = useState<"main" | "bill-payment" | "mobile-topup">(initialView);
-  const [templates, setTemplates] = useState<PaymentTemplate[]>([]);
+  const [editingTemplate, setEditingTemplate] = useState<PaymentTemplate | null>(null);
+  const [deletingTemplate, setDeletingTemplate] = useState<PaymentTemplate | null>(null);
+  const [payDialogOpen, setPayDialogOpen] = useState(false);
+  const [payTargetProvider, setPayTargetProvider] = useState<BillProvider | null>(null);
+  const { data: serverTemplates = [], isLoading, isError } = useListTransferTemplatesQuery(undefined, {
+    pollingInterval: 30_000,
+  });
+  const [renameTemplate, { isLoading: isRenaming }] = useRenameTransferTemplateMutation();
+  const [deleteTemplate, { isLoading: isDeleting }] = useDeleteTransferTemplateMutation();
+
+  const templates = useMemo<PaymentTemplate[]>(() => serverTemplates.map((template) => {
+    const providerName = template.toAccountName || (template.bankCode ? `Bank ${template.bankCode}` : "Saved receiver");
+    const initials = providerName.split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase();
+    const type = template.transferType.replaceAll("_", " ").toLowerCase()
+      .replace(/\b\w/g, (letter) => letter.toUpperCase()) as PaymentTemplate["type"];
+    return {
+      id: template.id,
+      name: template.templateName,
+      type,
+      providerName,
+      providerInitials: initials || "SR",
+      correspondentId: template.toAccountNumber,
+      createdAt: template.createdAt,
+    };
+  }), [serverTemplates]);
 
   const handleBackToMain = () => {
     setCurrentView("main");
-    setPayTargetTemplate(null);
     if (typeof window !== "undefined" && window.location.pathname.includes("/payment/")) {
       router.push("/payment");
     }
   };
 
-  // When on main view: null -> TopBar displays just "Payment"
-  // When on a card subview (e.g. Mobile Top-up): displays "< Payment / Mobile Top-up"
   useTopBarBreadcrumb(
     currentView === "bill-payment"
-      ? {
-          prefix: "Payment",
-          subPrefix: "Bill Payment",
-          onBack: handleBackToMain,
-        }
+      ? { prefix: "Payment", subPrefix: "Bill Payment", onBack: handleBackToMain }
       : currentView === "mobile-topup"
-        ? {
-            prefix: "Payment",
-            subPrefix: "Mobile Top-up",
-            onBack: handleBackToMain,
-          }
+        ? { prefix: "Payment", subPrefix: "Mobile Top-up", onBack: handleBackToMain }
         : null,
   );
 
-  // Dialog States
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<PaymentTemplate | null>(null);
-  const [deletingTemplate, setDeletingTemplate] = useState<PaymentTemplate | null>(null);
-
-  // Pay Dialog
-  const [payDialogOpen, setPayDialogOpen] = useState(false);
-  const [payTargetTemplate, setPayTargetTemplate] = useState<PaymentTemplate | null>(null);
-  const [payTargetProvider, setPayTargetProvider] = useState<BillProvider | null>(null);
-
-  // Handlers
   const handleSelectAction = (slug: PaymentActionSlug) => {
-    if (slug === "bill-payment") {
-      setCurrentView("bill-payment");
-    } else if (slug === "mobile-topup") {
-      setCurrentView("mobile-topup");
-    } else {
-      showToast("info", {
-        title: "Charity & Donation",
-        message: "This service flow will open with connected charity rails.",
-      });
-    }
-  };
-
-  const handleCreateTemplate = (newTemplateData: Omit<PaymentTemplate, "id" | "createdAt">) => {
-    const today = new Intl.DateTimeFormat("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(new Date());
-
-    const created: PaymentTemplate = {
-      ...newTemplateData,
-      id: `tpl-${Date.now()}`,
-      createdAt: today,
-    };
-
-    setTemplates((prev) => [created, ...prev]);
-    showToast("success", {
-      title: "Template created",
-      message: `Template "${created.name}" has been added.`,
-    });
-  };
-
-  const handleUpdateTemplate = (updated: PaymentTemplate) => {
-    setTemplates((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-    showToast("success", {
-      title: "Template updated",
-      message: `Template "${updated.name}" has been updated.`,
-    });
-  };
-
-  const handleDeleteTemplate = () => {
-    if (!deletingTemplate) return;
-    setTemplates((prev) => prev.filter((t) => t.id !== deletingTemplate.id));
-    showToast("success", {
-      title: "Template deleted",
-      message: `Template "${deletingTemplate.name}" was removed.`,
-    });
-    setDeletingTemplate(null);
-  };
-
-  const handleSelectTemplateForPayment = (template: PaymentTemplate) => {
-    if (template.type === "Mobile top-up") {
-      setPayTargetTemplate(template);
-      setCurrentView("mobile-topup");
-      setPayDialogOpen(false);
-      return;
-    }
-
-    if (template.type === "Bill payment") {
-      setPayTargetTemplate(template);
-      setPayTargetProvider(null);
-      setPayDialogOpen(true);
-      return;
-    }
-
-    showToast("info", {
-      title: "Charity payment unavailable",
-      message: "Charity templates are not supported yet.",
+    if (slug === "bill-payment") setCurrentView("bill-payment");
+    else if (slug === "mobile-topup") setCurrentView("mobile-topup");
+    else showToast("info", {
+      title: "Charity & Donation",
+      message: "Charity payments are not available yet.",
     });
   };
 
   const handleSelectProviderForPayment = (provider: BillProvider) => {
     setPayTargetProvider(provider);
-    setPayTargetTemplate(null);
     setPayDialogOpen(true);
+  };
+
+  const handleUpdateTemplate = async (template: PaymentTemplate) => {
+    try {
+      await renameTemplate({ id: template.id, templateName: template.name }).unwrap();
+      showToast("success", { title: "Template renamed", message: `Saved receiver renamed to “${template.name}”.` });
+      setEditingTemplate(null);
+    } catch (error) {
+      showToast("error", toToastError(error, "Could not rename saved receiver"));
+    }
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!deletingTemplate) return;
+    try {
+      await deleteTemplate(deletingTemplate.id).unwrap();
+      showToast("success", { title: "Template deleted", message: `“${deletingTemplate.name}” was removed.` });
+      setDeletingTemplate(null);
+    } catch (error) {
+      showToast("error", toToastError(error, "Could not delete saved receiver"));
+    }
   };
 
   if (currentView === "bill-payment") {
     return (
       <Box sx={{ width: "100%" }}>
-        <BillPaymentView
-          onSelectProvider={handleSelectProviderForPayment}
-        />
-
+        <BillPaymentView onSelectProvider={handleSelectProviderForPayment} />
         <PayBillDialog
-          key={payTargetTemplate?.id ?? payTargetProvider?.providerId ?? "bill-payment"}
+          key={payTargetProvider?.providerId ?? "bill-payment"}
           open={payDialogOpen}
           onClose={() => setPayDialogOpen(false)}
-          template={payTargetTemplate}
           provider={payTargetProvider}
         />
       </Box>
@@ -168,18 +125,9 @@ export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
     return (
       <Box sx={{ width: "100%" }}>
         <MobileTopUpView
-          key={payTargetTemplate?.type === "Mobile top-up" ? payTargetTemplate.id : "new-mobile-topup"}
-          initialTemplate={payTargetTemplate?.type === "Mobile top-up" ? payTargetTemplate : null}
+          key="new-mobile-topup"
+          initialTemplate={null}
           onBackToPayments={handleBackToMain}
-          onSaveTemplate={(tpl) =>
-            handleCreateTemplate({
-              name: tpl.name,
-              type: tpl.type,
-              providerName: tpl.providerName,
-              providerInitials: tpl.providerInitials,
-              correspondentId: tpl.correspondentId,
-            })
-          }
         />
       </Box>
     );
@@ -188,28 +136,15 @@ export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
   return (
     <Box sx={{ width: "100%" }}>
       <Stack spacing={4}>
-        {/* Top 3 Action Cards (Image 1) */}
-        <PaymentActionCards
-          cards={PAYMENT_ACTION_CARDS}
-          onSelectAction={handleSelectAction}
-        />
-
-        {/* Payment Templates Table Card (Image 1) */}
+        <PaymentActionCards cards={PAYMENT_ACTION_CARDS} onSelectAction={handleSelectAction} />
+        {isError && <Alert severity="error">Could not load saved receivers from the payment service.</Alert>}
         <PaymentTemplatesTable
           templates={templates}
-          onAddTemplate={() => setCreateDialogOpen(true)}
-          onEditTemplate={(tpl) => setEditingTemplate(tpl)}
-          onDeleteTemplate={(tpl) => setDeletingTemplate(tpl)}
-          onSelectTemplate={handleSelectTemplateForPayment}
+          loading={isLoading || isRenaming || isDeleting}
+          onEditTemplate={setEditingTemplate}
+          onDeleteTemplate={setDeletingTemplate}
         />
       </Stack>
-
-      {/* Dialogs */}
-      <CreateTemplateDialog
-        open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
-        onCreate={handleCreateTemplate}
-      />
 
       <EditTemplateDialog
         open={Boolean(editingTemplate)}
@@ -217,20 +152,11 @@ export default function PaymentHub({ initialView = "main" }: PaymentHubProps) {
         onClose={() => setEditingTemplate(null)}
         onUpdate={handleUpdateTemplate}
       />
-
       <DeleteTemplateDialog
         open={Boolean(deletingTemplate)}
         template={deletingTemplate}
         onClose={() => setDeletingTemplate(null)}
         onConfirm={handleDeleteTemplate}
-      />
-
-      <PayBillDialog
-        key={payTargetTemplate?.id ?? payTargetProvider?.providerId ?? "bill-payment"}
-        open={payDialogOpen}
-        onClose={() => setPayDialogOpen(false)}
-        template={payTargetTemplate}
-        provider={payTargetProvider}
       />
     </Box>
   );
