@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo } from "react";
-import { Box, Grid, Stack } from "@mui/material";
+import { Grid, Stack } from "@mui/material";
 import {
   statCards,
   StatCard,
@@ -11,6 +11,7 @@ import {
   PendingRequestsCard,
   CashFlowCard,
 } from "@/features/dashboard";
+import BaseCard from "@core/components/BaseCard";
 import { selectAccountsResponse, useListAccountsMutation, type CoreAccountEntry } from "@/features/account";
 import { useGetExchangeRatesQuery } from "@/features/meta";
 import { useAppSelector } from "@/store/hooks";
@@ -70,45 +71,45 @@ export default function ClientDashboardPage() {
   }, [accountsSummary]);
 
   return (
-    <Box sx={{ width: "100%", pb: 4 }}>
-      <Stack spacing={2.5}>
-        {/* Full-width Top Card: Available Balance */}
+    // <BaseCard sx={{ bgcolor: "#F5F7FA", width: "100%", boxShadow: "none" }}>
+    <Stack spacing={2.5}>
+      {/* Full-width Top Card: Available Balance */}
 
-        {/* Two-Column Grid: Left (Available Balance, Cash Flow, Transactions) & Right (Pending Request, Schedule, Exchange rate) */}
-        <Grid container spacing={2.5}>
-          {/* Left Column (8 cols) */}
-          <Grid size={{ xs: 12, lg: 8 }}>
-            <Stack spacing={2.5} sx={stretchLastCardSx}>
-              {/* Top Card: Available Balance */}
-              {kpiCards.map((c) => (
-                <StatCard key={c.label} {...c} />
-              ))}
+      {/* Two-Column Grid: Left (Available Balance, Cash Flow, Transactions) & Right (Pending Request, Schedule, Exchange rate) */}
+      <Grid container spacing={2.5}>
+        {/* Left Column (8 cols) */}
+        <Grid size={{ xs: 12, lg: 8 }}>
+          <Stack spacing={2.5} sx={stretchLastCardSx}>
+            {/* Top Card: Available Balance */}
+            {kpiCards.map((c) => (
+              <StatCard key={c.label} {...c} />
+            ))}
 
-              <CashFlowCard
-                accountNumber={defaultAccount?.accountNumber}
-                type={defaultAccount?.accountType}
-              />
+            <CashFlowCard
+              accountNumber={defaultAccount?.accountNumber}
+              type={defaultAccount?.accountType}
+            />
 
-              <TransactionsCard
-                accounts={bankAccounts}
-              />
-            </Stack>
-          </Grid>
-
-          {/* Right Column (4 cols) */}
-          <Grid size={{ xs: 12, lg: 4 }}>
-            <Stack spacing={2.5} sx={stretchLastCardSx}>
-              <PendingRequestsCard />
-              <ScheduleCard />
-              <ExchangeRatesCard
-                data={exchangeRatesData}
-                isLoading={isExchangeRatesLoading}
-                isError={isExchangeRatesError}
-              />
-            </Stack>
-          </Grid>
+            <TransactionsCard
+              accounts={bankAccounts}
+            />
+          </Stack>
         </Grid>
-      </Stack>
-    </Box>
+
+        {/* Right Column (4 cols) */}
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Stack spacing={2.5} sx={stretchLastCardSx}>
+            <PendingRequestsCard />
+            <ScheduleCard />
+            <ExchangeRatesCard
+              data={exchangeRatesData}
+              isLoading={isExchangeRatesLoading}
+              isError={isExchangeRatesError}
+            />
+          </Stack>
+        </Grid>
+      </Grid>
+    </Stack>
+    // </BaseCard>
   );
 }
