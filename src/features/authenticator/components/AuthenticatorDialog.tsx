@@ -11,9 +11,11 @@ export type AuthenticatorDialogProps = {
   /** What is being authorized, in the user's words: "transfer", "approval". */
   subject: string;
   /** Carries the action out once the phone has authorized it; a throw is shown in the dialog. */
-  onAuthorized: (requestId: string) => Promise<void>;
+  onAuthorized?: (requestId: string) => Promise<void>;
   /** Handles an action the backend reports as already carried out. */
   onConsumed?: (requestId: string, result?: AuthenticatorResult) => Promise<void> | void;
+  /** Keep polling after phone authorization until the owning service records its result. */
+  waitForConsumption?: boolean;
   /** Raises a new QR for the same action. */
   onRenew: () => Promise<AuthenticatorRequest>;
   /** Closed; `spent` once the authorization was used, so the action no longer waits for one. */
@@ -30,6 +32,7 @@ export default function AuthenticatorDialog({
   subject,
   onAuthorized,
   onConsumed,
+  waitForConsumption = false,
   onRenew,
   onClose,
 }: AuthenticatorDialogProps) {
@@ -42,6 +45,7 @@ export default function AuthenticatorDialog({
   }, [open]);
 
   const handleAuthorized = async (requestId: string) => {
+    if (!onAuthorized) return;
     setSpent(true);
     await onAuthorized(requestId);
   };
@@ -64,8 +68,9 @@ export default function AuthenticatorDialog({
       instruction="Scan QR Code"
       appName="Biktech Banking App"
       onClose={handleClose}
-      onAuthorized={handleAuthorized}
+      onAuthorized={onAuthorized ? handleAuthorized : undefined}
       onConsumed={onConsumed ? handleConsumed : undefined}
+      waitForConsumption={waitForConsumption}
       onRenew={onRenew}
     />
   );

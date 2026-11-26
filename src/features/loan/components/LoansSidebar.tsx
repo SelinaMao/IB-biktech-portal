@@ -88,7 +88,10 @@ function formatSummaryCurrency(amount: number | string | undefined | null, ccy: 
 
 export function getLoanTypeName(loan: LoanEntry): string {
   const type = (loan.type || "").trim();
-  const name = (loan.name || "").toLowerCase();
+  const description = `${type} ${loan.name || ""}`.toLowerCase();
+
+  if (description.includes("overdraft")) return "Overdraft Loan";
+  if (description.includes("term loan")) return "Term Loan";
 
   if (type) {
     if (type.toLowerCase().includes("loan") || type.toLowerCase().includes("facility")) {
@@ -97,12 +100,19 @@ export function getLoanTypeName(loan: LoanEntry): string {
     return `${type} Loan`;
   }
 
+  const name = (loan.name || "").toLowerCase();
   if (name.includes("car") || name.includes("auto")) return "Car Loan";
   if (name.includes("housing") || name.includes("home")) return "Housing Loan";
   if (name.includes("sme") || name.includes("business")) return "SME Loan";
-  if (name.includes("overdraft")) return "Overdraft Facility";
 
   return "Loan Account";
+}
+
+function getLoanTitle(loan: LoanEntry): string {
+  const description = `${loan.type || ""} ${loan.name || ""}`.toLowerCase();
+  if (description.includes("overdraft")) return "Overdraft Facility";
+  if (description.includes("term loan")) return "Term Loan";
+  return getLoanTypeName(loan);
 }
 
 export default function LoansSidebar({
@@ -214,7 +224,7 @@ export default function LoansSidebar({
             boxShadow: active
               ? `0px 2px 8px ${colorWithAlpha(barColor, 0.14)}`
               : "0px 1px 3px rgba(15, 23, 42, 0.03)",
-            p: "10px 14px",
+            p: "8px 12px",
             transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
             "&:hover": {
               ...(active
@@ -242,7 +252,7 @@ export default function LoansSidebar({
               textOverflow: "ellipsis",
             }}
           >
-            {loan.name}
+            {getLoanTitle(loan)}
           </Typography>
 
           {/* Line 2: Loan Number | Loan Type */}
@@ -269,7 +279,7 @@ export default function LoansSidebar({
               fontSize: 15,
               fontWeight: 700,
               color: "#0F172A",
-              mt: "8px",
+              mt: "6px",
               lineHeight: 1.2,
               whiteSpace: "nowrap",
               overflow: "hidden",
@@ -352,13 +362,13 @@ export default function LoansSidebar({
               fontWeight: 700,
               color: "#5A6B82",
               lineHeight: 1.2,
-              mb: 1.5,
+              mb: 1.25,
               px: 0.5,
             }}
           >
             Loan List
           </Typography>
-          <Stack spacing={1.5}>
+          <Stack spacing={1}>
             {loans.map((loan, index) => renderLoanCard(loan, index))}
           </Stack>
         </Box>

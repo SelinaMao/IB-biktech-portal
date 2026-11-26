@@ -1,5 +1,4 @@
 export * from "./payroll.types";
-export * from "./payroll.data";
 export { default as PayrollHub } from "./components/PayrollHub";
 export { default as PayrollTable } from "./components/PayrollTable";
 export { default as PayrollEmptyState } from "./components/PayrollEmptyState";
@@ -8,5 +7,4 @@ export { default as PayrollHistoryDialog } from "./components/PayrollHistoryDial
 export { default as PayrollHistoryDrawer } from "./components/PayrollHistoryDrawer";
 export { default as UploadPayrollWizard } from "./components/UploadPayrollWizard";
 export { default as EditPayrollRecordDialog } from "./components/EditPayrollRecordDialog";
-export { default as UploadPayrollDialog } from "./components/UploadPayrollDialog";
 export { default as PayrollDetailDialog } from "./components/PayrollDetailDialog";

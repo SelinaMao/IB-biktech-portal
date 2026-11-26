@@ -26,12 +26,15 @@ export async function coreFetch(
 ): Promise<Response> {
   const env = getServerEnv();
 
+  const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     "X-Client-Id": env.clientId,
     "X-Client-Secret": env.clientSecret,
     "X-Platform": "WEB",
   };
+  if (!isFormData && init.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
   if (init.accessToken) {
     headers.Authorization = `Bearer ${init.accessToken}`;
   }
@@ -44,13 +47,20 @@ export async function coreFetch(
 
   // Version is prepended here and ONLY here — endpoint paths stay unversioned.
   const url = `${env.coreBaseUrl}/${env.apiVersion}/${path}`;
-  const serializedBody =
-    init.body === undefined ? undefined : JSON.stringify(init.body);
+  const serializedBody = isFormData
+    ? (init.body as FormData)
+    : init.body === undefined
+      ? undefined
+      : JSON.stringify(init.body);
 
   if (process.env.NODE_ENV !== "production") {
+    const bodyDescription = isFormData
+      ? "[multipart form data]"
+      : typeof serializedBody === "string"
+        ? `${serializedBody.length} bytes`
+        : "<none>";
     console.log(
-      `[BFF→core] ${init.method ?? "GET"} ${url} body: ${serializedBody ? `${serializedBody.length} bytes` : "<none>"
-      }`,
+      `[BFF→core] ${init.method ?? "GET"} ${url} body: ${bodyDescription}`,
     );
   }
 

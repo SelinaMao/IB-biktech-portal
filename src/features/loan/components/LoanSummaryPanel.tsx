@@ -8,7 +8,6 @@ import BaseBlurText from "@core/components/BaseBlurText";
 import BaseIconBadge from "@core/components/BaseIconBadge";
 import CardBorderAccent from "@core/components/CardBorderAccent";
 import CategoryDonutChart, { type CategoryDonutDatum } from "@core/components/CategoryDonutChart";
-import { DEFAULT_PIE_COLORS } from "@core/components/PieChart";
 import { font, padding, palette, radius } from "@/theme/palette";
 import { getLoanIndicatorColor, type LoanEntry } from "./LoansSidebar";
 
@@ -37,9 +36,7 @@ function formatCurrencySuffix(amount: number, ccy: "USD" | "KHR"): string {
  */
 export default function LoanSummaryPanel({ loans, totalKHR, totalUSD }: LoanSummaryPanelProps) {
   const pieData = useMemo<CategoryDonutDatum[]>(() => {
-    if (!loans || loans.length === 0) {
-      return [{ name: "Loan", value: 1, color: DEFAULT_PIE_COLORS[0] }];
-    }
+    if (!loans || loans.length === 0) return [];
     // Same resolver as LoansSidebar's cards and the selected-loan accent,
     // so a given loan is always the same color everywhere on the page.
     return loans.map((loan, index) => ({

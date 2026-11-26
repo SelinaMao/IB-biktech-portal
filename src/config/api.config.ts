@@ -123,12 +123,22 @@ export const adminApi = {
     BILL_UTILITY: "payment/bills/utility",
     BILL_CHARITY: "payment/bills/charity",
   },
-  // Bulk transfer: the portal reads the file and sends its rows as JSON; no file is uploaded.
+  // CSV / Excel bulk transfer files are validated and submitted by payment-service.
   BULK_TRANSFER: {
     VALIDATE: "payment/bulk-transfers/validate", // Body: {fromAccountNumber, fileName, rows}
     SUBMIT: "payment/bulk-transfers", // Body: {fromAccountNumber, fileName, rows, schedule}
+    FILE_TEMPLATE: "payment/bulk-transfers/file/template",
+    FILE_VALIDATE: "payment/bulk-transfers/file/validate",
+    FILE_SUBMIT: "payment/bulk-transfers/file",
     ONE: "payment/bulk-transfers/{referenceId}",
     NEW_AUTHENTICATOR: "payment/bulk-transfers/{referenceId}/authenticator",
+  },
+  PAYROLL: {
+    TEMPLATE: "payment/payroll/template",
+    VALIDATE: "payment/payroll/validate",
+    SUBMIT: "payment/payroll/submit",
+    ONE: "payment/payroll/{referenceId}",
+    NEW_AUTHENTICATOR: "payment/payroll/{referenceId}/authenticator",
   },
   // Scheduled transfers: listed, read, and paused, resumed or cancelled once the caller's phone authorizes it.
   SCHEDULE: {

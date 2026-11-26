@@ -38,7 +38,7 @@ async function handler(
   const { search } = new URL(request.url);
   const pathString = (path ?? []).join("/") + search;
 
-  // Safely extract request body if JSON content is expected
+  // Pass multipart files through without parsing or changing their boundary.
   let body: unknown = undefined;
   const contentType = request.headers.get("content-type");
   if (contentType?.includes("application/json")) {
@@ -47,6 +47,8 @@ async function handler(
     } catch {
       // Ignore if body is empty or malformed
     }
+  } else if (contentType?.includes("multipart/form-data")) {
+    body = await request.formData();
   }
 
   // ADR-004: forward the browser's `Idempotency-Key` header to core unchanged.
@@ -68,7 +70,7 @@ async function handler(
     if (!upstream.ok) {
       const cloned = upstream.clone();
       const text = await cloned.text();
-      console.error(`[BFF] Upstream ${request.method} ${pathString} returned ${upstream.status}:`, text, "request:", JSON.stringify(body));
+      console.error(`[BFF] Upstream ${request.method} ${pathString} returned ${upstream.status}:`, text, "request:", body instanceof FormData ? "[multipart form data]" : JSON.stringify(body));
     }
     return upstream;
   } catch (error) {

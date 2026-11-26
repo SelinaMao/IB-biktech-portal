@@ -15,7 +15,6 @@ import BaseIconButton from "@core/components/BaseIconButton";
 import BaseStep from "@core/components/BaseStep";
 import BaseTransferReviewCard from "@core/components/BaseTransferReviewCard";
 import type { TransferParty } from "@core/components/BaseTransferFromAccount";
-import VerifyActionFlow from "@core/components/VerifyActionFlow";
 import { showToast } from "@core/components/AppToast";
 import { palette } from "@/theme/palette";
 import { AuthenticatorDialog } from "@/features/authenticator";
@@ -100,6 +99,8 @@ export type PreviewTransferProps = {
      * authorizes it by QR; without it the mocked QR step is shown.
      */
     submit?: (idempotencyKey?: string) => Promise<TransferResult>;
+    /** Service specific authenticator renewal for bulk or payroll submissions. */
+    renewAuthenticator?: (referenceId: string, idempotencyKey: string) => Promise<import("@/features/authenticator").AuthenticatorRequest>;
     breadcrumbPrefix?: string;
     breadcrumbSubPrefix?: string;
     successTitle?: string;
@@ -153,6 +154,7 @@ export default function PreviewTransfer({
     onReset,
     onReview,
     submit,
+    renewAuthenticator,
     breadcrumbPrefix,
     breadcrumbSubPrefix,
     successTitle,
@@ -169,7 +171,6 @@ export default function PreviewTransfer({
 }: PreviewTransferProps) {
     const router = useRouter();
     const [step, setStep] = React.useState(0);
-    const [verifyFlowOpen, setVerifyFlowOpen] = React.useState(false);
     const [termsAccepted, setTermsAccepted] = React.useState(false);
     // What the transfer came to once the phone authorized it
     const [result, setResult] = React.useState<TransferResult | null>(null);
@@ -184,6 +185,7 @@ export default function PreviewTransfer({
 
     const authorization = useTransferAuthorization({
         submit,
+        renewAuthenticator,
         onCompleted: (completed) => {
             setResult(completed);
             setStep(2);
@@ -226,15 +228,42 @@ export default function PreviewTransfer({
     const displayToName = result?.toAccountName || resolvedToAccount.name || "-";
     const displayToNumber = result?.toAccountNumber || resolvedToAccount.accountNumber || "-";
 
-    const displayTransactionId =
-        result?.cbsReference ||
-        (transactionId && transactionId !== "#TRX-28491024" ? transactionId : dynamicTrxId);
+    const displayTransactionId = result
+        ? result.cbsReference || "-"
+        : (transactionId && transactionId !== "#TRX-28491024" ? transactionId : dynamicTrxId);
 
-    const displayReferenceNo =
-        result?.referenceId ||
-        (referenceNo && referenceNo !== "SSM0499765223000" ? referenceNo : dynamicRefNo);
+    const displayReferenceNo = result
+        ? result.referenceId || "-"
+        : (referenceNo && referenceNo !== "SSM0499765223000" ? referenceNo : dynamicRefNo);
 
-    const completedDateStr = dayjs(result?.executedAt || result?.createdAt || new Date()).format("MMM D, YYYY • h:mm A");
+    const completedDateStr = result?.executedAt || result?.createdAt
+        ? dayjs(result.executedAt || result.createdAt).format("MMM D, YYYY • h:mm A")
+        : "-";
+    const statusLabel = result?.status === "COMPLETED"
+        ? "Completed"
+        : result?.status === "AWAITING_APPROVAL"
+            ? "Awaiting approval"
+            : result?.status === "READY" || result?.status === "SCHEDULED"
+                ? "Scheduled"
+                : result?.status === "EXECUTING"
+                    ? "Processing"
+                    : result?.status ?? "Unknown";
+    const resolvedSuccessTitle = result?.status === "COMPLETED"
+        ? successTitle ?? "Transfer successful"
+        : successTitle ?? (result?.status === "AWAITING_APPROVAL"
+            ? "Waiting for approval"
+            : result?.status === "READY" || result?.status === "SCHEDULED"
+                ? "Transfer scheduled"
+                : "Transfer status updated");
+    const resolvedSuccessMessage = result?.status === "COMPLETED"
+        ? successMessage || "The payment service confirmed that the transfer completed."
+        : result?.status === "AWAITING_APPROVAL"
+            ? "The transfer is waiting for approval. Funds have not been debited yet."
+            : result?.status === "READY" || result?.status === "SCHEDULED"
+                ? "The transfer is scheduled. Funds have not been debited yet."
+                : result?.status === "EXECUTING"
+                    ? "The transfer is processing. Check its status before retrying."
+                    : result?.failureReason || "Check the transfer status before retrying.";
 
     const displayAmountVal = result?.amount
         ? formatCCY(result.amount, result.currency || detectedCurrency)
@@ -259,7 +288,6 @@ export default function PreviewTransfer({
 
     const handleClose = () => {
         setStep(0);
-        setVerifyFlowOpen(false);
         setTermsAccepted(false);
         authorization.discard();
         setResult(null);
@@ -280,7 +308,7 @@ export default function PreviewTransfer({
         setStep(0);
     };
 
-    // Button Transfer -> submits to backend and opens live authenticator QR, or falls back to verify flow
+    // A financial action must be submitted to the payment service before verification can begin.
     const handleReviewNext = (e?: React.MouseEvent) => {
         if (e) {
             e.preventDefault();
@@ -289,7 +317,10 @@ export default function PreviewTransfer({
         if (submit) {
             void authorization.start();
         } else {
-            setVerifyFlowOpen(true);
+            showToast("error", {
+                title: "Transfer unavailable",
+                message: "No transfer was submitted because the payment service is not connected.",
+            });
         }
     };
 
@@ -323,36 +354,13 @@ export default function PreviewTransfer({
             .map((f) => `${f.label}: ${typeof f.value === "string" || typeof f.value === "number" ? f.value : ""}`)
             .filter((txt) => !txt.endsWith(": "))
             .join("\n");
-        const content = `${receiptTitle ?? "TRANSFER RECEIPT"}\n--------------------------------\nTransaction ID: ${displayTransactionId}\nReference No: ${displayReferenceNo}\nStatus: Completed\nCompleted On: ${completedDateStr}\n\nFrom: ${displayFromName}\nAccount: ${displayFromNumber}\n\nTo: ${displayToName}\nAccount: ${displayToNumber}\n\nAmount: ${displayAmountVal}\nTransfer Fee: ${displayFee}\nTotal Debited: ${displayTotalDebited}${extraFieldsTxt ? `\n\n${extraFieldsTxt}` : ""}\n--------------------------------\nSecured by Obsidian Ops`;
+        const content = `${receiptTitle ?? "TRANSFER RECEIPT"}\n--------------------------------\nTransaction ID: ${displayTransactionId}\nReference No: ${displayReferenceNo}\nStatus: ${result?.status ?? "UNKNOWN"}\nCompleted On: ${completedDateStr}\n\nFrom: ${displayFromName}\nAccount: ${displayFromNumber}\n\nTo: ${displayToName}\nAccount: ${displayToNumber}\n\nAmount: ${displayAmountVal}\nTransfer Fee: ${displayFee}\nTotal Debited: ${displayTotalDebited}${extraFieldsTxt ? `\n\n${extraFieldsTxt}` : ""}\n--------------------------------\nSecured by Obsidian Ops`;
         const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
         downloadBlob(blob, `Receipt-${displayReferenceNo}.txt`);
         showToast("success", {
             title: "Receipt downloaded",
             message: "Receipt saved successfully.",
         });
-    };
-
-    // Any verification method confirming advances Review -> Success.
-    const handleConfirmed = () => {
-        setVerifyFlowOpen(false);
-        setResult({
-            referenceId: displayReferenceNo,
-            cbsReference: displayTransactionId,
-            transferType: "TRANSFER",
-            method: "MANUAL",
-            functionCode: "TRANSFER",
-            status: "COMPLETED",
-            fromAccountNumber: resolvedFromAccount?.accountNumber || "",
-            fromAccountName: resolvedFromAccount?.name || "",
-            toAccountNumber: resolvedToAccount?.accountNumber || "",
-            toAccountName: resolvedToAccount?.name || "",
-            amount: parsedAmount,
-            currency: detectedCurrency,
-            remark: typeof remarkField?.value === "string" ? remarkField.value : undefined,
-            createdAt: new Date().toISOString(),
-            executedAt: new Date().toISOString(),
-        });
-        setStep(2);
     };
 
     const unifyStep0Card = splitView;
@@ -747,10 +755,10 @@ export default function PreviewTransfer({
 
                                             {/* Title & Subtitle */}
                                             <Typography sx={{ fontSize: 22, fontWeight: 700, color: "#0F172A", textAlign: "center" }}>
-                                                {successTitle ?? "Transfer successful"}
+                                                {resolvedSuccessTitle}
                                             </Typography>
                                             <Typography sx={{ fontSize: 13.5, color: "#64748B", textAlign: "center", mt: 0.75, mb: 3, lineHeight: 1.45 }}>
-                                                {successMessage || "Your bank transfer was completed and the receipt is ready."}
+                                                {resolvedSuccessMessage}
                                             </Typography>
 
                                             {/* Amount Transferred Block */}
@@ -791,7 +799,7 @@ export default function PreviewTransfer({
                                                         letterSpacing: "0.2px",
                                                     }}
                                                 >
-                                                    Complete
+                                                    {statusLabel}
                                                 </Box>
                                             </Box>
 
@@ -996,20 +1004,13 @@ export default function PreviewTransfer({
                         )
                         }
 
-                        <VerifyActionFlow
-                            open={verifyFlowOpen}
-                            onClose={() => setVerifyFlowOpen(false)}
-                            onVerified={handleConfirmed}
-                            subject="transfer"
-                            onSelectMobileApp={submit ? async () => { await authorization.start(); } : undefined}
-                            onSelectQr={submit ? async () => { await authorization.start(); } : undefined}
-                        />
                         <AuthenticatorDialog
                             key={authorization.pending?.referenceId ?? "none"}
                             open={authorization.qrOpen}
                             authenticator={authorization.pending?.authenticator ?? null}
                             subject="transfer"
-                            onAuthorized={authorization.authorize}
+                            waitForConsumption
+                            onConsumed={(_requestId, result) => authorization.done(result)}
                             onRenew={authorization.renew}
                             onClose={authorization.closeQr}
                         />

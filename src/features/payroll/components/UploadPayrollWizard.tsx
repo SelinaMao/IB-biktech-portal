@@ -33,7 +33,6 @@ import {
   Download,
   FileCheck,
   Lock,
-  Pencil,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -42,9 +41,19 @@ import { palette } from "@/theme/palette";
 import BaseStep from "@core/components/BaseStep";
 import { showToast } from "@core/components/AppToast";
 import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
-import { INITIAL_REVIEW_ROWS, SOURCE_ACCOUNTS } from "../payroll.data";
+import {
+  useLazyDownloadPayrollTemplateQuery,
+  useLazyGetPayrollQuery,
+  useRequestPayrollAuthenticatorMutation,
+  useSubmitPayrollFileMutation,
+  useValidatePayrollFileMutation,
+} from "../payroll.api";
 import type { PayrollItem, ReviewPayrollRow } from "../payroll.types";
-import EditPayrollRecordDialog from "./EditPayrollRecordDialog";
+import type { BulkTransferResult } from "@/features/transfer/transfer.types";
+import { useTransferAccounts } from "@/features/transfer/use-transfer-accounts";
+import { useIdempotencyKey } from "@/features/transfer/use-idempotency-key";
+import { toToastError } from "@/utils/api-error";
+import { downloadBlob } from "@/utils/download-file";
 
 export interface UploadPayrollWizardProps {
   onBackToList: () => void;
@@ -59,27 +68,46 @@ export default function UploadPayrollWizard({
   const [currentStep, setCurrentStep] = useState<number>(0);
 
   // Step 1: Form state
-  const [sourceAccountId, setSourceAccountId] = useState(SOURCE_ACCOUNTS[0].id);
+  const { accounts } = useTransferAccounts(true);
+  const [sourceAccountId, setSourceAccountId] = useState("");
   const [selectedFile, setSelectedFile] = useState<{
     name: string;
     sizeStr: string;
-    recordsCount: number;
+    file: File;
   } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step 2: Review records
-  const [records, setRecords] = useState<ReviewPayrollRow[]>(INITIAL_REVIEW_ROWS);
-  const [editingRow, setEditingRow] = useState<ReviewPayrollRow | null>(null);
-  const [processingTiming, setProcessingTiming] = useState<"immediate" | "future">("future");
+  const [records, setRecords] = useState<ReviewPayrollRow[]>([]);
+  const [processingTiming, setProcessingTiming] = useState<"immediate" | "future">("immediate");
+  const [templateFormat, setTemplateFormat] = useState<"CSV" | "Excel">("CSV");
   const [futureDate, setFutureDate] = useState<string>("");
   const [agreedTerms, setAgreedTerms] = useState<boolean>(true);
   const [qrConfirmOpen, setQrConfirmOpen] = useState(false);
-  const [approvalCondition, setApprovalCondition] = useState<"under_approval" | "approved">("under_approval");
+  const [validationSummary, setValidationSummary] = useState<{
+    records: number;
+    validRecords: number;
+    invalidRecords: number;
+    duplicateRecords: number;
+    transferAmount: number;
+    currency: string;
+  } | null>(null);
+  const [validatedSourceAccount, setValidatedSourceAccount] = useState<string | null>(null);
+  const [submittedPayroll, setSubmittedPayroll] = useState<BulkTransferResult | null>(null);
+  const [validateFile, { isLoading: validating }] = useValidatePayrollFileMutation();
+  const [submitPayroll, { isLoading: submitting }] = useSubmitPayrollFileMutation();
+  const [requestAuthenticator] = useRequestPayrollAuthenticatorMutation();
+  const [getPayroll] = useLazyGetPayrollQuery();
+  const [downloadTemplate, { isFetching: downloadingTemplate }] = useLazyDownloadPayrollTemplateQuery();
+  const idempotency = useIdempotencyKey();
   const dateInputRef = useRef<HTMLInputElement>(null);
 
-  const selectedSourceAccount =
-    SOURCE_ACCOUNTS.find((acc) => acc.id === sourceAccountId) ?? SOURCE_ACCOUNTS[0];
+  React.useEffect(() => {
+    if (!sourceAccountId && accounts[0]?.id) setSourceAccountId(accounts[0].id);
+  }, [accounts, sourceAccountId]);
+
+  const selectedSourceAccount = accounts.find((acc) => acc.id === sourceAccountId) ?? accounts[0];
 
   // Validation metrics
   const errorCount = useMemo(
@@ -92,32 +120,11 @@ export default function UploadPayrollWizard({
   );
   const attentionCount = errorCount + warningCount;
 
-  // Base numbers for the full uploaded batch (file has 24 total records, with 17 additional unlisted valid records)
-  const baseUnlistedRecordsCount = 17;
-  const baseUnlistedAmountKhr = 5870000;
-
-  const totalBatchRecordsCount = records.length + baseUnlistedRecordsCount;
-
-  // Total amount calculation
-  const totalAmountKhr = useMemo(() => {
-    const previewSum = records.reduce((acc, curr) => {
-      const amt = curr.currency === "USD" ? curr.amount * 4000 : curr.amount;
-      return acc + amt;
-    }, 0);
-    return previewSum + baseUnlistedAmountKhr;
-  }, [records]);
-
-  const feeKhr = totalBatchRecordsCount * 1000;
-  const totalDebitKhr = totalAmountKhr + feeKhr;
-
-  const remainingValidCount = useMemo(() => {
-    const updatedCount = records.some(
-      (r) => r.id === "rev-7" && r.validationState === "valid",
-    )
-      ? 1
-      : 0;
-    return baseUnlistedRecordsCount + updatedCount;
-  }, [records]);
+  const totalBatchRecordsCount = validationSummary?.records ?? records.length;
+  const totalAmountKhr = validationSummary?.transferAmount ?? 0;
+  const feeKhr = submittedPayroll?.fee ?? 0;
+  const totalDebitKhr = submittedPayroll?.totalDebitAmount ?? totalAmountKhr + feeKhr;
+  const currency = validationSummary?.currency ?? selectedSourceAccount?.currency ?? "KHR";
 
   const sortedRecords = useMemo(() => {
     return [...records].sort((a, b) => {
@@ -175,8 +182,11 @@ export default function UploadPayrollWizard({
       setSelectedFile({
         name: f.name,
         sizeStr: sizeFormatted,
-        recordsCount: 24,
+        file: f,
       });
+      setRecords([]);
+      setValidationSummary(null);
+      setValidatedSourceAccount(null);
     }
     e.target.value = "";
   };
@@ -193,94 +203,113 @@ export default function UploadPayrollWizard({
       setSelectedFile({
         name: f.name,
         sizeStr: sizeFormatted,
-        recordsCount: 24,
+        file: f,
       });
+      setRecords([]);
+      setValidationSummary(null);
+      setValidatedSourceAccount(null);
     }
   };
 
-  const handleDownloadTemplate = (format: "CSV" | "Excel") => {
+  const handleDownloadTemplate = async (format: "CSV" | "Excel") => {
     try {
-      const csvContent =
-        "Employee Name,Account Number,Bank,Amount,Currency,Remarks\n" +
-        "Vannak Kim,001122334455,Canadia Bank,1200000,KHR,November Salary\n" +
-        "Sreymom Pich,002233445566,Canadia Bank,1450000,KHR,November Salary\n" +
-        "Bona Chhun,003344556677,Canadia Bank,980000,KHR,November Salary\n";
-      const blob = new Blob([csvContent], {
-        type: format === "CSV" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `payroll_template.${format === "CSV" ? "csv" : "xlsx"}`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    } catch {
-      // fallback
+      const blob = await downloadTemplate(format === "CSV" ? "CSV" : "EXCEL").unwrap();
+      downloadBlob(blob, `payroll_template.${format === "CSV" ? "csv" : "xlsx"}`);
+      showToast("success", { title: "Template Download", message: `Payroll template (${format}) downloaded.` });
+    } catch (error) {
+      showToast("error", toToastError(error, "Could not download payroll template"));
     }
-    showToast("success", {
-      title: "Template Download",
-      message: `Payroll template (${format}) downloaded successfully.`,
-    });
   };
 
-  // Row edit & delete handlers
-  const handleUpdateRecord = (updated: ReviewPayrollRow) => {
-    setRecords((prev) =>
-      prev.map((r) => (r.id === updated.id ? updated : r)),
-    );
-    showToast("success", {
-      title: "Record Updated",
-      message: `Row #${updated.rowNumber} updated successfully.`,
-    });
+  const handleValidateFile = async () => {
+    if (!selectedFile || !selectedSourceAccount) return;
+    const form = new FormData();
+    form.append("fromAccountNumber", selectedSourceAccount.number);
+    form.append("file", selectedFile.file);
+    try {
+      const result = await validateFile({ body: form, idempotencyKey: crypto.randomUUID() }).unwrap();
+      setRecords(result.rows.map((row) => ({
+        id: `row-${row.rowNumber}`,
+        rowNumber: row.rowNumber,
+        employeeName: row.employeeName,
+        accountNumber: row.accountNumber,
+        employeeId: row.bank || "—",
+        remarks: row.remarks ?? "",
+        amount: Number(row.amount),
+        currency: row.currency === "USD" ? "USD" : "KHR",
+        validationState: row.status === "INVALID" ? "error" : row.status === "DUPLICATE" ? "warning" : "valid",
+        message: row.errors?.join("; ") || (row.status === "DUPLICATE" ? `Duplicate receiver (${row.duplicates})` : "Valid"),
+      })));
+      setValidationSummary(result.summary);
+      setValidatedSourceAccount(selectedSourceAccount.number);
+      setCurrentStep(1);
+    } catch (error) {
+      showToast("error", toToastError(error, "Could not validate payroll file"));
+    }
   };
 
-  const handleDeleteRecord = (rowId: string) => {
-    setRecords((prev) => prev.filter((r) => r.id !== rowId));
-    showToast("info", {
-      title: "Record Deleted",
-      message: "The record was removed from this payroll batch.",
-    });
+  const handleSubmitForApproval = async () => {
+    if (submittedPayroll) {
+      if (submittedPayroll.authenticator) setQrConfirmOpen(true);
+      else setCurrentStep(2);
+      return;
+    }
+    if (!selectedFile || !selectedSourceAccount || !validationSummary || validatedSourceAccount !== selectedSourceAccount.number || errorCount > 0) return;
+    const form = new FormData();
+    form.append("fromAccountNumber", selectedSourceAccount.number);
+    form.append("file", selectedFile.file);
+    if (processingTiming === "future" && rawDateValue) form.append("processingDate", rawDateValue);
+    try {
+      const result = await submitPayroll({ body: form, idempotencyKey: idempotency.ensure() }).unwrap();
+      idempotency.reset();
+      setSubmittedPayroll(result);
+      if (result.authenticator) setQrConfirmOpen(true);
+      else setCurrentStep(2);
+    } catch (error) {
+      showToast("error", toToastError(error, "Could not submit payroll for authorization"));
+    }
   };
 
-  // Submission handler
   const handleCompleteTransfer = () => {
-    const now = new Date();
-    const yy = String(now.getFullYear()).slice(-2);
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    const dd = String(now.getDate()).padStart(2, "0");
-    const randomSeq = String(Math.floor(1000 + Math.random() * 9000));
-    const refNo = `PR${yy}${mm}${dd}${randomSeq}`;
-
+    if (!submittedPayroll || !selectedSourceAccount) return;
     const newPayroll: PayrollItem = {
-      id: `pr-${Date.now()}`,
-      processingDate: futureDate || "31 Oct 2026",
-      referenceNo: refNo,
-      fileName: selectedFile?.name || "payroll_nov_2026.xlsx",
-      sourceAccountName: selectedSourceAccount.name,
-      sourceAccountNumber: selectedSourceAccount.accountNumber,
-      records: totalBatchRecordsCount,
-      totalAmount: totalAmountKhr,
-      fee: feeKhr,
-      totalDebitAmount: totalDebitKhr,
-      currency: "KHR",
-      status: approvalCondition === "under_approval" ? "Pending" : "Completed",
-      title: "November payroll",
-      processingType: processingTiming === "future" ? "Scheduled" : "Immediate",
-      createdAt: `${dd} Nov 2026 10:00 AM`,
-      uploadedBy: "Rous Samol",
-      remarks: "November 2026 Batch Payroll",
+      id: submittedPayroll.referenceId,
+      processingDate: rawDateValue ? dayjs(rawDateValue).format("D MMM YYYY") : dayjs().format("D MMM YYYY"),
+      referenceNo: submittedPayroll.referenceId,
+      fileName: submittedPayroll.fileName || selectedFile?.name || "payroll",
+      sourceAccountName: submittedPayroll.fromAccountName || selectedSourceAccount.name,
+      sourceAccountNumber: submittedPayroll.fromAccountNumber,
+      records: submittedPayroll.records,
+      totalAmount: Number(submittedPayroll.amount),
+      fee: Number(submittedPayroll.fee),
+      totalDebitAmount: Number(submittedPayroll.totalDebitAmount),
+      currency: submittedPayroll.currency === "USD" ? "USD" : "KHR",
+      status: "Pending",
+      title: submittedPayroll.fileName || selectedFile?.name,
+      processingType: submittedPayroll.schedule ? "Scheduled" : "Immediate",
+      createdAt: dayjs(submittedPayroll.createdAt).format("D MMM YYYY h:mm A"),
+      items: submittedPayroll.rows.map((row) => ({
+        id: row.referenceId,
+        employeeId: String(row.rowNumber),
+        employeeName: row.toAccountName || "Employee",
+        accountNumber: row.toAccount || "",
+        bankName: row.bankName || "",
+        amount: Number(row.amount),
+        currency: row.currency === "USD" ? "USD" : "KHR",
+        status: "Pending",
+      })),
     };
-
     onSuccess(newPayroll);
   };
 
   const handleDownloadSummary = () => {
-    showToast("info", {
-      title: "Download Summary",
-      message: "Payroll summary downloaded successfully.",
-    });
+    const escapeCsv = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+    const rows = [
+      ["Row", "Employee Name", "Account Number", "Bank", "Amount", "Currency", "Status", "Message"],
+      ...records.map((row) => [row.rowNumber, row.employeeName, row.accountNumber, row.employeeId, row.amount, row.currency, row.validationState, row.message ?? ""]),
+    ];
+    const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+    downloadBlob(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }), "payroll_validation_summary.csv");
   };
 
   return (
@@ -289,7 +318,11 @@ export default function UploadPayrollWizard({
       {currentStep === 1 && (
         <Button
           variant="text"
-          onClick={() => setCurrentStep(0)}
+          onClick={() => {
+            if (submittedPayroll?.authenticator) setQrConfirmOpen(true);
+            else if (submittedPayroll) setCurrentStep(2);
+            else setCurrentStep(0);
+          }}
           startIcon={<ChevronLeft size={18} />}
           sx={{
             color: "#1B5299",
@@ -326,9 +359,9 @@ export default function UploadPayrollWizard({
         <BaseStep
           steps={["New", "Review", "Submit"]}
           activeStep={currentStep}
-          onStepClick={(index) => {
-            if (index === 0) setCurrentStep(0);
-            else if (index === 1 && selectedFile) setCurrentStep(1);
+            onStepClick={(index) => {
+              if (index === 0 && !submittedPayroll) setCurrentStep(0);
+              else if (index === 1 && selectedFile && validationSummary) setCurrentStep(1);
           }}
         />
       </Box>
@@ -354,15 +387,20 @@ export default function UploadPayrollWizard({
                 <FormControl fullWidth size="small">
                   <Select
                     value={sourceAccountId}
-                    onChange={(e) => setSourceAccountId(e.target.value)}
+                    onChange={(e) => {
+                      setSourceAccountId(e.target.value);
+                      setRecords([]);
+                      setValidationSummary(null);
+                      setValidatedSourceAccount(null);
+                    }}
                     renderValue={(selectedId) => {
-                      const acc =
-                        SOURCE_ACCOUNTS.find((a) => a.id === selectedId) ?? SOURCE_ACCOUNTS[0];
+                      const acc = accounts.find((a) => a.id === selectedId) ?? accounts[0];
+                      if (!acc) return "Loading accounts…";
                       return (
                         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
                           <CreditCard size={16} color="#475569" />
                           <Typography sx={{ fontSize: 14, color: "#0F172A", fontWeight: 500 }}>
-                            {acc.name} · {acc.accountNumber} · {acc.currency} {acc.balance}
+                            {acc.name} · {acc.number} · {acc.currency} {acc.balance}
                           </Typography>
                         </Stack>
                       );
@@ -374,12 +412,12 @@ export default function UploadPayrollWizard({
                       "& fieldset": { borderColor: palette.slate[200] },
                     }}
                   >
-                    {SOURCE_ACCOUNTS.map((acc) => (
+                    {accounts.map((acc) => (
                       <MenuItem key={acc.id} value={acc.id}>
                         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
                           <CreditCard size={16} color="#475569" />
                           <Typography sx={{ fontSize: 14 }}>
-                            {acc.name} · {acc.accountNumber} · {acc.currency} {acc.balance}
+                            {acc.name} · {acc.number} · {acc.currency} {acc.balance}
                           </Typography>
                         </Stack>
                       </MenuItem>
@@ -460,7 +498,7 @@ export default function UploadPayrollWizard({
                   </Typography>
 
                   <Typography sx={{ fontSize: 12.5, color: "#64748B" }}>
-                    Excel or CSV in the payroll template format
+                    Excel or CSV using the shared transfer columns. Receiver Name must contain the employee name.
                   </Typography>
                 </Box>
 
@@ -499,7 +537,7 @@ export default function UploadPayrollWizard({
                           {selectedFile.name}
                         </Typography>
                         <Typography sx={{ fontSize: 12, color: "#64748B", mt: 0.25 }}>
-                          {selectedFile.recordsCount} records · {selectedFile.sizeStr} · uploaded just now
+                          {validationSummary ? `${validationSummary.records} records · ` : "Ready to validate · "}{selectedFile.sizeStr}
                         </Typography>
                       </Box>
                     </Stack>
@@ -545,8 +583,8 @@ export default function UploadPayrollWizard({
 
                 <Button
                   variant="contained"
-                  disabled={!selectedFile}
-                  onClick={() => setCurrentStep(1)}
+                  disabled={!selectedFile || !selectedSourceAccount || validating}
+                  onClick={() => void handleValidateFile()}
                   endIcon={<ArrowRight size={16} />}
                   sx={{
                     height: 40,
@@ -565,7 +603,7 @@ export default function UploadPayrollWizard({
                     },
                   }}
                 >
-                  Next
+                  {validating ? "Checking…" : "Next"}
                 </Button>
               </Stack>
             </Box>
@@ -585,50 +623,74 @@ export default function UploadPayrollWizard({
                 Payroll template
               </Typography>
               <Typography sx={{ fontSize: 13, color: "#64748B", mb: 2.5 }}>
-                Use our template so every record is read correctly.
+                Uses the same columns as Bulk Transfer; enter the employee name in Receiver Name.
               </Typography>
 
               {/* Download buttons */}
-              <Stack direction="row" spacing={1.5} sx={{ mb: 3 }}>
+              <Stack direction="row" spacing={1.5} sx={{ mb: 1.5 }}>
                 <Button
-                  variant="outlined"
-                  onClick={() => handleDownloadTemplate("CSV")}
-                  startIcon={<Download size={14} />}
+                  variant={templateFormat === "CSV" ? "contained" : "outlined"}
+                  onClick={() => setTemplateFormat("CSV")}
                   sx={{
                     flex: 1,
                     height: 38,
                     borderRadius: "8px",
-                    borderColor: palette.slate[200],
-                    color: "#0F172A",
+                    borderColor: templateFormat === "CSV" ? "#1B5299" : palette.slate[200],
+                    bgcolor: templateFormat === "CSV" ? "#1B5299" : "#FFFFFF",
+                    color: templateFormat === "CSV" ? "#FFFFFF" : "#0F172A",
                     fontSize: 13,
                     fontWeight: 600,
                     textTransform: "none",
-                    "&:hover": { borderColor: palette.slate[300], bgcolor: "#F8FAFC" },
+                    boxShadow: "none",
+                    "&:hover": { borderColor: "#1B5299", bgcolor: templateFormat === "CSV" ? "#15427C" : "#F8FAFC", boxShadow: "none" },
                   }}
                 >
                   CSV
                 </Button>
 
                 <Button
-                  variant="contained"
-                  onClick={() => handleDownloadTemplate("Excel")}
-                  startIcon={<Download size={14} />}
+                  variant={templateFormat === "Excel" ? "contained" : "outlined"}
+                  onClick={() => setTemplateFormat("Excel")}
                   sx={{
                     flex: 1,
                     height: 38,
                     borderRadius: "8px",
-                    bgcolor: "#249666",
-                    color: "#FFFFFF",
+                    borderColor: templateFormat === "Excel" ? "#1B5299" : palette.slate[200],
+                    bgcolor: templateFormat === "Excel" ? "#1B5299" : "#FFFFFF",
+                    color: templateFormat === "Excel" ? "#FFFFFF" : "#0F172A",
                     fontSize: 13,
                     fontWeight: 600,
                     textTransform: "none",
                     boxShadow: "none",
-                    "&:hover": { bgcolor: "#1E8257", boxShadow: "none" },
+                    "&:hover": { borderColor: "#1B5299", bgcolor: templateFormat === "Excel" ? "#15427C" : "#F8FAFC", boxShadow: "none" },
                   }}
                 >
                   Excel
                 </Button>
               </Stack>
+
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => void handleDownloadTemplate(templateFormat)}
+                disabled={downloadingTemplate}
+                startIcon={<Download size={14} />}
+                sx={{
+                  height: 38,
+                  mb: 3,
+                  borderRadius: "8px",
+                  borderColor: palette.slate[200],
+                  bgcolor: "#FFFFFF",
+                  color: "#334155",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textTransform: "none",
+                  boxShadow: "none",
+                  "&:hover": { borderColor: palette.slate[300], bgcolor: "#F8FAFC", boxShadow: "none" },
+                }}
+              >
+                {downloadingTemplate ? "Downloading…" : `Download ${templateFormat} template`}
+              </Button>
 
               {/* Template Guidelines */}
               <Stack spacing={1.75}>
@@ -642,7 +704,7 @@ export default function UploadPayrollWizard({
                 <Stack direction="row" spacing={1.25} sx={{ alignItems: "flex-start" }}>
                   <Check size={16} color="#16A34A" style={{ marginTop: 2, flexShrink: 0 }} />
                   <Typography sx={{ fontSize: 13, color: "#334155" }}>
-                    Account currency must match the source account (KHR)
+                    Account currency must match the selected source account ({selectedSourceAccount?.currency ?? "—"})
                   </Typography>
                 </Stack>
 
@@ -693,10 +755,10 @@ export default function UploadPayrollWizard({
                     FROM ACCOUNT
                   </Typography>
                   <Typography sx={{ fontSize: 14, fontWeight: 600, color: "#0F172A", mb: 0.25 }}>
-                    {selectedSourceAccount.name} · {selectedSourceAccount.accountNumber}
+                    {selectedSourceAccount?.name} · {selectedSourceAccount?.number}
                   </Typography>
                   <Typography sx={{ fontSize: 12.5, color: "#64748B" }}>
-                    Available {selectedSourceAccount.currency} {selectedSourceAccount.balance}
+                    Available {selectedSourceAccount?.currency} {selectedSourceAccount?.balance}
                   </Typography>
                 </Box>
               </Grid>
@@ -722,10 +784,10 @@ export default function UploadPayrollWizard({
                     FILE
                   </Typography>
                   <Typography sx={{ fontSize: 14, fontWeight: 600, color: "#0F172A", mb: 0.25 }}>
-                    {selectedFile?.name || "payroll_nov_2026.xlsx"}
+                    {selectedFile?.name || "—"}
                   </Typography>
                   <Typography sx={{ fontSize: 12.5, color: "#64748B" }}>
-                    {selectedFile?.recordsCount || 24} records uploaded
+                    {validationSummary?.records ?? 0} records uploaded
                   </Typography>
                 </Box>
               </Grid>
@@ -751,7 +813,7 @@ export default function UploadPayrollWizard({
                     {attentionCount} of {totalBatchRecordsCount} records need attention
                   </Typography>
                   <Typography sx={{ fontSize: 12.5, color: "#64748B" }}>
-                    Fix or delete the records in red to continue. Duplicates in yellow can stay.
+                    Correct the invalid rows in your file and upload it again. Duplicate rows are shown for review.
                   </Typography>
                 </Box>
               </Box>
@@ -774,9 +836,9 @@ export default function UploadPayrollWizard({
                     {totalBatchRecordsCount} records ready to pay
                   </Typography>
                   <Typography sx={{ fontSize: 12.5, color: "#64748B" }}>
-                    {warningCount > 0
-                      ? "1 duplicate account remains (rows 3 and 15). You can continue — your approver will see this too."
-                      : "All records are valid and ready to pay."}
+                      {warningCount > 0
+                      ? `${warningCount} duplicate rows are included in this batch and will be visible to the checker.`
+                      : "All records are valid and ready to submit for approval."}
                   </Typography>
                 </Box>
               </Box>
@@ -800,13 +862,10 @@ export default function UploadPayrollWizard({
                   >
                     <TableCell sx={{ width: "6%" }}>Row</TableCell>
                     <TableCell sx={{ width: "24%" }}>Employee name & account</TableCell>
-                    <TableCell sx={{ width: "13%" }}>Employee ID</TableCell>
+                    <TableCell sx={{ width: "13%" }}>Bank</TableCell>
                     <TableCell sx={{ width: "15%" }}>Remarks</TableCell>
                     <TableCell sx={{ width: "14%" }}>Amount</TableCell>
                     <TableCell sx={{ width: "20%" }}>Message</TableCell>
-                    <TableCell sx={{ width: "8%" }} align="right">
-                      Action
-                    </TableCell>
                   </TableRow>
                 </TableHead>
 
@@ -887,28 +946,6 @@ export default function UploadPayrollWizard({
                           </Typography>
                         </TableCell>
 
-                        {/* Action: Edit & Delete */}
-                        <TableCell align="right">
-                          <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                            <IconButton
-                              size="small"
-                              onClick={() => setEditingRow(row)}
-                              sx={{ color: "#475569", p: 0.75, "&:hover": { bgcolor: "#E2E8F0", color: "#0F172A" } }}
-                              aria-label="Edit record"
-                            >
-                              <Pencil size={15} />
-                            </IconButton>
-
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteRecord(row.id)}
-                              sx={{ color: "#475569", p: 0.75, "&:hover": { bgcolor: "#FEE2E2", color: "#EF4444" } }}
-                              aria-label="Delete record"
-                            >
-                              <Trash2 size={15} />
-                            </IconButton>
-                          </Stack>
-                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -916,9 +953,6 @@ export default function UploadPayrollWizard({
               </Table>
             </TableContainer>
 
-            <Typography sx={{ fontSize: 12.5, color: "#64748B", mt: 2.5, pl: 0.5, fontWeight: 500 }}>
-              + {remainingValidCount} more valid records
-            </Typography>
           </Box>
 
           {/* Processing Date & Transaction Summary Cards */}
@@ -1082,7 +1116,7 @@ export default function UploadPayrollWizard({
                     >
                       <Typography sx={{ fontSize: 13, color: "#64748B" }}>Transfer amount</Typography>
                       <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: "#0F172A" }}>
-                        KHR {totalAmountKhr.toLocaleString("en-US")}
+                        {currency} {totalAmountKhr.toLocaleString("en-US")}
                       </Typography>
                     </Box>
 
@@ -1097,7 +1131,7 @@ export default function UploadPayrollWizard({
                     >
                       <Typography sx={{ fontSize: 13, color: "#64748B" }}>Fee</Typography>
                       <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: "#0F172A" }}>
-                        KHR {feeKhr.toLocaleString("en-US")}
+                        {currency} {feeKhr.toLocaleString("en-US")}
                       </Typography>
                     </Box>
 
@@ -1111,7 +1145,7 @@ export default function UploadPayrollWizard({
                     >
                       <Typography sx={{ fontSize: 13, color: "#64748B" }}>Total debit amount</Typography>
                       <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: "#1B5299" }}>
-                        KHR {totalDebitKhr.toLocaleString("en-US")}
+                        {currency} {totalDebitKhr.toLocaleString("en-US")}
                       </Typography>
                     </Box>
                   </Stack>
@@ -1174,8 +1208,8 @@ export default function UploadPayrollWizard({
 
               <Button
                 variant="contained"
-                disabled={errorCount > 0 || !agreedTerms}
-                onClick={() => setQrConfirmOpen(true)}
+                disabled={errorCount > 0 || !agreedTerms || submitting || totalBatchRecordsCount === 0 || (processingTiming === "future" && !rawDateValue)}
+                onClick={() => void handleSubmitForApproval()}
                 endIcon={<ArrowRight size={16} />}
                 sx={{
                   height: 40,
@@ -1194,7 +1228,7 @@ export default function UploadPayrollWizard({
                   },
                 }}
               >
-                Next
+                {submitting ? "Submitting…" : submittedPayroll ? "Resume authorization" : "Send for authorization"}
               </Button>
             </Stack>
           </Box>
@@ -1204,64 +1238,6 @@ export default function UploadPayrollWizard({
       {/* ================= STEP 3: SUBMIT / CONFIRMATION (Images 9 & 10) ================= */}
       {currentStep === 2 && (
         <Box sx={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          {/* Condition Switcher for Demo / Preview */}
-          <Box
-            sx={{
-              display: "inline-flex",
-              bgcolor: "#F1F5F9",
-              p: 0.5,
-              borderRadius: "10px",
-              mb: 3,
-            }}
-          >
-            <Button
-              size="small"
-              onClick={() => setApprovalCondition("under_approval")}
-              sx={{
-                textTransform: "none",
-                fontSize: 12.5,
-                fontWeight: 600,
-                borderRadius: "8px",
-                px: 2,
-                py: 0.5,
-                bgcolor: approvalCondition === "under_approval" ? "#FFFFFF" : "transparent",
-                color: approvalCondition === "under_approval" ? "#1B5299" : "#64748B",
-                boxShadow:
-                  approvalCondition === "under_approval"
-                    ? "0px 1px 3px rgba(0, 0, 0, 0.08)"
-                    : "none",
-                "&:hover": {
-                  bgcolor: approvalCondition === "under_approval" ? "#FFFFFF" : "#E2E8F0",
-                },
-              }}
-            >
-              Sent for approval
-            </Button>
-            <Button
-              size="small"
-              onClick={() => setApprovalCondition("approved")}
-              sx={{
-                textTransform: "none",
-                fontSize: 12.5,
-                fontWeight: 600,
-                borderRadius: "8px",
-                px: 2,
-                py: 0.5,
-                bgcolor: approvalCondition === "approved" ? "#FFFFFF" : "transparent",
-                color: approvalCondition === "approved" ? "#1B5299" : "#64748B",
-                boxShadow:
-                  approvalCondition === "approved"
-                    ? "0px 1px 3px rgba(0, 0, 0, 0.08)"
-                    : "none",
-                "&:hover": {
-                  bgcolor: approvalCondition === "approved" ? "#FFFFFF" : "#E2E8F0",
-                },
-              }}
-            >
-              Payroll scheduled
-            </Button>
-          </Box>
-
           <Box
             sx={{
               maxWidth: 440,
@@ -1280,8 +1256,8 @@ export default function UploadPayrollWizard({
                 width: 52,
                 height: 52,
                 borderRadius: "50%",
-                bgcolor: approvalCondition === "under_approval" ? "#EFF6FF" : "#ECFDF5",
-                color: approvalCondition === "under_approval" ? "#0284C7" : "#16A34A",
+                bgcolor: "#EFF6FF",
+                color: "#0284C7",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -1289,32 +1265,28 @@ export default function UploadPayrollWizard({
                 mb: 2.5,
               }}
             >
-              {approvalCondition === "under_approval" ? (
-                <Clock size={26} strokeWidth={2.2} />
-              ) : (
-                <CheckCircle2 size={26} strokeWidth={2.2} />
-              )}
+              <Clock size={26} strokeWidth={2.2} />
             </Box>
 
             {/* Title */}
             <Typography sx={{ fontSize: 22, fontWeight: 700, color: "#0F172A", mb: 1 }}>
-              {approvalCondition === "under_approval" ? "Sent for approval" : "Payroll scheduled"}
+              Payroll sent for checker approval
             </Typography>
 
             {/* Subtitle */}
             <Typography sx={{ fontSize: 13.5, color: "#64748B", mb: 2.5, lineHeight: 1.5 }}>
-              {approvalCondition === "under_approval"
-                ? `An approver from ABC Trading needs to approve this payroll before ${futureDate || "31 Oct 2026"}.`
-                : `${totalBatchRecordsCount} employees will be paid on ${futureDate || "31 Oct 2026"}.`}
+              {submittedPayroll?.status === "AWAITING_APPROVAL"
+                ? "Maker authorization is complete. This payroll is now waiting for a checker; no employee transfer has completed yet."
+                : "This payroll has been saved and is waiting for maker authorization. No employee transfer has completed yet."}
             </Typography>
 
             {/* Total Amount Display */}
             <Typography sx={{ fontSize: 24, fontWeight: 800, color: "#0F172A", mb: 3 }}>
-              KHR {totalAmountKhr.toLocaleString("en-US")}
+              {currency} {totalAmountKhr.toLocaleString("en-US")}
             </Typography>
 
             {/* Blocked in Payroll Alert Banner (Condition 1 only) */}
-            {approvalCondition === "under_approval" && (
+            {submittedPayroll && (
               <Box
                 sx={{
                   bgcolor: "#FFFDF5",
@@ -1331,7 +1303,7 @@ export default function UploadPayrollWizard({
                 <Lock size={16} color="#0F172A" style={{ marginTop: 2, flexShrink: 0 }} />
                 <Box>
                   <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A", mb: 0.25 }}>
-                    KHR {totalAmountKhr.toLocaleString("en-US")} is Blocked in Payroll
+                    {currency} {totalAmountKhr.toLocaleString("en-US")} is held pending approval
                   </Typography>
                   <Typography sx={{ fontSize: 12.5, color: "#64748B" }}>
                     It&apos;s released if the payroll is rejected.
@@ -1368,7 +1340,7 @@ export default function UploadPayrollWizard({
               >
                 <Typography sx={{ fontSize: 13, color: "#64748B" }}>Reference</Typography>
                 <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: "#0F172A" }}>
-                  PR2610190006
+                  {submittedPayroll?.referenceId ?? "—"}
                 </Typography>
               </Box>
 
@@ -1383,7 +1355,7 @@ export default function UploadPayrollWizard({
               >
                 <Typography sx={{ fontSize: 13, color: "#64748B" }}>From</Typography>
                 <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: "#0F172A" }}>
-                  {selectedSourceAccount.name} · {selectedSourceAccount.accountNumber}
+                  {selectedSourceAccount?.name} · {selectedSourceAccount?.number}
                 </Typography>
               </Box>
 
@@ -1398,7 +1370,7 @@ export default function UploadPayrollWizard({
               >
                 <Typography sx={{ fontSize: 13, color: "#64748B" }}>Processing date</Typography>
                 <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: "#0F172A" }}>
-                  {futureDate || "31 Oct 2026"}
+                  {processingTiming === "future" ? futureDate : "Immediate"}
                 </Typography>
               </Box>
 
@@ -1413,7 +1385,7 @@ export default function UploadPayrollWizard({
               >
                 <Typography sx={{ fontSize: 13, color: "#64748B" }}>Fee</Typography>
                 <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: "#0F172A" }}>
-                  KHR {feeKhr.toLocaleString("en-US")}
+                  {currency} {feeKhr.toLocaleString("en-US")}
                 </Typography>
               </Box>
 
@@ -1427,7 +1399,7 @@ export default function UploadPayrollWizard({
               >
                 <Typography sx={{ fontSize: 13, color: "#64748B" }}>Total debit amount</Typography>
                 <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>
-                  KHR {totalDebitKhr.toLocaleString("en-US")}
+                  {currency} {totalDebitKhr.toLocaleString("en-US")}
                 </Typography>
               </Box>
             </Stack>
@@ -1476,34 +1448,36 @@ export default function UploadPayrollWizard({
         </Box>
       )}
 
-      {/* Edit Record Modal Dialog (Image 4) */}
-      <EditPayrollRecordDialog
-        open={Boolean(editingRow)}
-        row={editingRow}
-        onClose={() => setEditingRow(null)}
-        onUpdate={handleUpdateRecord}
-        onDelete={handleDeleteRecord}
-      />
-
       {/* Mobile App QR Confirmation Modal */}
       <QrConfirmationDialog
         open={qrConfirmOpen}
-        countdownSeconds={120}
+        authenticator={submittedPayroll?.authenticator}
         onClose={() => setQrConfirmOpen(false)}
-        onApprove={() => {
+        onAuthorized={async () => {
+          if (submittedPayroll) {
+            try {
+              const latest = await getPayroll(submittedPayroll.referenceId).unwrap();
+              setSubmittedPayroll(latest);
+            } catch {
+              // The saved batch remains pending if its status refresh is temporarily unavailable.
+            }
+          }
           setQrConfirmOpen(false);
           setCurrentStep(2);
         }}
         onRenew={async () => {
-          showToast("info", {
-            title: "QR Code Renewed",
-            message: "A new QR confirmation code has been generated.",
-          });
+          if (!submittedPayroll) return;
+          const renewed = await requestAuthenticator({
+            referenceId: submittedPayroll.referenceId,
+            idempotencyKey: crypto.randomUUID(),
+          }).unwrap();
+          setSubmittedPayroll(renewed);
+          if (!renewed.authenticator) throw new Error("The service did not return a new authenticator QR.");
+          return renewed.authenticator;
         }}
         title="Confirmations"
         instruction="Scan QR Code"
         subtitle="Use Biktech Banking App to scan the QR code and accept this payroll transfer."
-        value={`PAYROLL-AUTH-${selectedFile?.name || "batch-nov-2026"}`}
       />
     </Box>
   );

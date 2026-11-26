@@ -252,7 +252,7 @@ export default function LoanDetailsPanel({
             />
             <DetailRow
               label="Loan Type"
-              value={schedule.accountType || "Commercial Loan"}
+              value={schedule.accountType || "—"}
             />
             <DetailRow label="Currency" value={ccy} />
           </Stack>
@@ -280,7 +280,7 @@ export default function LoanDetailsPanel({
               value={
                 schedule.interestRatePct !== undefined
                   ? `${schedule.interestRatePct}% p.a.`
-                  : "6.5% p.a."
+                  : "—"
               }
             />
             {schedule.tenorLabel && (
@@ -356,7 +356,7 @@ export default function LoanDetailsPanel({
         <Stack spacing={1.5} sx={{ mt: 3, pt: 1 }}>
           {onDownloadSchedule && (
             <BaseButton
-              title="Download Loan Schedule"
+              title="Download Loan Schedule (CSV)"
               variant="contained"
               fullWidth
               startIcon={<Download size={16} />}
@@ -380,7 +380,7 @@ export default function LoanDetailsPanel({
 
           {onDownloadRemainingInstallments && (
             <BaseButton
-              title="Download Remaining Installments"
+              title="Download Remaining Installments (CSV)"
               variant="outlined"
               fullWidth
               startIcon={<Download size={16} />}

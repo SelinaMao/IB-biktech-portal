@@ -47,6 +47,8 @@ export type QrConfirmationDialogProps = {
   onAuthorized?: (requestId: string) => Promise<void> | void;
   /** Fired when the backend says the authorized action has already been carried out. */
   onConsumed?: (requestId: string, result?: AuthenticatorResult) => Promise<void> | void;
+  /** Keep polling after phone authorization until the owning service records its result. */
+  waitForConsumption?: boolean;
   /** Real backend authenticator challenge object */
   authenticator?: AuthenticatorRequest | null;
   /** Direct QR payload string from API */
@@ -87,6 +89,7 @@ export default function QrConfirmationDialog({
   onApprove,
   onAuthorized,
   onConsumed,
+  waitForConsumption = false,
   authenticator: initialAuthenticator,
   qrPayload,
   value,
@@ -166,6 +169,8 @@ export default function QrConfirmationDialog({
           await onAuthorized(id);
         } else if (onApprove) {
           onApprove();
+        } else {
+          throw new Error("The action owner has not confirmed this request.");
         }
       } catch (error) {
         setView("error");
@@ -186,6 +191,10 @@ export default function QrConfirmationDialog({
         const latest = await loadStatus(effectiveRequestId, false).unwrap();
         if (cancelled) return;
         if (latest.status === "AUTHORIZED") {
+          if (waitForConsumption) {
+            timer = window.setTimeout(poll, POLL_MS);
+            return;
+          }
           void carryOut(effectiveRequestId, false);
           return;
         }
@@ -210,7 +219,7 @@ export default function QrConfirmationDialog({
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [open, effectiveRequestId, view, loadStatus, carryOut]);
+  }, [open, effectiveRequestId, view, loadStatus, carryOut, waitForConsumption]);
 
   const handleRenew = async () => {
     if (!onRenew) {
@@ -383,15 +392,15 @@ export default function QrConfirmationDialog({
         ) : (
           <Box
             onClick={() => {
-              if (!effectiveRequestId && view === "waiting") {
+              if (!effectiveRequestId && !waitForConsumption && view === "waiting") {
                 void carryOut("simulated-approval");
               }
             }}
-            title={!effectiveRequestId ? "Click to simulate mobile app approval" : undefined}
+            title={!effectiveRequestId && !waitForConsumption ? "Click to simulate mobile app approval" : undefined}
             sx={{
               opacity: view !== "waiting" ? 0.1 : 1,
               transition: "opacity 0.2s ease",
-              cursor: !effectiveRequestId && view === "waiting" ? "pointer" : "default",
+              cursor: !effectiveRequestId && !waitForConsumption && view === "waiting" ? "pointer" : "default",
             }}
           >
             <QRCodeSVG
@@ -520,7 +529,7 @@ export default function QrConfirmationDialog({
             Expires in {formatCountdown(secondsLeft)}
           </Typography>
 
-          {!effectiveRequestId && (
+          {!effectiveRequestId && !waitForConsumption && (
             <Button
               size="small"
               variant="text"

@@ -200,6 +200,38 @@ export const transferApi = baseApi.injectEndpoints({
       transformResponse,
     }),
 
+    validateBulkTransferFile: build.mutation<
+      BulkValidationResult,
+      Idempotent<FormData>
+    >({
+      query: ({ body, idempotencyKey }) => ({
+        url: bank(adminApi.BULK_TRANSFER.FILE_VALIDATE),
+        method: "POST",
+        body,
+        headers: idemHeader(idempotencyKey),
+      }),
+      transformResponse,
+    }),
+
+    submitBulkTransferFile: build.mutation<BulkTransferResult, Idempotent<FormData>>({
+      query: ({ body, idempotencyKey }) => ({
+        url: bank(adminApi.BULK_TRANSFER.FILE_SUBMIT),
+        method: "POST",
+        body,
+        headers: idemHeader(idempotencyKey),
+      }),
+      transformResponse,
+      invalidatesTags: ["Schedule", "Account"],
+    }),
+
+    downloadBulkTransferTemplate: build.query<Blob, "CSV" | "EXCEL">({
+      query: (format) => ({
+        url: bank(adminApi.BULK_TRANSFER.FILE_TEMPLATE),
+        params: { format },
+        responseHandler: (response) => response.blob(),
+      }),
+    }),
+
     /** Saves the bulk after checking every row again; nothing moves until the linked phone authorizes it. */
     submitBulkTransfer: build.mutation<BulkTransferResult, Idempotent<BulkTransferRequest>>({
       query: ({ body, idempotencyKey }) => ({
@@ -244,6 +276,9 @@ export const {
   useDeleteTransferTemplateMutation,
   useRequestTransferAuthenticatorMutation,
   useValidateBulkTransferMutation,
+  useValidateBulkTransferFileMutation,
+  useSubmitBulkTransferFileMutation,
+  useLazyDownloadBulkTransferTemplateQuery,
   useSubmitBulkTransferMutation,
   useRequestBulkTransferAuthenticatorMutation,
   useGetBulkTransferQuery,
