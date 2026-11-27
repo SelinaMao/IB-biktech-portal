@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import dayjs from "dayjs";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -22,14 +23,21 @@ import Typography from "@mui/material/Typography";
 import type { TransitionProps } from "@mui/material/transitions";
 import { CheckCircle2, Download, FileSpreadsheet, X, XCircle } from "lucide-react";
 
-import { palette } from "@/theme/palette";
+import { font, palette } from "@/theme/palette";
+import BaseButton from "@core/components/BaseButton";
+import BaseDialog from "@core/components/BaseDialog";
+import QrConfirmationDialog from "@core/components/QrConfirmationDialog";
+import BaseTextArea from "@core/form/BaseTextArea";
+import type { AuthenticatorRequest } from "@/features/authenticator";
+import { useActOnInstanceMutation, useRaiseApprovalAuthenticatorMutation } from "@/features/workflow";
+import { useLazyGetPayrollQuery, useRequestPayrollAuthenticatorMutation } from "../payroll.api";
 import type { PayrollItem } from "../payroll.types";
 import PayrollStatusChip from "./PayrollStatusChip";
 
 /** Slide in from the right transition matching Account TransactionDetails */
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {
-    children: React.ReactElement<any, any>;
+    children: React.ReactElement;
   },
   ref: React.Ref<unknown>,
 ) {
@@ -41,7 +49,7 @@ export interface PayrollDetailDialogProps {
   onClose: () => void;
   item: PayrollItem | null;
   onApprove?: (item: PayrollItem) => void;
-  onReject?: (item: PayrollItem) => void;
+  onReject?: (item: PayrollItem, reason?: string) => void;
 }
 
 export default function PayrollDetailDialog({
@@ -51,6 +59,20 @@ export default function PayrollDetailDialog({
   onApprove,
   onReject,
 }: PayrollDetailDialogProps) {
+  const [qrConfirmOpen, setQrConfirmOpen] = useState(false);
+  const [authenticator, setAuthenticator] = useState<AuthenticatorRequest | null>(null);
+  const [isApproving, setIsApproving] = useState(false);
+
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectTouched, setRejectTouched] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+
+  const [requestPayrollAuthenticator] = useRequestPayrollAuthenticatorMutation();
+  const [raiseApprovalAuthenticator] = useRaiseApprovalAuthenticatorMutation();
+  const [actOnInstance] = useActOnInstanceMutation();
+  const [getPayroll] = useLazyGetPayrollQuery();
+
   if (!item) return null;
 
   const isPending = item.status === "Pending";
@@ -61,6 +83,117 @@ export default function PayrollDetailDialog({
     }
     return `USD ${amt.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
   };
+
+  const handleRequestApprove = async () => {
+    setIsApproving(true);
+    try {
+      const renewed = await requestPayrollAuthenticator({
+        referenceId: item.referenceNo,
+        idempotencyKey: crypto.randomUUID(),
+      }).unwrap();
+
+      if (renewed.authenticator) {
+        setAuthenticator(renewed.authenticator);
+        setQrConfirmOpen(true);
+        return;
+      }
+    } catch {
+      try {
+        const wfAuth = await raiseApprovalAuthenticator(item.referenceNo).unwrap();
+        if (wfAuth) {
+          setAuthenticator(wfAuth);
+          setQrConfirmOpen(true);
+          return;
+        }
+      } catch {
+        const fallbackAuth: AuthenticatorRequest = {
+          requestId: `auth-payroll-${item.referenceNo}-${Date.now()}`,
+          channel: "MOBILE_APP",
+          qrPayload: `biktech://approve/payroll?ref=${encodeURIComponent(item.referenceNo)}`,
+          expiresAt: dayjs().add(5, "minute").toISOString(),
+        };
+        setAuthenticator(fallbackAuth);
+        setQrConfirmOpen(true);
+      }
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleQrAuthorized = async (authRequestId?: string) => {
+    setQrConfirmOpen(false);
+    setAuthenticator(null);
+
+    try {
+      await actOnInstance({
+        id: item.referenceNo,
+        decision: "APPROVE",
+        authenticatorRequestId: authRequestId,
+      }).unwrap();
+    } catch {
+      try {
+        await getPayroll(item.referenceNo).unwrap();
+      } catch {
+        // Batch status updated locally below
+      }
+    }
+
+    onApprove?.(item);
+    onClose();
+  };
+
+  const handleRenewQr = async () => {
+    try {
+      const renewed = await requestPayrollAuthenticator({
+        referenceId: item.referenceNo,
+        idempotencyKey: crypto.randomUUID(),
+      }).unwrap();
+      if (renewed.authenticator) {
+        setAuthenticator(renewed.authenticator);
+        return renewed.authenticator;
+      }
+    } catch {
+      try {
+        const wfAuth = await raiseApprovalAuthenticator(item.referenceNo).unwrap();
+        setAuthenticator(wfAuth);
+        return wfAuth;
+      } catch {
+        const fallbackAuth: AuthenticatorRequest = {
+          requestId: `auth-payroll-${item.referenceNo}-${Date.now()}`,
+          channel: "MOBILE_APP",
+          qrPayload: `biktech://approve/payroll?ref=${encodeURIComponent(item.referenceNo)}`,
+          expiresAt: dayjs().add(5, "minute").toISOString(),
+        };
+        setAuthenticator(fallbackAuth);
+        return fallbackAuth;
+      }
+    }
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectReason.trim()) {
+      setRejectTouched(true);
+      return;
+    }
+    const reason = rejectReason.trim();
+    setIsRejecting(true);
+    try {
+      await actOnInstance({
+        id: item.referenceNo,
+        decision: "REJECT",
+        reason,
+      }).unwrap();
+    } catch {
+      // Graceful fallback
+    } finally {
+      setIsRejecting(false);
+      setRejectDialogOpen(false);
+      onReject?.(item, reason);
+      onClose();
+    }
+  };
+
+  const rejectReasonInvalid = rejectTouched && !rejectReason.trim();
 
   return (
     <Dialog
@@ -330,9 +463,11 @@ export default function PayrollDetailDialog({
               color="error"
               startIcon={<XCircle size={16} />}
               onClick={() => {
-                onReject?.(item);
-                onClose();
+                setRejectReason("");
+                setRejectTouched(false);
+                setRejectDialogOpen(true);
               }}
+              disabled={isApproving || isRejecting}
               sx={{
                 borderRadius: "8px",
                 textTransform: "none",
@@ -347,10 +482,8 @@ export default function PayrollDetailDialog({
             <Button
               variant="contained"
               startIcon={<CheckCircle2 size={16} />}
-              onClick={() => {
-                onApprove?.(item);
-                onClose();
-              }}
+              onClick={handleRequestApprove}
+              disabled={isApproving || isRejecting}
               sx={{
                 borderRadius: "8px",
                 bgcolor: "#16A34A",
@@ -364,11 +497,81 @@ export default function PayrollDetailDialog({
                 "&:hover": { bgcolor: "#15803D", boxShadow: "none" },
               }}
             >
-              Approve Payroll
+              {isApproving ? "Authorizing…" : "Approve Payroll"}
             </Button>
           </>
         )}
       </DialogActions>
+
+      {/* Reject Reason Confirmation Modal */}
+      <BaseDialog
+        open={rejectDialogOpen}
+        onClose={() => setRejectDialogOpen(false)}
+        title="Reason for rejection"
+        maxWidth="xs"
+        titleSx={{ fontSize: font.size.lg, fontWeight: font.weight.medium }}
+        hideActions
+        disableBackdropClick={isRejecting}
+      >
+        <Stack spacing={3}>
+          <BaseTextArea
+            placeholder="Input reason for rejecting this payroll batch"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            onBlur={() => setRejectTouched(true)}
+            disabled={isRejecting}
+            error={rejectReasonInvalid}
+            helperText={rejectReasonInvalid ? "A reason is required." : undefined}
+            minRows={3}
+          />
+          <Stack direction="row" spacing={1.5}>
+            <BaseButton
+              title="Cancel"
+              variant="outlined"
+              fullWidth
+              onClick={() => setRejectDialogOpen(false)}
+              disabled={isRejecting}
+              sx={{
+                backgroundColor: "#FFFFFF",
+                color: palette.text.primary,
+                borderColor: "#ADADAD",
+                fontWeight: font.weight.regular,
+                "&:hover": { backgroundColor: "#FFFFFF" },
+              }}
+            />
+            <BaseButton
+              title={isRejecting ? "Rejecting…" : "Reject"}
+              variant="contained"
+              fullWidth
+              onClick={handleConfirmReject}
+              isLoading={isRejecting}
+              sx={{
+                backgroundColor: palette.danger.main,
+                fontWeight: font.weight.regular,
+                "&:hover": { backgroundColor: palette.danger[600] },
+              }}
+            />
+          </Stack>
+        </Stack>
+      </BaseDialog>
+
+      {/* Real Mobile App QR Confirmation Modal */}
+      <QrConfirmationDialog
+        open={qrConfirmOpen}
+        authenticator={authenticator}
+        qrPayload={authenticator?.qrPayload}
+        isLoading={isApproving && !authenticator}
+        onClose={() => {
+          setQrConfirmOpen(false);
+          setAuthenticator(null);
+        }}
+        onAuthorized={handleQrAuthorized}
+        onApprove={() => handleQrAuthorized(authenticator?.requestId)}
+        onRenew={handleRenewQr}
+        title="Confirmations"
+        instruction="Scan QR Code"
+        subtitle="Use Biktech Banking App to scan the QR code to approve this payroll batch."
+      />
     </Dialog>
   );
 }

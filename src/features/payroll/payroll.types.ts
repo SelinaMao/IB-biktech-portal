@@ -1,3 +1,6 @@
+export const PAYROLL_STORAGE_KEY_PENDING = "ib_portal_payroll_pending";
+export const PAYROLL_STORAGE_KEY_HISTORY = "ib_portal_payroll_history";
+
 export type PayrollStatus = "Pending" | "Approved" | "Completed" | "Rejected";
 
 export interface PayrollEmployeeItem {

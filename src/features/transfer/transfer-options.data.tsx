@@ -20,8 +20,8 @@ export const transferOptions: TransferOption[] = [
     color: palette.success.main,
   },
   {
-    slug: "other-sme-bank",
-    label: "Other SME Account",
+    slug: "other-bank",
+    label: "Other Account",
     description: "Send money securely to another local commercial bank.",
     icon: <Image src="/assets/icons/vector_right.svg" alt="" width={20} height={20} />,
     color: palette.orange,
@@ -62,4 +62,5 @@ export const transferOptions: TransferOption[] = [
 ];
 
 /** Options shown as hub cards and in the split view's sidebar, in display order. */
-export const HUB_SLUGS = ["own-account", "other-sme-bank", "local-bank", "international", "bulk"];
+// export const HUB_SLUGS = ["own-account", "other-sme-bank", "local-bank", "international", "bulk"];
+export const HUB_SLUGS = ["own-account", "other-bank", "local-bank", "international", "bulk"];

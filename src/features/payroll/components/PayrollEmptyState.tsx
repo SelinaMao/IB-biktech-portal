@@ -55,7 +55,7 @@ export default function PayrollEmptyState({ onMakePayroll }: PayrollEmptyStatePr
             color: "#64748B",
           }}
         >
-          Accept KHQR payments and collect bills from your customers.
+          Manage company salary payments, track batches, and pay your team on time.
         </Typography>
       </Box>
 
@@ -164,29 +164,31 @@ export default function PayrollEmptyState({ onMakePayroll }: PayrollEmptyStatePr
         </Box>
 
         {/* Action Button */}
-        <BaseButton
-          title="Make Payroll"
-          variant="contained"
-          onClick={onMakePayroll}
-          startIcon={<Plus size={18} />}
-          sx={{
-            height: 42,
-            px: 3.5,
-            borderRadius: "10px",
-            bgcolor: "#1B5299",
-            backgroundColor: "#1B5299",
-            color: "#FFFFFF",
-            fontSize: 14,
-            fontWeight: 600,
-            textTransform: "none",
-            boxShadow: "none",
-            "&:hover": {
-              bgcolor: "#15427C",
-              backgroundColor: "#15427C",
+        <Stack direction="row" sx={{ justifyContent: "center" }}>
+          <BaseButton
+            title="Make Payroll"
+            variant="contained"
+            onClick={onMakePayroll}
+            startIcon={<Plus size={18} />}
+            sx={{
+              height: 42,
+              px: 3.5,
+              borderRadius: "10px",
+              bgcolor: "#1B5299",
+              backgroundColor: "#1B5299",
+              color: "#FFFFFF",
+              fontSize: 14,
+              fontWeight: 600,
+              textTransform: "none",
               boxShadow: "none",
-            },
-          }}
-        />
+              "&:hover": {
+                bgcolor: "#15427C",
+                backgroundColor: "#15427C",
+                boxShadow: "none",
+              },
+            }}
+          />
+        </Stack>
       </Box>
     </Box>
   );

@@ -48,7 +48,8 @@ import {
   useSubmitPayrollFileMutation,
   useValidatePayrollFileMutation,
 } from "../payroll.api";
-import type { PayrollItem, ReviewPayrollRow } from "../payroll.types";
+import type { PayrollEmployeeItem, PayrollItem, ReviewPayrollRow } from "../payroll.types";
+import { PAYROLL_STORAGE_KEY_PENDING } from "../payroll.types";
 import type { BulkTransferResult } from "@/features/transfer/transfer.types";
 import { useTransferAccounts } from "@/features/transfer/use-transfer-accounts";
 import { useIdempotencyKey } from "@/features/transfer/use-idempotency-key";
@@ -120,11 +121,11 @@ export default function UploadPayrollWizard({
   );
   const attentionCount = errorCount + warningCount;
 
-  const totalBatchRecordsCount = validationSummary?.records ?? records.length;
-  const totalAmountKhr = validationSummary?.transferAmount ?? 0;
-  const feeKhr = submittedPayroll?.fee ?? 0;
-  const totalDebitKhr = submittedPayroll?.totalDebitAmount ?? totalAmountKhr + feeKhr;
-  const currency = validationSummary?.currency ?? selectedSourceAccount?.currency ?? "KHR";
+  const totalBatchRecordsCount = validationSummary?.records ?? (submittedPayroll?.records ?? records.length);
+  const totalAmountKhr = validationSummary?.transferAmount ?? (submittedPayroll ? Number(submittedPayroll.amount) : 0);
+  const feeKhr = submittedPayroll?.fee ? Number(submittedPayroll.fee) : 0;
+  const totalDebitKhr = totalAmountKhr + feeKhr;
+  const currency = validationSummary?.currency ?? (submittedPayroll?.currency ?? (selectedSourceAccount?.currency ?? "USD"));
 
   const sortedRecords = useMemo(() => {
     return [...records].sort((a, b) => {
@@ -248,6 +249,72 @@ export default function UploadPayrollWizard({
     }
   };
 
+  const buildSubmittedPayrollItem = (result: BulkTransferResult): PayrollItem => {
+    const fallbackAccountName =
+      result.fromAccountName || selectedSourceAccount?.name || "Corporate Operating";
+    const fallbackAccountNumber =
+      result.fromAccountNumber || selectedSourceAccount?.number || "1012000008021";
+    const payrollCurrency: "USD" | "KHR" =
+      result.currency === "USD" || currency === "USD" ? "USD" : "KHR";
+
+    const mappedItems: PayrollEmployeeItem[] =
+      result.rows && Array.isArray(result.rows) && result.rows.length > 0
+        ? result.rows.map((row) => ({
+            id: row.referenceId || String(row.rowNumber),
+            employeeId: String(row.rowNumber),
+            employeeName: row.toAccountName || "Employee",
+            accountNumber: row.toAccount || "",
+            bankName: row.bankName || "",
+            amount: Number(row.amount),
+            currency: (row.currency === "USD" ? "USD" : "KHR") as "USD" | "KHR",
+            status: "Pending" as const,
+          }))
+        : records.map((r) => ({
+            id: `${result.referenceId}-${r.rowNumber}`,
+            employeeId: String(r.rowNumber),
+            employeeName: r.employeeName || "Employee",
+            accountNumber: r.accountNumber || "",
+            bankName: r.employeeId || "",
+            amount: Number(r.amount),
+            currency: (r.currency === "USD" ? "USD" : "KHR") as "USD" | "KHR",
+            status: "Pending" as const,
+          }));
+
+    const formattedDate =
+      rawDateValue && dayjs(rawDateValue).isValid()
+        ? dayjs(rawDateValue).format("D MMM YYYY")
+        : dayjs().format("D MMM YYYY");
+
+    const formattedCreatedAt =
+      result.createdAt && dayjs(result.createdAt).isValid()
+        ? dayjs(result.createdAt).format("D MMM YYYY h:mm A")
+        : dayjs().format("D MMM YYYY h:mm A");
+
+    const batchTotal = validationSummary?.transferAmount ?? (result.amount ? Number(result.amount) : totalAmountKhr);
+    const batchFee = result.fee ? Number(result.fee) : feeKhr;
+    const batchDebit = batchTotal + batchFee;
+    const batchRecords = validationSummary?.records ?? (result.records ?? (records.length || totalBatchRecordsCount));
+
+    return {
+      id: result.referenceId,
+      processingDate: formattedDate,
+      referenceNo: result.referenceId,
+      fileName: result.fileName || selectedFile?.name || "payroll",
+      sourceAccountName: fallbackAccountName,
+      sourceAccountNumber: fallbackAccountNumber,
+      records: batchRecords,
+      totalAmount: batchTotal,
+      fee: batchFee,
+      totalDebitAmount: batchDebit,
+      currency: payrollCurrency,
+      status: "Pending",
+      title: result.fileName || selectedFile?.name,
+      processingType: result.schedule ? "Scheduled" : "Immediate",
+      createdAt: formattedCreatedAt,
+      items: mappedItems,
+    };
+  };
+
   const handleSubmitForApproval = async () => {
     if (submittedPayroll) {
       if (submittedPayroll.authenticator) setQrConfirmOpen(true);
@@ -263,6 +330,15 @@ export default function UploadPayrollWizard({
       const result = await submitPayroll({ body: form, idempotencyKey: idempotency.ensure() }).unwrap();
       idempotency.reset();
       setSubmittedPayroll(result);
+      try {
+        const item = buildSubmittedPayrollItem(result);
+        const raw = localStorage.getItem(PAYROLL_STORAGE_KEY_PENDING);
+        const existing: PayrollItem[] = raw ? JSON.parse(raw) : [];
+        const updated = [item, ...existing.filter((p) => p.id !== item.id)];
+        localStorage.setItem(PAYROLL_STORAGE_KEY_PENDING, JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
       if (result.authenticator) setQrConfirmOpen(true);
       else setCurrentStep(2);
     } catch (error) {
@@ -271,34 +347,11 @@ export default function UploadPayrollWizard({
   };
 
   const handleCompleteTransfer = () => {
-    if (!submittedPayroll || !selectedSourceAccount) return;
-    const newPayroll: PayrollItem = {
-      id: submittedPayroll.referenceId,
-      processingDate: rawDateValue ? dayjs(rawDateValue).format("D MMM YYYY") : dayjs().format("D MMM YYYY"),
-      referenceNo: submittedPayroll.referenceId,
-      fileName: submittedPayroll.fileName || selectedFile?.name || "payroll",
-      sourceAccountName: submittedPayroll.fromAccountName || selectedSourceAccount.name,
-      sourceAccountNumber: submittedPayroll.fromAccountNumber,
-      records: submittedPayroll.records,
-      totalAmount: Number(submittedPayroll.amount),
-      fee: Number(submittedPayroll.fee),
-      totalDebitAmount: Number(submittedPayroll.totalDebitAmount),
-      currency: submittedPayroll.currency === "USD" ? "USD" : "KHR",
-      status: "Pending",
-      title: submittedPayroll.fileName || selectedFile?.name,
-      processingType: submittedPayroll.schedule ? "Scheduled" : "Immediate",
-      createdAt: dayjs(submittedPayroll.createdAt).format("D MMM YYYY h:mm A"),
-      items: submittedPayroll.rows.map((row) => ({
-        id: row.referenceId,
-        employeeId: String(row.rowNumber),
-        employeeName: row.toAccountName || "Employee",
-        accountNumber: row.toAccount || "",
-        bankName: row.bankName || "",
-        amount: Number(row.amount),
-        currency: row.currency === "USD" ? "USD" : "KHR",
-        status: "Pending",
-      })),
-    };
+    if (!submittedPayroll) {
+      onBackToList();
+      return;
+    }
+    const newPayroll = buildSubmittedPayrollItem(submittedPayroll);
     onSuccess(newPayroll);
   };
 
@@ -1237,11 +1290,11 @@ export default function UploadPayrollWizard({
 
       {/* ================= STEP 3: SUBMIT / CONFIRMATION (Images 9 & 10) ================= */}
       {currentStep === 2 && (
-        <Box sx={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <Box sx={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
           <Box
             sx={{
-              maxWidth: 440,
-              width: "100%",
+              width: { xs: "100%", sm: 460, md: 500 },
+              maxWidth: "100%",
               bgcolor: "#FFFFFF",
               borderRadius: "20px",
               p: { xs: 3, sm: 4 },
@@ -1458,6 +1511,15 @@ export default function UploadPayrollWizard({
             try {
               const latest = await getPayroll(submittedPayroll.referenceId).unwrap();
               setSubmittedPayroll(latest);
+              try {
+                const item = buildSubmittedPayrollItem(latest);
+                const raw = localStorage.getItem(PAYROLL_STORAGE_KEY_PENDING);
+                const existing: PayrollItem[] = raw ? JSON.parse(raw) : [];
+                const updated = [item, ...existing.filter((p) => p.id !== item.id)];
+                localStorage.setItem(PAYROLL_STORAGE_KEY_PENDING, JSON.stringify(updated));
+              } catch {
+                // ignore
+              }
             } catch {
               // The saved batch remains pending if its status refresh is temporarily unavailable.
             }

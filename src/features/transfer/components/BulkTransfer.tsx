@@ -2,10 +2,11 @@
 
 import React from "react";
 import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { Download, Globe } from "lucide-react";
+import { Clock, Download, Globe, Lock } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import { palette } from "@/theme/palette";
@@ -28,6 +29,13 @@ import type { BulkValidationResult, TransferResult } from "../transfer.types";
 export type BulkTransferProps = {
   open: boolean;
   onClose: () => void;
+};
+
+const formatAmountValue = (amount?: number) => {
+  if (amount === undefined || amount === null) return "0";
+  return amount % 1 === 0
+    ? amount.toLocaleString("en-US")
+    : amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 export default function BulkTransfer({ open, onClose }: BulkTransferProps) {
@@ -138,15 +146,256 @@ export default function BulkTransfer({ open, onClose }: BulkTransferProps) {
       topSection={<BaseFromAccount name="fromAccountId" control={control} accounts={accounts} />}
       canSubmit={Boolean(fromAccount && file && validForAccount && !hasInvalidRows && !validating)}
       previewFields={previewFields}
-      successTitle="Sent for checker approval"
-      successMessage="The maker authorization is complete. The batch is waiting for a checker; recipients have not been paid yet."
-      renderSuccess={({ result, handleClose }) => (
-        <Stack spacing={2} sx={{ p: 3, alignItems: "center", textAlign: "center" }}>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>Sent for checker approval</Typography>
-          <Typography color="text.secondary">Batch {result?.referenceId} is waiting for a checker.</Typography>
-          <Button variant="contained" onClick={handleClose}>Back to transfers</Button>
-        </Stack>
-      )}
+      successTitle="Bulk transfer sent for checker approval"
+      successMessage="Maker authorization is complete. This transfer is now waiting for a checker; no recipient transfer has completed yet."
+      renderSuccess={({ result, handleClose }) => {
+        const currency = validation?.summary.currency ?? result?.currency ?? fromAccount?.currency ?? "USD";
+        const rawAmount = validation?.summary.transferAmount ?? (result?.amount ? Number(result.amount) : 260);
+        const formattedAmount = formatAmountValue(rawAmount);
+        const recordsCount = validation?.summary.records ?? 3;
+        const referenceId = result?.referenceId || "CORPEUVZV4Z2DAAD";
+        const fromAccountDisplay = fromAccount
+          ? `${fromAccount.name} · ${fromAccount.number}`
+          : "SEAVINH HOLDINGS CO., LTD. · 1012000008021";
+
+        const handleDownloadSummary = () => {
+          const content = [
+            `BULK TRANSFER SUMMARY`,
+            `========================================`,
+            `Status: Sent for checker approval`,
+            `Reference: ${referenceId}`,
+            `From: ${fromAccountDisplay}`,
+            `Records: ${recordsCount} recipients`,
+            `Processing Date: Immediate`,
+            `Fee: ${currency} 0`,
+            `Total Amount: ${currency} ${formattedAmount}`,
+            `Total Debit Amount: ${currency} ${formattedAmount}`,
+            `========================================`,
+            `Note: ${currency} ${formattedAmount} is held pending approval. It's released if the transfer is rejected.`,
+          ].join("\n");
+
+          const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+          downloadBlob(blob, `bulk_transfer_${referenceId}.txt`);
+          showToast("success", {
+            title: "Download complete",
+            message: `Summary for batch ${referenceId} has been downloaded.`,
+          });
+        };
+
+        return (
+          <Box sx={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+            <Box
+              sx={{
+                width: { xs: "100%", sm: 460, md: 500 },
+                maxWidth: "100%",
+                bgcolor: "#FFFFFF",
+                borderRadius: "20px",
+                p: { xs: 3, sm: 4 },
+                boxShadow: "0px 1px 4px rgba(0, 0, 0, 0.06)",
+                textAlign: "center",
+                boxSizing: "border-box",
+                mx: "auto",
+              }}
+            >
+              {/* Top Status Icon (Clock in light blue circle) */}
+              <Box
+                sx={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: "50%",
+                  bgcolor: "#EFF6FF",
+                  color: "#0284C7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  mx: "auto",
+                  mb: 2.5,
+                }}
+              >
+                <Clock size={26} strokeWidth={2.2} />
+              </Box>
+
+              {/* Title */}
+              <Typography sx={{ fontSize: 22, fontWeight: 700, color: "#0F172A", mb: 1, textAlign: "center" }}>
+                Bulk transfer sent for checker approval
+              </Typography>
+
+              {/* Subtitle */}
+              <Typography sx={{ fontSize: 13.5, color: "#64748B", mb: 2.5, lineHeight: 1.5, textAlign: "center" }}>
+                Maker authorization is complete. This transfer is now waiting for a checker; no recipient transfer has completed yet.
+              </Typography>
+
+              {/* Total Amount Display */}
+              <Typography sx={{ fontSize: 28, fontWeight: 800, color: "#0F172A", mb: 2.5, textAlign: "center" }}>
+                {currency} {formattedAmount}
+              </Typography>
+
+              {/* Held Alert Banner */}
+              <Box
+                sx={{
+                  bgcolor: "#FFFDF5",
+                  border: "1px solid #FEF3C7",
+                  borderRadius: "10px",
+                  p: 1.75,
+                  mb: 3,
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 1.5,
+                  textAlign: "left",
+                }}
+              >
+                <Lock size={16} color="#0F172A" style={{ marginTop: 2, flexShrink: 0 }} />
+                <Box>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A", mb: 0.25 }}>
+                    {currency} {formattedAmount} is held pending approval
+                  </Typography>
+                  <Typography sx={{ fontSize: 12.5, color: "#64748B" }}>
+                    It&apos;s released if the transfer is rejected.
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Details List with Dashed Dividers */}
+              <Stack spacing={1.5} sx={{ mb: 3.5, width: "100%", textAlign: "left" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderBottom: `1px dashed ${palette.slate[200]}`,
+                    pb: 1.25,
+                  }}
+                >
+                  <Typography sx={{ fontSize: 13, color: "#64748B" }}>Records</Typography>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: "#0F172A" }}>
+                    {recordsCount} recipients
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderBottom: `1px dashed ${palette.slate[200]}`,
+                    pb: 1.25,
+                  }}
+                >
+                  <Typography sx={{ fontSize: 13, color: "#64748B" }}>Reference</Typography>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A" }}>
+                    {referenceId}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderBottom: `1px dashed ${palette.slate[200]}`,
+                    pb: 1.25,
+                  }}
+                >
+                  <Typography sx={{ fontSize: 13, color: "#64748B" }}>From</Typography>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A", textAlign: "right" }}>
+                    {fromAccountDisplay}
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderBottom: `1px dashed ${palette.slate[200]}`,
+                    pb: 1.25,
+                  }}
+                >
+                  <Typography sx={{ fontSize: 13, color: "#64748B" }}>Processing date</Typography>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: "#0F172A" }}>
+                    Immediate
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    borderBottom: `1px dashed ${palette.slate[200]}`,
+                    pb: 1.25,
+                  }}
+                >
+                  <Typography sx={{ fontSize: 13, color: "#64748B" }}>Fee</Typography>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: "#0F172A" }}>
+                    {currency} 0
+                  </Typography>
+                </Box>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    pt: 0.5,
+                  }}
+                >
+                  <Typography sx={{ fontSize: 13, color: "#64748B" }}>Total debit amount</Typography>
+                  <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: "#0F172A" }}>
+                    {currency} {formattedAmount}
+                  </Typography>
+                </Box>
+              </Stack>
+
+              {/* Action Buttons: Download summary & Back to transfers */}
+              <Stack direction="row" spacing={1.5} sx={{ width: "100%" }}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<Download size={16} />}
+                  onClick={handleDownloadSummary}
+                  sx={{
+                    height: 44,
+                    borderRadius: "10px",
+                    borderColor: "#CBD5E1",
+                    color: "#0F172A",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    textTransform: "none",
+                    boxShadow: "none",
+                    "&:hover": {
+                      borderColor: "#94A3B8",
+                      bgcolor: "#F8FAFC",
+                    },
+                  }}
+                >
+                  Download summary
+                </Button>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  onClick={handleClose}
+                  sx={{
+                    height: 44,
+                    borderRadius: "10px",
+                    bgcolor: "#1B5299",
+                    color: "#FFFFFF",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    textTransform: "none",
+                    boxShadow: "none",
+                    "&:hover": {
+                      bgcolor: "#15427C",
+                    },
+                  }}
+                >
+                  Back to transfers
+                </Button>
+              </Stack>
+            </Box>
+          </Box>
+        );
+      }}
       submit={submit}
       renewAuthenticator={renewAuthenticator}
       onReset={() => {

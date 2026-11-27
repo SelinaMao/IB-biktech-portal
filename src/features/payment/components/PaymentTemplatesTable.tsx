@@ -23,6 +23,7 @@ const DEFAULT_DATE_FILTER: BaseFilterValue = { type: "all", from: null, to: null
 export interface PaymentTemplatesTableProps {
   templates: PaymentTemplate[];
   loading?: boolean;
+  onSelectTemplate?: (template: PaymentTemplate) => void;
   onEditTemplate?: (template: PaymentTemplate) => void;
   onDeleteTemplate?: (template: PaymentTemplate) => void;
 }
@@ -53,6 +54,7 @@ const BODY_CELL_SX = {
 export default function PaymentTemplatesTable({
   templates,
   loading = false,
+  onSelectTemplate,
   onEditTemplate,
   onDeleteTemplate,
 }: PaymentTemplatesTableProps) {
@@ -289,7 +291,7 @@ export default function PaymentTemplatesTable({
               mt: 0.5,
             }}
           >
-            Saved receiving accounts from the payment service. Bill and mobile details must be entered in their payment forms.
+            Saved receiving accounts for bill payments and mobile top-ups.
           </Typography>
         </Box>
 
@@ -370,9 +372,10 @@ export default function PaymentTemplatesTable({
         headerTextColor={palette.slate[500]}
         headerBorderTop={false}
         isLoading={loading}
+        onRowClick={onSelectTemplate}
         emptyTitle="No saved receiving accounts found."
         getRowSx={() => ({
-          cursor: "default",
+          cursor: onSelectTemplate ? "pointer" : "default",
           transition: "background-color 0.15s ease",
           "&:hover": {
             bgcolor: palette.slate[50],

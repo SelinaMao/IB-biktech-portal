@@ -1,13 +1,16 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 
 import { showToast } from "@core/components/AppToast";
-import { font } from "@/theme/palette";
-import type { PayrollItem } from "../payroll.types";
+import {
+  PAYROLL_STORAGE_KEY_HISTORY,
+  PAYROLL_STORAGE_KEY_PENDING,
+  type PayrollItem,
+} from "../payroll.types";
 import PayrollDetailDialog from "./PayrollDetailDialog";
 import PayrollEmptyState from "./PayrollEmptyState";
 import PayrollHistoryDialog from "./PayrollHistoryDialog";
@@ -19,6 +22,16 @@ const OVERLAP = 2; // active tab sinks into the card to seamlessly blend
 const PANEL_BG = "#FFFFFF";
 const ACTIVE_TEXT = "#2764A5";
 
+const loadStoredList = (key: string): PayrollItem[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as PayrollItem[]) : [];
+  } catch {
+    return [];
+  }
+};
+
 const tabSx = (active: boolean) => ({
   border: "none",
   outline: "none",
@@ -28,7 +41,7 @@ const tabSx = (active: boolean) => ({
   alignItems: "center",
   boxSizing: "border-box" as const,
   px: 3,
-  fontSize: `${font.size.sm}`,
+  fontSize: "14px",
   fontFamily: "inherit",
   transition: "background-color 0.15s ease, color 0.15s ease",
 
@@ -73,12 +86,15 @@ const tabSx = (active: boolean) => ({
 });
 
 export default function PayrollHub() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
-  const [pendingList, setPendingList] = useState<PayrollItem[]>([]);
-  const [historyList] = useState<PayrollItem[]>([]);
+  const [pendingList, setPendingList] = useState<PayrollItem[]>(() =>
+    loadStoredList(PAYROLL_STORAGE_KEY_PENDING),
+  );
+  const [historyList, setHistoryList] = useState<PayrollItem[]>(() =>
+    loadStoredList(PAYROLL_STORAGE_KEY_HISTORY),
+  );
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(5);
 
   // View state: "list" or "upload"
@@ -109,9 +125,18 @@ export default function PayrollHub() {
   }, [currentList, search]);
 
   const handleUploadSuccess = (newPayroll: PayrollItem) => {
-    setPendingList((prev) => [newPayroll, ...prev]);
+    setPendingList((prev) => {
+      const updated = [newPayroll, ...prev.filter((p) => p.id !== newPayroll.id)];
+      try {
+        localStorage.setItem(PAYROLL_STORAGE_KEY_PENDING, JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
     setViewMode("list");
     setActiveTab("pending");
+    setPage(0);
     showToast("success", {
       title: "Payroll Submitted",
       message: `Payroll batch ${newPayroll.referenceNo} is waiting for checker approval.`,
@@ -127,22 +152,65 @@ export default function PayrollHub() {
   };
 
   const handleApprovePayroll = (item: PayrollItem) => {
-    showToast("info", {
-      title: "Open approval workflow",
-      message: `Payroll ${item.referenceNo} stays pending until a checker approves it in the workflow.`,
+    setPendingList((prev) => {
+      const nextPending = prev.filter((p) => p.id !== item.id);
+      try {
+        localStorage.setItem(PAYROLL_STORAGE_KEY_PENDING, JSON.stringify(nextPending));
+      } catch {
+        // ignore
+      }
+      return nextPending;
     });
-    router.push("/approval-workflow");
+    const approvedItem: PayrollItem = {
+      ...item,
+      status: "Completed",
+    };
+    setHistoryList((prev) => {
+      const nextHistory = [approvedItem, ...prev.filter((p) => p.id !== approvedItem.id)];
+      try {
+        localStorage.setItem(PAYROLL_STORAGE_KEY_HISTORY, JSON.stringify(nextHistory));
+      } catch {
+        // ignore
+      }
+      return nextHistory;
+    });
+    showToast("success", {
+      title: "Payroll Approved",
+      message: `Payroll ${item.referenceNo} has been approved.`,
+    });
   };
 
-  const handleRejectPayroll = (item: PayrollItem) => {
-    showToast("info", {
-      title: "Open approval workflow",
-      message: `Payroll ${item.referenceNo} stays pending until a checker records a decision in the workflow.`,
+  const handleRejectPayroll = (item: PayrollItem, reason?: string) => {
+    setPendingList((prev) => {
+      const nextPending = prev.filter((p) => p.id !== item.id);
+      try {
+        localStorage.setItem(PAYROLL_STORAGE_KEY_PENDING, JSON.stringify(nextPending));
+      } catch {
+        // ignore
+      }
+      return nextPending;
     });
-    router.push("/approval-workflow");
+    const rejectedItem: PayrollItem = {
+      ...item,
+      status: "Rejected",
+      remarks: reason || item.remarks,
+    };
+    setHistoryList((prev) => {
+      const nextHistory = [rejectedItem, ...prev.filter((p) => p.id !== rejectedItem.id)];
+      try {
+        localStorage.setItem(PAYROLL_STORAGE_KEY_HISTORY, JSON.stringify(nextHistory));
+      } catch {
+        // ignore
+      }
+      return nextHistory;
+    });
+    showToast("info", {
+      title: "Payroll Rejected",
+      message: `Payroll ${item.referenceNo} has been rejected.`,
+    });
   };
 
-  // If currently in upload wizard view (Images 2, 3, 4)
+  // If currently in upload wizard view
   if (viewMode === "upload") {
     return (
       <UploadPayrollWizard
@@ -154,11 +222,25 @@ export default function PayrollHub() {
 
   return (
     <Box sx={{ width: "100%" }}>
+      {/* Conditional rendering: Empty State vs Table with data */}
       {isEmpty ? (
         <PayrollEmptyState onMakePayroll={() => setViewMode("upload")} />
       ) : (
-        <>
-          {/* Folder Tabs: Pending (5) & History */}
+        <Box sx={{ width: "100%", pb: 4 }}>
+          {/* Page Title */}
+          <Typography
+            variant="h5"
+            sx={{
+              fontSize: { xs: 22, sm: 26 },
+              fontWeight: 700,
+              color: "#0F172A",
+              mb: 3,
+            }}
+          >
+            Payroll
+          </Typography>
+
+          {/* Folder Tabs: Pending (count) & History */}
           <Stack
             direction="row"
             spacing={1.5}
@@ -176,9 +258,9 @@ export default function PayrollHub() {
               type="button"
               onClick={() => {
                 setActiveTab("pending");
-                setPage(1);
+                setPage(0);
               }}
-              sx={[tabSx(activeTab === "pending"), { ml: { xs: 2, sm: 6 } }]}
+              sx={[tabSx(activeTab === "pending"), { ml: { xs: 2, sm: 3 } }]}
             >
               {`Pending (${pendingList.length})`}
             </Box>
@@ -206,15 +288,15 @@ export default function PayrollHub() {
             }}
             page={page}
             rowsPerPage={rowsPerPage}
-            totalPages={12}
+            totalPages={Math.max(1, Math.ceil(filteredEntries.length / rowsPerPage))}
             onPageChange={setPage}
             onUploadClick={() => setViewMode("upload")}
             onRowClick={handleRowClick}
           />
-        </>
+        </Box>
       )}
 
-      {/* History Detail Dialog (Centered Modal matching design) */}
+      {/* History Detail Dialog */}
       <PayrollHistoryDialog
         open={Boolean(selectedHistoryItem)}
         onClose={() => setSelectedHistoryItem(null)}

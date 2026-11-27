@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Box from "@mui/material/Box";
+import ButtonBase from "@mui/material/ButtonBase";
 import FormControl from "@mui/material/FormControl";
 import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
@@ -14,6 +15,7 @@ import { ChevronDown, CreditCard, Phone, Smartphone } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { palette } from "@/theme/palette";
+import { showToast } from "@core/components/AppToast";
 import {
   PreviewTransfer,
   type TransferPreviewField,
@@ -22,6 +24,7 @@ import {
 } from "@/features/transfer";
 import { useTransferAccounts } from "@/features/transfer/use-transfer-accounts";
 import { useInquirePhoneMutation, useSubmitPhoneTopUpMutation } from "../payment.api";
+import { savePaymentTemplate } from "../payment.templates";
 import type { PaymentTemplate, PhoneTopUpTransferRequest } from "../payment.types";
 
 export interface MobileTopUpViewProps {
@@ -33,7 +36,7 @@ export interface MobileTopUpViewProps {
 }
 
 const QUICK_AMOUNTS_USD = [1, 2, 5, 10, 20, 50] as const;
-const QUICK_AMOUNTS_KHR = [4000, 10000, 20000, 40000, 80000, 200000] as const;
+const QUICK_AMOUNTS_KHR = [4000, 8000, 20000, 40000, 80000, 200000] as const;
 
 /** Safely formats account balance from string, number, or formatted currency strings without NaN */
 function formatBalance(balance: number | string | undefined | null): string {
@@ -83,10 +86,18 @@ export default function MobileTopUpView({
   );
   const [amount, setAmount] = useState<number>(5);
   const [customAmountStr, setCustomAmountStr] = useState<string>("5.00");
-  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
-  const [templateName, setTemplateName] = useState("Sales team top-up");
+  const [saveAsTemplate, setSaveAsTemplate] = useState(() => Boolean(initialTemplate));
+  const [templateName, setTemplateName] = useState(() => initialTemplate?.name ?? "Sales team top-up");
   const [setSchedule, setSetSchedule] = useState(false);
   const [scheduleFreq, setScheduleFreq] = useState("Monthly");
+
+  React.useEffect(() => {
+    if (initialTemplate) {
+      setMobileNumber(initialTemplate.correspondentId.replace(/^(Mobile no\.|Phone number)\s*/i, ""));
+      setTemplateName(initialTemplate.name);
+      setSaveAsTemplate(true);
+    }
+  }, [initialTemplate]);
 
   // Reference IDs
   const [referenceNo] = useState(() => `TOP2610${Math.floor(100000 + Math.random() * 900000)}`);
@@ -94,6 +105,41 @@ export default function MobileTopUpView({
 
   const [submitPhoneTopUp] = useSubmitPhoneTopUpMutation();
   const [inquirePhone, { data: inquiryData }] = useInquirePhoneMutation();
+
+  const handleExplicitSaveTemplate = () => {
+    if (!phoneIsValid) {
+      showToast("error", {
+        title: "Invalid phone number",
+        message: "Please enter a valid phone number before saving as a template.",
+      });
+      return;
+    }
+    const saved = savePaymentTemplate({
+      id: initialTemplate?.id,
+      name: templateName.trim() || `${network.name} Top-up`,
+      type: "Mobile top-up",
+      providerName: network.name,
+      providerInitials: network.name.slice(0, 2).toUpperCase(),
+      correspondentId: mobileNumber.trim(),
+    });
+    showToast("success", {
+      title: "Template saved",
+      message: `“${saved.name}” saved to templates.`,
+    });
+  };
+
+  const handleReview = () => {
+    if (saveAsTemplate && phoneIsValid) {
+      savePaymentTemplate({
+        id: initialTemplate?.id,
+        name: templateName.trim() || `${network.name} Top-up`,
+        type: "Mobile top-up",
+        providerName: network.name,
+        providerInitials: network.name.slice(0, 2).toUpperCase(),
+        correspondentId: mobileNumber.trim(),
+      });
+    }
+  };
 
   // Debounced inquiry for live telco lookup from backend API
   React.useEffect(() => {
@@ -211,6 +257,17 @@ export default function MobileTopUpView({
       schedule: schedulePayload,
     };
 
+    if (saveAsTemplate) {
+      savePaymentTemplate({
+        id: initialTemplate?.id,
+        name: templateName.trim() || `${network.name} Top-up`,
+        type: "Mobile top-up",
+        providerName: network.name,
+        providerInitials: network.name.slice(0, 2).toUpperCase(),
+        correspondentId: mobileNumber.trim(),
+      });
+    }
+
     return await submitPhoneTopUp({
       body: payload,
       idempotencyKey: idempotencyKey || crypto.randomUUID(),
@@ -289,6 +346,7 @@ export default function MobileTopUpView({
       step0ButtonTitle="Review"
       onBackToMain={handleClose}
       onReset={handleReset}
+      onReview={handleReview}
       submit={submit}
     >
       {/* Step 0 Form Matching Design Mockup */}
@@ -563,13 +621,43 @@ export default function MobileTopUpView({
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: palette.slate[700], mb: 0.5 }}>
                   Template name
                 </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                  sx={{ "& .MuiOutlinedInput-root": { height: 40, borderRadius: "8px", bgcolor: "#FFFFFF" } }}
-                />
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    placeholder={`${network.name} Top-up`}
+                    sx={{ "& .MuiOutlinedInput-root": { height: 40, borderRadius: "8px", bgcolor: "#FFFFFF" } }}
+                  />
+                  <ButtonBase
+                    type="button"
+                    onClick={handleExplicitSaveTemplate}
+                    disabled={!mobileNumber.trim() || !phoneIsValid}
+                    sx={{
+                      px: 2.25,
+                      height: 40,
+                      borderRadius: "8px",
+                      bgcolor: "#2764A5",
+                      color: "#FFFFFF",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                      transition: "all 0.15s ease",
+                      "&:hover": {
+                        bgcolor: "#1E5289",
+                      },
+                      "&.Mui-disabled": {
+                        bgcolor: palette.slate[200],
+                        color: palette.slate[400],
+                        cursor: "not-allowed",
+                      },
+                    }}
+                  >
+                    Save now
+                  </ButtonBase>
+                </Stack>
               </Box>
             )}
           </Box>

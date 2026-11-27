@@ -20,9 +20,9 @@ import { useTransferAccounts } from "@/features/transfer/use-transfer-accounts";
 import { useTransferAuthorization } from "@/features/transfer/use-transfer-authorization";
 import { AuthenticatorDialog } from "@/features/authenticator";
 import { CLIENT_PERMISSIONS, useCan } from "@/features/auth";
-import { toToastError } from "@/utils/api-error";
 import { BILL_PROVIDERS } from "../payment.data";
-import { useInquireBillMutation, useSubmitBillPaymentMutation } from "../payment.api";
+import { useSubmitBillPaymentMutation } from "../payment.api";
+import { savePaymentTemplate } from "../payment.templates";
 import type { BillProvider, PaymentTemplate } from "../payment.types";
 
 export interface PayBillDialogProps {
@@ -54,20 +54,22 @@ export default function PayBillDialog({
   const [note, setNote] = useState("");
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [templateName, setTemplateName] = useState("");
-  const [verifiedBillKey, setVerifiedBillKey] = useState("");
-  const [inquiryError, setInquiryError] = useState<{
-    billKey: string;
-    title: string;
-    message: string;
-    referenceCode?: string;
-  } | null>(null);
-  const [inquireBill, { isLoading: isInquiring }] = useInquireBillMutation();
   const [submitBillPayment, { isLoading: isSubmitting }] = useSubmitBillPaymentMutation();
 
   useEffect(() => {
+    if (!open) return;
     if (template) {
       setConsumerId(template.correspondentId.replace(/^(Consumer ID|Mobile no\.|Organisation ID)\s*/, ""));
+      if (template.providerId) {
+        setSelectedBillProviderId(template.providerId);
+      } else {
+        const found = BILL_PROVIDERS.find(
+          (item) => item.name.toLowerCase() === template.providerName.trim().toLowerCase(),
+        );
+        if (found) setSelectedBillProviderId(found.providerId);
+      }
     } else if (provider) {
+      setSelectedBillProviderId(provider.providerId);
       setConsumerId(provider.sampleConsumerId);
     }
     setAmount("");
@@ -86,7 +88,8 @@ export default function PayBillDialog({
   const billProvider =
     provider ??
     mappedTemplateProvider ??
-    BILL_PROVIDERS.find((item) => item.providerId === selectedBillProviderId);
+    BILL_PROVIDERS.find((item) => item.providerId === selectedBillProviderId) ??
+    BILL_PROVIDERS[0];
   const targetSubtitle = template
     ? `${template.type} · ${billProvider?.name ?? template.providerName}`
     : provider?.category ?? "Bill Payment";
@@ -104,6 +107,16 @@ export default function PayBillDialog({
       idempotencyKey,
     }).unwrap(),
     onCompleted: (result) => {
+      if (saveAsTemplate) {
+        savePaymentTemplate({
+          name: templateName.trim() || targetTitle,
+          type: "Bill payment",
+          providerName: billProvider?.name ?? "Bill payment",
+          providerId: billProvider?.providerId,
+          providerInitials: targetInitials,
+          correspondentId: consumerId.trim(),
+        });
+      }
       if (result.status === "AWAITING_APPROVAL") {
         showToast("success", {
           title: "Bill payment submitted for approval",
@@ -118,47 +131,32 @@ export default function PayBillDialog({
       handleClose();
     },
   });
-  const billKey = billProvider && consumerId.trim()
-    ? `${billProvider.providerId}:${consumerId.trim()}`
-    : "";
-  const billInquired = Boolean(billKey && verifiedBillKey === billKey);
 
   const activeAccountId = accounts.some((account) => account.id === selectedAccountId)
     ? selectedAccountId
     : accounts[0]?.id ?? "";
   const selectedAccount = accounts.find((account) => account.id === activeAccountId);
 
-  const handleInquiry = async () => {
-    if (!billProvider?.paymentSupported || !consumerId.trim()) return;
-
-    try {
-      await inquireBill({
-        consumerId: consumerId.trim(),
-      }).unwrap();
-      setVerifiedBillKey(billKey);
-      setInquiryError(null);
-    } catch (error) {
-      setVerifiedBillKey("");
-      const errorDetails = toToastError(error, "Could not verify bill details");
-      setInquiryError({
-        billKey,
-        title: errorDetails.title,
-        message: errorDetails.message ?? "Please check the bill details and try again.",
-        referenceCode: errorDetails.referenceCode,
-      });
-    }
-  };
-
   const handleClose = () => {
     authorization.discard();
-    setVerifiedBillKey("");
     onClose();
   };
 
   const handleSubmit = async () => {
     const parsedAmount = Number(amount);
-    if (!selectedAccount || !billProvider?.paymentSupported || !consumerId.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+    if (!selectedAccount || !consumerId.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       return;
+    }
+
+    if (saveAsTemplate) {
+      savePaymentTemplate({
+        name: templateName.trim() || targetTitle,
+        type: "Bill payment",
+        providerName: billProvider?.name ?? "Bill payment",
+        providerId: billProvider?.providerId,
+        providerInitials: targetInitials,
+        correspondentId: consumerId.trim(),
+      });
     }
 
     await authorization.start();
@@ -166,10 +164,8 @@ export default function PayBillDialog({
 
   const isValid = Boolean(
     canInitiateBill &&
-    billProvider?.paymentSupported &&
       selectedAccount &&
       consumerId.trim() &&
-      billInquired &&
       amount.trim() &&
       Number.isFinite(Number(amount)) &&
       Number(amount) > 0,
@@ -210,8 +206,6 @@ export default function PayBillDialog({
                   value={selectedBillProviderId}
                   onChange={(event) => {
                     setSelectedBillProviderId(event.target.value);
-                    setVerifiedBillKey("");
-                    setInquiryError(null);
                   }}
                   sx={{ borderRadius: `${radius.md}px` }}
                 >
@@ -305,12 +299,7 @@ export default function PayBillDialog({
             value={consumerId}
             onChange={(e) => {
               authorization.discard();
-              setVerifiedBillKey("");
-              setInquiryError(null);
               setConsumerId(e.target.value);
-            }}
-            onBlur={() => {
-              if (!billInquired && !isInquiring) void handleInquiry();
             }}
             sx={{
               "& .MuiOutlinedInput-root": {
@@ -318,17 +307,8 @@ export default function PayBillDialog({
               },
             }}
           />
-          {isInquiring && (
-            <Typography variant="caption" color="text.secondary">
-              Checking bill details...
-            </Typography>
-          )}
         </Box>
-        {billInquired && (
-          <Alert severity="success">
-            Bill details verified.
-          </Alert>
-        )}
+
         {/* Amount */}
         <Box>
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: palette.slate[700], mb: 0.75 }}>
@@ -338,11 +318,18 @@ export default function PayBillDialog({
             fullWidth
             size="small"
             placeholder="0.00"
-            type="number"
             value={amount}
             onChange={(e) => {
-              authorization.discard();
-              setAmount(e.target.value);
+              const val = e.target.value;
+              if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                authorization.discard();
+                setAmount(val);
+              }
+            }}
+            slotProps={{
+              htmlInput: {
+                inputMode: "decimal",
+              },
             }}
             sx={{
               "& .MuiOutlinedInput-root": {
